@@ -7,9 +7,8 @@
 #include "Animation/AnimSequence.h"
 #include "LevelSequence.h"
 
-// IK asset types referenced via TSoftObjectPtr — forward declarations sufficient.
-class UIKRigDefinition;
-class UIKRetargeter;
+#include "IKRigDefinition.h"
+#include "Retargeter/IKRetargeter.h"
 
 #include "PCAPToolTypes.generated.h"
 

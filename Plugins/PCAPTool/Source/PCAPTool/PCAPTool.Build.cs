@@ -13,15 +13,12 @@ public class PCAPTool : ModuleRules
             "Engine",
             "DeveloperSettings",  // UDeveloperSettings
             "LevelSequence",      // ULevelSequence in PCAPToolTypes.h
+            "IKRig",              // UIKRigDefinition, UIKRetargeter in FRetargetConfig
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]
         {
             "UnrealEd",
         });
-
-        // IKRig types (UIKRigDefinition, UIKRetargeter) are referenced via
-        // TSoftObjectPtr with forward declarations — no hard link needed at this
-        // stage. Add "IKRig" here when runtime loading of those assets is required.
     }
 }
