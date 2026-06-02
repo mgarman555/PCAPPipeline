@@ -1,31 +1,61 @@
-Build started at 12:14 PM...
-1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
-1>Using bundled DotNet SDK version: 8.0.412 win-x64
-1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
-1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
-1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
-1>Invalidating makefile for PCAPPipelineEditor (PCAPTool.Build.cs modified)
-1>UHT compiled-in object format Default
-1>Parsing headers for PCAPPipelineEditor
-1>  Running Internal UnrealHeaderTool C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject C:\Users\mocapstaff\Desktop\PCAPPipeline\Intermediate\Build\Win64\PCAPPipelineEditor\Development\PCAPPipelineEditor.uhtmanifest -WarningsAsErrors -installed
-1>UHT processed PCAPPipelineEditor in 0.7735481 seconds (5 files written)
-1>Building PCAPPipelineEditor...
-1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
-1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
-1>  Executing up to 32 processes, one per physical core
-1>Using Unreal Build Accelerator local executor to run 4 action(s)
-1>  Storage capacity 40Gb
-1>---- Starting trace: 260602_121405_vs46732 ----
-1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
-1>[1/4] Compile [x64] Module.PCAPTool.cpp
-1>[2/4] Link [x64] UnrealEditor-PCAPTool.lib
-1>[3/4] Link [x64] UnrealEditor-PCAPTool.dll
-1>[4/4] WriteMetadata PCAPPipelineEditor.target [NoUba]
-1>
-1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 3.4kb
-1>Total time in Unreal Build Accelerator local executor: 3.19 seconds
-1>
-1>Result: Succeeded
-1>Total execution time: 7.92 seconds
-========== Build: 1 succeeded, 0 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 12:14 PM and took 08.282 seconds ==========
+
+C:\Users\mocapstaff\Desktop\PCAPPipeline>git status
+On branch main
+Your branch is behind 'origin/main' by 2 commits, and can be fast-forwarded.
+  (use "git pull" to update your local branch)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   PCAPPipeline.uproject
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .vsconfig
+        Config/
+        Content/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+C:\Users\mocapstaff\Desktop\PCAPPipeline>git stash
+warning: in the working copy of 'PCAPPipeline.uproject', CRLF will be replaced by LF the next time Git touches it
+Saved working directory and index state WIP on main: df0ce36 fix: replace IK soft pointers with FString paths to unblock build
+
+C:\Users\mocapstaff\Desktop\PCAPPipeline>git pull origin main
+fatal: unable to get credential storage lock in 1000 ms: Permission denied
+From https://github.com/mgarman555/PCAPPipeline
+ * branch            main       -> FETCH_HEAD
+Updating df0ce36..44c5dae
+Fast-forward
+ CurrentErrorCodes                                  |  61 +++------
+ PCAPPipeline.uproject                              |   6 +
+ Plugins/PCAPTool/PCAPTool.uplugin                  |   8 ++
+ Plugins/PCAPTool/Source/PCAPTool/PCAPTool.Build.cs |   7 +
+ .../PCAPTool/Private/HMCMonitorComponent.cpp       | 149 +++++++++++++++++++++
+ .../Source/PCAPTool/Public/HMCMonitorComponent.h   |  53 ++++++++
+ .../Source/PCAPTool/Public/PCAPToolTypes.h         |  45 ++++++-
+ 7 files changed, 279 insertions(+), 50 deletions(-)
+ create mode 100644 Plugins/PCAPTool/Source/PCAPTool/Private/HMCMonitorComponent.cpp
+ create mode 100644 Plugins/PCAPTool/Source/PCAPTool/Public/HMCMonitorComponent.h
+
+C:\Users\mocapstaff\Desktop\PCAPPipeline>git stash pop
+Auto-merging PCAPPipeline.uproject
+CONFLICT (content): Merge conflict in PCAPPipeline.uproject
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+  (use "git add <file>..." to mark resolution)
+        both modified:   PCAPPipeline.uproject
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .vsconfig
+        Config/
+        Content/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+The stash entry is kept in case you need it again.
+
+C:\Users\mocapstaff\Desktop\PCAPPipeline>
