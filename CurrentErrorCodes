@@ -1,10 +1,7 @@
-PS C:\WINDOWS\system32> & "C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" project files -project="C:\Users\mocapstaff\Dekstop\PCAPPipeline.uproject" -game -rocket -progress
-Using bundled DotNet SDK version: 8.0.412 win-x64
-Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" project files -project=C:\Users\mocapstaff\Dekstop\PCAPPipeline.uproject -game -rocket -progress
-Unhandled exception: Exception: Unable to find project file based on argument C:\Users\mocapstaff\Dekstop\PCAPPipeline.uproject
-   at UnrealBuildTool.Utils.TryParseProjectFileArgument(CommandLineArguments Arguments, ILogger Logger, FileReference& ProjectFile, Boolean MarkArgumentAsUsed)
-   at UnrealBuildTool.UnrealBuildTool.Main(String[] ArgumentsArray)
-
-Result: Failed (OtherCompilationError)
-Total execution time: 0.12 seconds
-PS C:\WINDOWS\system32>
+Get-ChildItem : Cannot find path 'C:\Users\mocapstaff\C\Program Files\Epic Games\' because it does not exist.
+At line:1 char:1
++ Get-ChildItem "C\Program Files\Epic Games\UE_5.7" -Recurse -Filter "B ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\mocaps...les\Epic Games\:String) [Get-ChildItem], ItemNotFound
+   Exception
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetChildItemCommand
