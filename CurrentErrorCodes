@@ -1,22 +1,15 @@
-Running C:/Program Files/Epic Games/UE_5.7/Engine/Build/BatchFiles/Build.bat  -projectfiles -project="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject" -game -rocket -progress -log="C:\Users\mocapstaff\Desktop\PCAPPipeline/Saved/Logs/UnrealVersionSelector-2026.06.02-10.32.50.log"
-Using bundled DotNet SDK version: 8.0.412 win-x64
-Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" -projectfiles -project="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject" -game -rocket -progress -log="C:\Users\mocapstaff\Desktop\PCAPPipeline/Saved/Logs/UnrealVersionSelector-2026.06.02-10.32.50.log"
-Log file: C:\Users\mocapstaff\Desktop\PCAPPipeline\Saved\Logs\UnrealVersionSelector-2026.06.02-10.32.50.log
-PCAPPipeline.uproject(0): error: JsonReaderException: '0xFF' is an invalid start of a value. LineNumber: 0 | BytePositionInLine: 0.
-   at System.Text.Json.ThrowHelper.ThrowJsonReaderException(Utf8JsonReader& json, ExceptionResource resource, Byte nextByte, ReadOnlySpan`1 bytes)
-   at System.Text.Json.Utf8JsonReader.ConsumeValue(Byte marker)
-   at System.Text.Json.Utf8JsonReader.ReadFirstToken(Byte first)
-   at System.Text.Json.Utf8JsonReader.ReadSingleSegment()
-   at System.Text.Json.Utf8JsonReader.Read()
-   at System.Text.Json.JsonDocument.Parse(ReadOnlySpan`1 utf8JsonSpan, JsonReaderOptions readerOptions, MetadataDb& database, StackRowStack& stack)
-   at System.Text.Json.JsonDocument.Parse(ReadOnlyMemory`1 utf8Json, JsonReaderOptions readerOptions, Byte[] extraRentedArrayPoolBytes, PooledByteBufferWriter extraPooledByteBufferWriter)
-   at EpicGames.Core.JsonObject.ParseUtf8File(String path)
-   at EpicGames.Core.JsonObject.Read(FileReference file)
-   at UnrealBuildTool.ProjectDescriptor.FromFile(FileReference FileName)Wrapped by JsonException: '0xFF' is an invalid start of a value. LineNumber: 0 | BytePositionInLine: 0. (in C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject)
-   at UnrealBuildTool.ProjectDescriptor.FromFile(FileReference FileName)
-   at UnrealBuildTool.ProjectFileGenerator..ctor(FileReference InOnlyGameProject)
-   at UnrealBuildTool.GenerateProjectFilesMode.ExecuteAsync(CommandLineArguments Arguments, ILogger Logger)
-   at UnrealBuildTool.UnrealBuildTool.Main(String[] ArgumentsArray)
-
-Result: Failed (OtherCompilationError)
-Total execution time: 0.34 seconds
+Build started at 10:40 AM...
+1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
+1>Using bundled DotNet SDK version: 8.0.412 win-x64
+1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
+1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
+1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
+1>Creating makefile for PCAPPipelineEditor (no existing makefile)
+1>Expecting to find a type to be declared in a module rules named 'LiveLinkDataStream' in 'UE5Rules, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'.  This type must derive from the 'ModuleRules' type defined by UnrealBuildTool.
+1>
+1>Result: Failed (RulesError)
+1>Total execution time: 0.88 seconds
+1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 8.
+1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
+========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
+========== Build completed at 10:40 AM and took 01.527 seconds ==========
