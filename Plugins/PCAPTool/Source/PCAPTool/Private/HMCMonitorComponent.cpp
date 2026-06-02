@@ -134,9 +134,9 @@ void UHMCMonitorComponent::OnPollResponse(
     }
 
     // HMC API fields: nRecording, batteryVoltage, availableStorageInMB, takename
-    int32 IsRecordingInt = 0;
-    JsonObj->TryGetNumberField(TEXT("nRecording"), IsRecordingInt);
-    Status.IsRecording = IsRecordingInt != 0;
+    double RecordingVal = 0.0;
+    JsonObj->TryGetNumberField(TEXT("nRecording"), RecordingVal);
+    Status.IsRecording = RecordingVal != 0.0;
 
     double BattVoltage = 0.0;
     JsonObj->TryGetNumberField(TEXT("batteryVoltage"), BattVoltage);
