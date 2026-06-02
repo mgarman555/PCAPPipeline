@@ -13,7 +13,7 @@ class UPCAPDatabase;
  * All database read/write operations are exposed here as BlueprintCallable UFUNCTIONs.
  * The Blueprint subclass implements OnDatabaseChanged and OnSelectionChanged to refresh its lists.
  */
-UCLASS(Abstract, BlueprintType)
+UCLASS(BlueprintType)
 class PCAPTOOL_API UPCAPToolEditorWidget : public UEditorUtilityWidget
 {
     GENERATED_BODY()
