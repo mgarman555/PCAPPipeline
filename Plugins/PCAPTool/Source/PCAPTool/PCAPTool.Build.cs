@@ -18,6 +18,7 @@ public class PCAPTool : ModuleRules
             "JsonUtilities",      // TJsonReader helpers
             "UMG",                // UUserWidget base — PCAPToolEditorWidget
             "Blutility",          // UEditorUtilityWidget
+            "ImageWrapper",       // JPEG decode for HMC video frames
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]
