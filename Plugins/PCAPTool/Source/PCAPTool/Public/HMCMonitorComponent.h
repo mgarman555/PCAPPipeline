@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
 #include "PCAPToolTypes.h"
 #include "HMCMonitorComponent.generated.h"
 
@@ -48,6 +50,6 @@ private:
 
     void PollAllDevices();
     void PollDevice(const FString& DeviceID, const FString& IPAddress);
-    void OnPollResponse(FHttpResponsePtr Response, bool bWasSuccessful,
-                        FString DeviceID, FString IPAddress);
+    void OnPollResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
+                        bool bWasSuccessful, FString DeviceID, FString IPAddress);
 };

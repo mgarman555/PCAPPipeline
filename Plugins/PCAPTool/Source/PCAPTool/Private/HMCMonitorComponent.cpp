@@ -100,6 +100,7 @@ void UHMCMonitorComponent::PollDevice(const FString& DeviceID, const FString& IP
 }
 
 void UHMCMonitorComponent::OnPollResponse(
+    FHttpRequestPtr Request,
     FHttpResponsePtr Response,
     bool bWasSuccessful,
     FString DeviceID,
