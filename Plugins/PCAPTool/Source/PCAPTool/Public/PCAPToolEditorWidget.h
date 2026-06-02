@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "EditorUtilityWidget.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
 #include "PCAPToolTypes.h"
 #include "PCAPToolEditorWidget.generated.h"
 
@@ -178,6 +180,33 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "PCAP|DateTime")
     static FString FormatDateDisplay(const FDateTime& InDateTime);
 
+    // ─── HMC Device Monitoring ────────────────────────────────────────────────
+
+    // Register a device for polling. Call once per device (e.g. in NativeConstruct or
+    // from a "Add Device" button). DeviceID = "HMC_Unit_A", IPAddress = "192.168.50.x"
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void RegisterHMCDevice(const FString& DeviceID, const FString& IPAddress);
+
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void UnregisterHMCDevice(const FString& DeviceID);
+
+    // Fire one HTTP poll cycle for all registered devices.
+    // Call this from a Blueprint "Set Timer by Function Name" every 2 seconds.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void PollHMCDevicesNow();
+
+    // Returns the latest cached status for all registered devices.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    TArray<FHMCDeviceStatus> GetHMCStatuses() const;
+
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    FHMCDeviceStatus GetHMCStatus(const FString& DeviceID) const;
+
+    // Fires on game thread after each device poll (success or failure).
+    // Implement in Blueprint to update the device row widget for this DeviceID.
+    UFUNCTION(BlueprintImplementableEvent, Category = "PCAP|HMC")
+    void OnHMCStatusUpdated(const FHMCDeviceStatus& UpdatedStatus);
+
     // ─── Blueprint Callbacks ──────────────────────────────────────────────────
 
     // Fires after any database mutation or save. Implement in Blueprint to refresh lists.
@@ -189,6 +218,18 @@ public:
     void OnSelectionChanged();
 
 private:
+    struct FHMCDeviceRecord
+    {
+        FString IPAddress;
+        FHMCDeviceStatus Status;
+    };
+
+    TMap<FString, FHMCDeviceRecord> HMCDeviceRegistry;
+
+    void PollSingleDevice(const FString& DeviceID, const FString& IPAddress);
+    void OnHMCPollResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
+                           bool bWasSuccessful, FString DeviceID, FString IPAddress);
+
     // Marks the database asset dirty and fires OnDatabaseChanged.
     void MarkDirtyAndNotify();
 };

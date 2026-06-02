@@ -2,6 +2,12 @@
 #include "PCAPToolSettings.h"
 #include "PCAPDatabase.h"
 #include "FileHelpers.h"
+#include "HttpModule.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -423,6 +429,106 @@ FDateTime UPCAPToolEditorWidget::Today()
     const FDateTime Now = FDateTime::Now();
     return FDateTime(Now.GetYear(), Now.GetMonth(), Now.GetDay());
 }
+
+// ─── HMC Device Monitoring ────────────────────────────────────────────────────
+
+void UPCAPToolEditorWidget::RegisterHMCDevice(const FString& DeviceID, const FString& IPAddress)
+{
+    FHMCDeviceRecord& Record = HMCDeviceRegistry.FindOrAdd(DeviceID);
+    Record.IPAddress = IPAddress;
+    Record.Status.DeviceID = DeviceID;
+    Record.Status.IPAddress = IPAddress;
+    Record.Status.IsReachable = false;
+}
+
+void UPCAPToolEditorWidget::UnregisterHMCDevice(const FString& DeviceID)
+{
+    HMCDeviceRegistry.Remove(DeviceID);
+}
+
+void UPCAPToolEditorWidget::PollHMCDevicesNow()
+{
+    for (const auto& Pair : HMCDeviceRegistry)
+    {
+        PollSingleDevice(Pair.Key, Pair.Value.IPAddress);
+    }
+}
+
+TArray<FHMCDeviceStatus> UPCAPToolEditorWidget::GetHMCStatuses() const
+{
+    TArray<FHMCDeviceStatus> Out;
+    for (const auto& Pair : HMCDeviceRegistry)
+    {
+        Out.Add(Pair.Value.Status);
+    }
+    return Out;
+}
+
+FHMCDeviceStatus UPCAPToolEditorWidget::GetHMCStatus(const FString& DeviceID) const
+{
+    const FHMCDeviceRecord* Record = HMCDeviceRegistry.Find(DeviceID);
+    return Record ? Record->Status : FHMCDeviceStatus();
+}
+
+void UPCAPToolEditorWidget::PollSingleDevice(const FString& DeviceID, const FString& IPAddress)
+{
+    const FString URL = FString::Printf(TEXT("http://%s/control?cmd=no&param="), *IPAddress);
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(URL);
+    Request->SetVerb(TEXT("GET"));
+    Request->SetTimeout(1.5f);
+
+    Request->OnProcessRequestComplete().BindUObject(
+        this,
+        &UPCAPToolEditorWidget::OnHMCPollResponse,
+        DeviceID,
+        IPAddress
+    );
+
+    Request->ProcessRequest();
+}
+
+void UPCAPToolEditorWidget::OnHMCPollResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
+                                               bool bWasSuccessful, FString DeviceID, FString IPAddress)
+{
+    FHMCDeviceRecord* Record = HMCDeviceRegistry.Find(DeviceID);
+    if (!Record) return;
+
+    FHMCDeviceStatus& Status = Record->Status;
+    Status.LastPollTime = FDateTime::UtcNow();
+
+    if (!bWasSuccessful || !Response.IsValid() || Response->GetResponseCode() != 200)
+    {
+        Status.IsReachable = false;
+        OnHMCStatusUpdated(Status);
+        return;
+    }
+
+    Status.IsReachable = true;
+
+    TSharedPtr<FJsonObject> JsonObj;
+    TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+
+    if (FJsonSerializer::Deserialize(Reader, JsonObj) && JsonObj.IsValid())
+    {
+        double RecordingVal = 0.0;
+        JsonObj->TryGetNumberField(TEXT("nRecording"), RecordingVal);
+        Status.IsRecording = RecordingVal != 0.0;
+
+        double BattVoltage = 0.0;
+        JsonObj->TryGetNumberField(TEXT("batteryVoltage"), BattVoltage);
+        Status.BatteryVoltage = static_cast<float>(BattVoltage);
+
+        double StorageMB = 0.0;
+        JsonObj->TryGetNumberField(TEXT("availableStorageInMB"), StorageMB);
+        Status.AvailableStorageMB = static_cast<float>(StorageMB);
+    }
+
+    OnHMCStatusUpdated(Status);
+}
+
+// ─── Date / Time Helpers ──────────────────────────────────────────────────────
 
 FString UPCAPToolEditorWidget::FormatDateDisplay(const FDateTime& InDateTime)
 {
