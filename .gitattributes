@@ -1,0 +1,10 @@
+* text=auto
+
+# Force UTF-8 without BOM for UE descriptor files
+*.uproject text eol=lf working-tree-encoding=UTF-8
+*.uplugin  text eol=lf working-tree-encoding=UTF-8
+
+# C++ source
+*.h   text eol=lf
+*.cpp text eol=lf
+*.cs  text eol=lf
