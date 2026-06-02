@@ -15,6 +15,7 @@
 		{"Name": "PythonScriptPlugin", "Enabled": true},
 		{"Name": "EditorScriptingUtilities", "Enabled": true},
 		{"Name": "RigLogic", "Enabled": true},
-		{"Name": "MetaHuman", "Enabled": true}
+		{"Name": "MetaHuman", "Enabled": true},
+		{"Name": "LiveLinkViconDataStream", "Enabled": false}
 	]
 }
