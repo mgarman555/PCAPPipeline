@@ -1,4 +1,4 @@
-Build started at 11:24 AM...
+Build started at 12:08 PM...
 1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
 1>Using bundled DotNet SDK version: 8.0.412 win-x64
 1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
@@ -8,17 +8,63 @@ Build started at 11:24 AM...
 1>UHT compiled-in object format Default
 1>Parsing headers for PCAPPipelineEditor
 1>  Running Internal UnrealHeaderTool C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject C:\Users\mocapstaff\Desktop\PCAPPipeline\Intermediate\Build\Win64\PCAPPipelineEditor\Development\PCAPPipelineEditor.uhtmanifest -WarningsAsErrors -installed
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPDatabase.h(19): error : Inappropriate '*' on variable of type 'FProduction', cannot have an exposed pointer to this type.
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPDatabase.h(22): error : Inappropriate '*' on variable of type 'FShootDay', cannot have an exposed pointer to this type.
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPDatabase.h(25): error : Inappropriate '*' on variable of type 'FSession', cannot have an exposed pointer to this type.
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPDatabase.h(28): error : Inappropriate '*' on variable of type 'FShot', cannot have an exposed pointer to this type.
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPDatabase.h(31): error : Inappropriate '*' on variable of type 'FTake', cannot have an exposed pointer to this type.
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPDatabase.h(34): error : Inappropriate '*' on variable of type 'FTake', cannot have an exposed pointer to this type.
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPDatabase.h(37): error : Inappropriate '*' on variable of type 'FTake', cannot have an exposed pointer to this type.
+1>UHT processed PCAPPipelineEditor in 0.7705368 seconds (10 files written)
+1>Building PCAPPipelineEditor...
+1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
+1>  Executing up to 32 processes, one per physical core
+1>Using Unreal Build Accelerator local executor to run 11 action(s)
+1>  Storage capacity 40Gb
+1>---- Starting trace: 260602_120900_vs47800 ----
+1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
+1>[1/11] Resource Default.rc2
+1>[2/11] Resource Default.rc2
+1>[3/11] Compile [x64] SharedPCH.UnrealEd.Project.ValApi.ValExpApi.Cpp20.cpp
+1>[4/11] Compile [x64] PCAPPipeline.cpp
+1>[5/11] Compile [x64] PerModuleInline.gen.cpp
+1>[6/11] Link [x64] UnrealEditor-PCAPPipeline.lib
+1>[7/11] Link [x64] UnrealEditor-PCAPPipeline.dll
+1>[8/11] Compile [x64] Module.PCAPTool.cpp
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(20,1): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+1>IKRIG_API UClass* Z_Construct_UClass_UIKRetargeter_NoRegister();
+1>^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(20,11): error C2146: syntax error: missing ';' before identifier 'UClass'
+1>IKRIG_API UClass* Z_Construct_UClass_UIKRetargeter_NoRegister();
+1>          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(21,1): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+1>IKRIG_API UClass* Z_Construct_UClass_UIKRigDefinition_NoRegister();
+1>^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(21,1): error C2086: 'int IKRIG_API': redefinition
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(20,1): note: see declaration of 'IKRIG_API'
+1>IKRIG_API UClass* Z_Construct_UClass_UIKRetargeter_NoRegister();
+1>^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(21,11): error C2146: syntax error: missing ';' before identifier 'UClass'
+1>IKRIG_API UClass* Z_Construct_UClass_UIKRigDefinition_NoRegister();
+1>          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(717,343): error C2065: 'Z_Construct_UClass_UIKRigDefinition_NoRegister': undeclared identifier
+1>const UECodeGen_Private::FSoftObjectPropertyParams Z_Construct_UScriptStruct_FRetargetConfig_Statics::NewProp_IKRigSource = { "IKRigSource", nullptr, (EPropertyFlags)0x0014000000000005, UECodeGen_Private::EPropertyGenFlags::SoftObject, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FRetargetConfig, IKRigSource), Z_Construct_UClass_UIKRigDefinition_NoRegister, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_IKRigSource_MetaData), NewProp_IKRigSource_MetaData) };
+1>                                                                                                                                                                                                                                                                                                                                                      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(717,103): error C2737: 'NewProp_IKRigSource': const object must be initialized
+1>const UECodeGen_Private::FSoftObjectPropertyParams Z_Construct_UScriptStruct_FRetargetConfig_Statics::NewProp_IKRigSource = { "IKRigSource", nullptr, (EPropertyFlags)0x0014000000000005, UECodeGen_Private::EPropertyGenFlags::SoftObject, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FRetargetConfig, IKRigSource), Z_Construct_UClass_UIKRigDefinition_NoRegister, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_IKRigSource_MetaData), NewProp_IKRigSource_MetaData) };
+1>                                                                                                      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(718,343): error C2065: 'Z_Construct_UClass_UIKRigDefinition_NoRegister': undeclared identifier
+1>const UECodeGen_Private::FSoftObjectPropertyParams Z_Construct_UScriptStruct_FRetargetConfig_Statics::NewProp_IKRigTarget = { "IKRigTarget", nullptr, (EPropertyFlags)0x0014000000000005, UECodeGen_Private::EPropertyGenFlags::SoftObject, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FRetargetConfig, IKRigTarget), Z_Construct_UClass_UIKRigDefinition_NoRegister, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_IKRigTarget_MetaData), NewProp_IKRigTarget_MetaData) };
+1>                                                                                                                                                                                                                                                                                                                                                      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(718,103): error C2737: 'NewProp_IKRigTarget': const object must be initialized
+1>const UECodeGen_Private::FSoftObjectPropertyParams Z_Construct_UScriptStruct_FRetargetConfig_Statics::NewProp_IKRigTarget = { "IKRigTarget", nullptr, (EPropertyFlags)0x0014000000000005, UECodeGen_Private::EPropertyGenFlags::SoftObject, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FRetargetConfig, IKRigTarget), Z_Construct_UClass_UIKRigDefinition_NoRegister, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_IKRigTarget_MetaData), NewProp_IKRigTarget_MetaData) };
+1>                                                                                                      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(719,346): error C2065: 'Z_Construct_UClass_UIKRetargeter_NoRegister': undeclared identifier
+1>const UECodeGen_Private::FSoftObjectPropertyParams Z_Construct_UScriptStruct_FRetargetConfig_Statics::NewProp_IKRetargeter = { "IKRetargeter", nullptr, (EPropertyFlags)0x0014000000000005, UECodeGen_Private::EPropertyGenFlags::SoftObject, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FRetargetConfig, IKRetargeter), Z_Construct_UClass_UIKRetargeter_NoRegister, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_IKRetargeter_MetaData), NewProp_IKRetargeter_MetaData) };
+1>                                                                                                                                                                                                                                                                                                                                                         ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Intermediate\Build\Win64\UnrealEditor\Inc\PCAPTool\UHT\PCAPToolTypes.gen.cpp(719,103): error C2737: 'NewProp_IKRetargeter': const object must be initialized
+1>const UECodeGen_Private::FSoftObjectPropertyParams Z_Construct_UScriptStruct_FRetargetConfig_Statics::NewProp_IKRetargeter = { "IKRetargeter", nullptr, (EPropertyFlags)0x0014000000000005, UECodeGen_Private::EPropertyGenFlags::SoftObject, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FRetargetConfig, IKRetargeter), Z_Construct_UClass_UIKRetargeter_NoRegister, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_IKRetargeter_MetaData), NewProp_IKRetargeter_MetaData) };
+1>                                                                                                      ^
+1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 13.6kb
+1>Total time in Unreal Build Accelerator local executor: 29.30 seconds
 1>
 1>Result: Failed (OtherCompilationError)
-1>Total execution time: 2.62 seconds
+1>Total execution time: 32.69 seconds
 1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
 1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
 ========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 11:24 AM and took 03.475 seconds ==========
+========== Build completed at 12:09 PM and took 33.072 seconds ==========
