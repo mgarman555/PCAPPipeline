@@ -20,7 +20,7 @@
 		{"Name": "LiveLinkCamera", "Enabled": true},
 		{"Name": "LiveLinkLens", "Enabled": true},
 		{"Name": "LiveLinkControlRig", "Enabled": true},
-		{"Name": "TakeRecorder", "Enabled": true},
+		{"Name": "Takes", "Enabled": true},
 		{"Name": "SequencerScripting", "Enabled": true},
 		{"Name": "LiveLinkViconDataStream", "Enabled": false}
 	]
