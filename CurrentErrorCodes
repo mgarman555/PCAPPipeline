@@ -1,4 +1,4 @@
-Build started at 1:04 PM...
+Build started at 1:08 PM...
 1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
 1>Using bundled DotNet SDK version: 8.0.412 win-x64
 1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
@@ -8,114 +8,24 @@ Build started at 1:04 PM...
 1>UHT compiled-in object format Default
 1>Parsing headers for PCAPPipelineEditor
 1>  Running Internal UnrealHeaderTool C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject C:\Users\mocapstaff\Desktop\PCAPPipeline\Intermediate\Build\Win64\PCAPPipelineEditor\Development\PCAPPipelineEditor.uhtmanifest -WarningsAsErrors -installed
-1>UHT processed PCAPPipelineEditor in 0.8029109 seconds (7 files written)
+1>UHT processed PCAPPipelineEditor in 0.7786737 seconds (1 files written)
 1>Building PCAPPipelineEditor...
 1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
 1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
 1>  Executing up to 32 processes, one per physical core
 1>Using Unreal Build Accelerator local executor to run 4 action(s)
 1>  Storage capacity 40Gb
-1>---- Starting trace: 260602_130446_vs45496 ----
+1>---- Starting trace: 260602_130902_vs12200 ----
 1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
 1>[1/4] Compile [x64] Module.PCAPTool.cpp
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\HMCMonitorComponent.h(51,25): error C2061: syntax error: identifier 'FHttpResponsePtr'
-1>    void OnPollResponse(FHttpResponsePtr Response, bool bWasSuccessful,
-1>                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(92,41): error C2665: 'TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject': no overloaded function could convert all the argument types
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy
-1>        ]
-1>    Request->OnProcessRequestComplete().BindUObject(
-1>                                        ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Delegates\DelegateSignatureImpl.inl(283,14): note: could be 'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject<UHMCMonitorComponent,const FString&,const FString&>(const UserClass *,void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,FString) const,const FString &,const FString &)'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy,
-1>            UserClass=UHMCMonitorComponent
-1>        ]
-1>	inline void BindUObject(const UserClass* InUserObject, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., std::decay_t<VarTypes>...)>::Type InFunc, VarTypes&&... Vars)
-1>	            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(92,41): note: 'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject<UHMCMonitorComponent,const FString&,const FString&>(const UserClass *,void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,FString) const,const FString &,const FString &)': cannot convert argument 2 from 'void (__cdecl UHMCMonitorComponent::* )(void)' to 'void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,FString) const'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy,
-1>            UserClass=UHMCMonitorComponent
-1>        ]
-1>    Request->OnProcessRequestComplete().BindUObject(
-1>                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(94,9): note: Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
-1>        &UHMCMonitorComponent::OnPollResponse,
-1>        ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Delegates\DelegateSignatureImpl.inl(276,14): note: or       'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject<UHMCMonitorComponent,const FString&,const FString&>(UserClass *,void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,FString),const FString &,const FString &)'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy,
-1>            UserClass=UHMCMonitorComponent
-1>        ]
-1>	inline void BindUObject(UserClass* InUserObject, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., std::decay_t<VarTypes>...)>::Type InFunc, VarTypes&&... Vars)
-1>	            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(92,41): note: 'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject<UHMCMonitorComponent,const FString&,const FString&>(UserClass *,void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,FString),const FString &,const FString &)': cannot convert argument 2 from 'void (__cdecl UHMCMonitorComponent::* )(void)' to 'void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,FString)'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy,
-1>            UserClass=UHMCMonitorComponent
-1>        ]
-1>    Request->OnProcessRequestComplete().BindUObject(
-1>                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(94,9): note: Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
-1>        &UHMCMonitorComponent::OnPollResponse,
-1>        ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Delegates\DelegateSignatureImpl.inl(295,14): note: or       'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject(TObjectPtr<UObjectTemplate>,TMemFunPtrType<true,UserClass,void(FHttpRequestPtr,FHttpResponsePtr,bool,decay<VarTypes>::type...)>::Type,VarTypes ...)'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy
-1>        ]
-1>	inline void BindUObject(TObjectPtr<UserClass> InUserObject, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., std::decay_t<VarTypes>...)>::Type InFunc, VarTypes&&... Vars)
-1>	            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(92,41): note: 'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject(TObjectPtr<UObjectTemplate>,TMemFunPtrType<true,UserClass,void(FHttpRequestPtr,FHttpResponsePtr,bool,decay<VarTypes>::type...)>::Type,VarTypes ...)': could not deduce template argument for 'TObjectPtr<UObjectTemplate>' from 'UHMCMonitorComponent *'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy
-1>        ]
-1>    Request->OnProcessRequestComplete().BindUObject(
-1>                                        ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Delegates\DelegateSignatureImpl.inl(288,14): note: or       'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject(TObjectPtr<UObjectTemplate>,TMemFunPtrType<false,UserClass,void(FHttpRequestPtr,FHttpResponsePtr,bool,decay<VarTypes>::type...)>::Type,VarTypes ...)'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy
-1>        ]
-1>	inline void BindUObject(TObjectPtr<UserClass> InUserObject, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., std::decay_t<VarTypes>...)>::Type InFunc, VarTypes&&... Vars)
-1>	            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(92,41): note: 'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject(TObjectPtr<UObjectTemplate>,TMemFunPtrType<false,UserClass,void(FHttpRequestPtr,FHttpResponsePtr,bool,decay<VarTypes>::type...)>::Type,VarTypes ...)': could not deduce template argument for 'TObjectPtr<UObjectTemplate>' from 'UHMCMonitorComponent *'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy
-1>        ]
-1>    Request->OnProcessRequestComplete().BindUObject(
-1>                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(92,41): note: while trying to match the argument list '(UHMCMonitorComponent *, void (__cdecl UHMCMonitorComponent::* )(void), const FString, const FString)'
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(102,28): error C2511: 'void UHMCMonitorComponent::OnPollResponse(FHttpResponsePtr,bool,FString,FString)': overloaded member function not found in 'UHMCMonitorComponent'
-1>void UHMCMonitorComponent::OnPollResponse(
-1>                           ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\HMCMonitorComponent.h(11,20): note: see declaration of 'UHMCMonitorComponent'
-1>class PCAPTOOL_API UHMCMonitorComponent : public UActorComponent
-1>                   ^
-1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 10.7kb
-1>Total time in Unreal Build Accelerator local executor: 1.63 seconds
+1>[2/4] Link [x64] UnrealEditor-PCAPTool.lib
+1>[3/4] Link [x64] UnrealEditor-PCAPTool.dll
+1>[4/4] WriteMetadata PCAPPipelineEditor.target [NoUba]
 1>
-1>Result: Failed (OtherCompilationError)
-1>Total execution time: 5.13 seconds
-1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
-1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
-========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 1:04 PM and took 06.187 seconds ==========
+1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 3.5kb
+1>Total time in Unreal Build Accelerator local executor: 3.64 seconds
+1>
+1>Result: Succeeded
+1>Total execution time: 7.04 seconds
+========== Build: 1 succeeded, 0 failed, 0 up-to-date, 0 skipped ==========
+========== Build completed at 1:09 PM and took 07.464 seconds ==========
