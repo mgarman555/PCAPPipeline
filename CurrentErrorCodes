@@ -1,17 +1,19 @@
-:\Users\mocapstaff\Desktop\PCAPPipeline>git pull origin main
-fatal: unable to get credential storage lock in 1000 ms: Permission denied
-remote: Enumerating objects: 24, done.
-remote: Counting objects: 100% (24/24), done.
-remote: Compressing objects: 100% (14/14), done.
-remote: Total 18 (delta 10), reused 6 (delta 3), pack-reused 0 (from 0)
-Unpacking objects: 100% (18/18), 6.51 KiB | 185.00 KiB/s, done.
-From https://github.com/mgarman555/PCAPPipeline
- * branch            main       -> FETCH_HEAD
-   44c5dae..00e6238  main       -> origin/main
-Updating 44c5dae..00e6238
-error: Your local changes to the following files would be overwritten by merge:
-        PCAPPipeline.uproject
-Please commit your changes or stash them before you merge.
-Aborting
-
-C:\Users\mocapstaff\Desktop\PCAPPipeline>
+Build started at 12:59 PM...
+1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
+1>Using bundled DotNet SDK version: 8.0.412 win-x64
+1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
+1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
+1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
+1>Creating makefile for PCAPPipelineEditor (.uproject file is newer)
+1>EXEC : warning : Plugin 'PCAPTool' does not list plugin 'IKRig' as a dependency, but module 'PCAPTool' depends on module 'IKRig'.
+1>UHT compiled-in object format Default
+1>Parsing headers for PCAPPipelineEditor
+1>  Running Internal UnrealHeaderTool C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject C:\Users\mocapstaff\Desktop\PCAPPipeline\Intermediate\Build\Win64\PCAPPipelineEditor\Development\PCAPPipelineEditor.uhtmanifest -WarningsAsErrors -installed
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPToolTypes.h(127): error : Unable to find 'class' with name 'UIKRetargeterAsset'
+1>
+1>Result: Failed (OtherCompilationError)
+1>Total execution time: 2.20 seconds
+1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
+1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
+========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
+========== Build completed at 12:59 PM and took 02.755 seconds ==========
