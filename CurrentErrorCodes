@@ -1,0 +1,22 @@
+Running C:/Program Files/Epic Games/UE_5.7/Engine/Build/BatchFiles/Build.bat  -projectfiles -project="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline/PCAPPipeline.uproject" -game -rocket -progress -log="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline/Saved/Logs/UnrealVersionSelector-2026.06.02-10.06.06.log"
+Using bundled DotNet SDK version: 8.0.412 win-x64
+Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" -projectfiles -project="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline/PCAPPipeline.uproject" -game -rocket -progress -log="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline/Saved/Logs/UnrealVersionSelector-2026.06.02-10.06.06.log"
+Log file: C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline\Saved\Logs\UnrealVersionSelector-2026.06.02-10.06.06.log
+PCAPPipeline.uproject(0): error: JsonReaderException: '0xFF' is an invalid start of a value. LineNumber: 0 | BytePositionInLine: 0.
+   at System.Text.Json.ThrowHelper.ThrowJsonReaderException(Utf8JsonReader& json, ExceptionResource resource, Byte nextByte, ReadOnlySpan`1 bytes)
+   at System.Text.Json.Utf8JsonReader.ConsumeValue(Byte marker)
+   at System.Text.Json.Utf8JsonReader.ReadFirstToken(Byte first)
+   at System.Text.Json.Utf8JsonReader.ReadSingleSegment()
+   at System.Text.Json.Utf8JsonReader.Read()
+   at System.Text.Json.JsonDocument.Parse(ReadOnlySpan`1 utf8JsonSpan, JsonReaderOptions readerOptions, MetadataDb& database, StackRowStack& stack)
+   at System.Text.Json.JsonDocument.Parse(ReadOnlyMemory`1 utf8Json, JsonReaderOptions readerOptions, Byte[] extraRentedArrayPoolBytes, PooledByteBufferWriter extraPooledByteBufferWriter)
+   at EpicGames.Core.JsonObject.ParseUtf8File(String path)
+   at EpicGames.Core.JsonObject.Read(FileReference file)
+   at UnrealBuildTool.ProjectDescriptor.FromFile(FileReference FileName)Wrapped by JsonException: '0xFF' is an invalid start of a value. LineNumber: 0 | BytePositionInLine: 0. (in C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline\PCAPPipeline.uproject)
+   at UnrealBuildTool.ProjectDescriptor.FromFile(FileReference FileName)
+   at UnrealBuildTool.ProjectFileGenerator..ctor(FileReference InOnlyGameProject)
+   at UnrealBuildTool.GenerateProjectFilesMode.ExecuteAsync(CommandLineArguments Arguments, ILogger Logger)
+   at UnrealBuildTool.UnrealBuildTool.Main(String[] ArgumentsArray)
+
+Result: Failed (OtherCompilationError)
+Total execution time: 0.33 seconds
