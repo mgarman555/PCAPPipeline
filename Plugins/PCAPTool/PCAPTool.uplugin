@@ -1,0 +1,24 @@
+{
+    "FileVersion": 3,
+    "Version": 1,
+    "VersionName": "1.0",
+    "FriendlyName": "PCAP Tool",
+    "Description": "Unified capture pipeline — type definitions, database, project settings. Drop into any UE5 project.",
+    "Category": "PCAP",
+    "CreatedBy": "PCAP",
+    "CreatedByURL": "",
+    "DocsURL": "",
+    "MarketplaceURL": "",
+    "SupportURL": "",
+    "CanContainContent": false,
+    "IsBetaVersion": false,
+    "IsExperimentalVersion": false,
+    "Installed": false,
+    "Modules": [
+        {
+            "Name": "PCAPTool",
+            "Type": "Editor",
+            "LoadingPhase": "Default"
+        }
+    ]
+}
