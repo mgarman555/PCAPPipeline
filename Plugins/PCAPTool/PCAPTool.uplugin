@@ -21,4 +21,12 @@
             "LoadingPhase": "Default"
         }
     ],
+    "Plugins": [
+        {"Name": "LiveLink", "Enabled": true},
+        {"Name": "LiveLinkCamera", "Enabled": true},
+        {"Name": "LiveLinkLens", "Enabled": true},
+        {"Name": "LiveLinkControlRig", "Enabled": true},
+        {"Name": "TakeRecorder", "Enabled": true},
+        {"Name": "SequencerScripting", "Enabled": true}
+    ]
 }

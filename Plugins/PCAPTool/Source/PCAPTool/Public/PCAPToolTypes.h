@@ -7,7 +7,11 @@
 #include "Animation/AnimSequence.h"
 #include "LevelSequence.h"
 
-
+// Forward declarations — keeps IKRIG_API macros out of UHT's scan path.
+// Any .cpp that resolves these soft refs must include:
+//   "Rig/IKRigDefinition.h" and "Retargeter/IKRetargeter.h"
+class UIKRigDefinition;
+class UIKRetargeterAsset;
 
 #include "PCAPToolTypes.generated.h"
 
@@ -113,16 +117,14 @@ struct PCAPTOOL_API FRetargetConfig
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
     TSoftObjectPtr<USkeleton> SourceSkeletonAsset;
 
-    // Asset paths stored as strings until IKRig module dependency is confirmed.
-    // Replace with TSoftObjectPtr<UIKRigDefinition> once IKRig build is verified.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
-    FString IKRigSourcePath;
+    TSoftObjectPtr<UIKRigDefinition> IKRigSource;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
-    FString IKRigTargetPath;
+    TSoftObjectPtr<UIKRigDefinition> IKRigTarget;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
-    FString IKRetargeterPath;
+    TSoftObjectPtr<UIKRetargeterAsset> IKRetargeter;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
     bool HasFingerData = false;
@@ -210,6 +212,37 @@ struct PCAPTOOL_API FAudioStreamEntry
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     EStreamStatus StreamStatus = EStreamStatus::Disconnected;
+};
+
+// ---------------------------------------------------------------------------
+// HMC Device Status
+// ---------------------------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FHMCDeviceStatus
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString DeviceID;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString IPAddress;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool IsRecording = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    float BatteryVoltage = 0.f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    float AvailableStorageMB = 0.f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FDateTime LastPollTime = FDateTime(0);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool IsReachable = false;
 };
 
 USTRUCT(BlueprintType)
