@@ -5,3 +5,11 @@ Build started at 11:02 AM...
 1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
 1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
 1>Creating makefile for PCAPPipelineEditor (no existing makefile)
+1>Expecting to find a type to be declared in a module rules named 'LiveLinkDataStream' in 'UE5Rules, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'.  This type must derive from the 'ModuleRules' type defined by UnrealBuildTool.
+1>
+1>Result: Failed (RulesError)
+1>Total execution time: 18.92 seconds
+1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 8.
+1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
+========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
+========== Build completed at 11:02 AM and took 19.189 seconds =======
