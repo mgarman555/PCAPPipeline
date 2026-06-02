@@ -1,7 +1,13 @@
-Get-ChildItem : Cannot find path 'C:\Users\mocapstaff\C\Program Files\Epic Games\' because it does not exist.
-At line:1 char:1
-+ Get-ChildItem "C\Program Files\Epic Games\UE_5.7" -Recurse -Filter "B ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : ObjectNotFound: (C:\Users\mocaps...les\Epic Games\:String) [Get-ChildItem], ItemNotFound
-   Exception
-    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetChildItemCommand
+PS C:\Users\mocapstaff> Get-ChildItem "C:\Program Files\Epic Games\UE_5.7" -Recurse -Filter "Build.bat" | Select-Object FullName
+
+FullName
+--------
+C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat
+C:\Program Files\Epic Games\UE_5.7\Engine\Extras\Containers\Dockerfiles\windows\build.bat
+C:\Program Files\Epic Games\UE_5.7\Engine\Extras\ushell\channels\flow\core\system\flow\native\build.bat
+C:\Program Files\Epic Games\UE_5.7\Engine\Extras\ushell\channels\flow\core\system\lib\exeshim\build.bat
+C:\Program Files\Epic Games\UE_5.7\Engine\Extras\ushell\channels\unreal\core\pylib\vs\build.bat
+C:\Program Files\Epic Games\UE_5.7\Engine\Plugins\Runtime\OpenCV\Source\ThirdParty\OpenCV\build.bat
+C:\Program Files\Epic Games\UE_5.7\Engine\Programs\UnrealInstrumentation\build.bat
+C:\Program Files\Epic Games\UE_5.7\Engine\Source\ThirdParty\GoogleGameSDK\gamesdk\build.bat
+C:\Program Files\Epic Games\UE_5.7\Engine\Source\ThirdParty\libGPUCounters\Build.bat
