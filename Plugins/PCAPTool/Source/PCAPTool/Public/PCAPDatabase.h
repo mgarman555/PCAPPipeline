@@ -15,24 +15,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="PCAP")
     TArray<FProduction> Productions;
 
-    UFUNCTION(BlueprintCallable, Category="PCAP|Database")
+    // Raw pointer returns cannot be BlueprintCallable — C++ only.
     FProduction* GetProductionByCode(const FString& ProjectCode);
-
-    UFUNCTION(BlueprintCallable, Category="PCAP|Database")
-    FShootDay* GetDay(const FString& ProjectCode, const FString& DayID);
-
-    UFUNCTION(BlueprintCallable, Category="PCAP|Database")
-    FSession* GetSession(const FString& ProjectCode, const FString& DayID, const FString& SessionID);
-
-    UFUNCTION(BlueprintCallable, Category="PCAP|Database")
-    FShot* GetShot(const FString& ProjectCode, const FString& DayID, const FString& SessionID, const FString& ShotID);
-
-    UFUNCTION(BlueprintCallable, Category="PCAP|Database")
-    FTake* GetTake(const FString& ProjectCode, const FString& DayID, const FString& ShotID, const FString& TakeID);
-
-    UFUNCTION(BlueprintCallable, Category="PCAP|Database")
+    FShootDay*   GetDay(const FString& ProjectCode, const FString& DayID);
+    FSession*    GetSession(const FString& ProjectCode, const FString& DayID, const FString& SessionID);
+    FShot*       GetShot(const FString& ProjectCode, const FString& DayID, const FString& SessionID, const FString& ShotID);
+    FTake*       GetTake(const FString& ProjectCode, const FString& DayID, const FString& ShotID, const FString& TakeID);
     TArray<FTake*> GetTakesByLabel(ETakeLabel Label);
-
-    UFUNCTION(BlueprintCallable, Category="PCAP|Database")
     TArray<FTake*> GetUnprocessedQueuedTakes();
 };
