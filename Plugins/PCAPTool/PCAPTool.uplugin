@@ -21,10 +21,4 @@
             "LoadingPhase": "Default"
         }
     ],
-    "Plugins": [
-        {
-            "Name": "IKRig",
-            "Enabled": true
-        }
-    ]
 }

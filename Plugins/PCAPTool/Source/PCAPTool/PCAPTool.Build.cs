@@ -13,7 +13,6 @@ public class PCAPTool : ModuleRules
             "Engine",
             "DeveloperSettings",  // UDeveloperSettings
             "LevelSequence",      // ULevelSequence in PCAPToolTypes.h
-            "IKRig",              // UIKRigDefinition, UIKRetargeter in FRetargetConfig
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]

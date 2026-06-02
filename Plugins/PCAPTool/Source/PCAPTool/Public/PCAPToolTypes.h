@@ -7,8 +7,7 @@
 #include "Animation/AnimSequence.h"
 #include "LevelSequence.h"
 
-#include "IKRigDefinition.h"
-#include "Retargeter/IKRetargeter.h"
+
 
 #include "PCAPToolTypes.generated.h"
 
@@ -114,14 +113,16 @@ struct PCAPTOOL_API FRetargetConfig
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
     TSoftObjectPtr<USkeleton> SourceSkeletonAsset;
 
+    // Asset paths stored as strings until IKRig module dependency is confirmed.
+    // Replace with TSoftObjectPtr<UIKRigDefinition> once IKRig build is verified.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
-    TSoftObjectPtr<UIKRigDefinition> IKRigSource;
+    FString IKRigSourcePath;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
-    TSoftObjectPtr<UIKRigDefinition> IKRigTarget;
+    FString IKRigTargetPath;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
-    TSoftObjectPtr<UIKRetargeter> IKRetargeter;
+    FString IKRetargeterPath;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
     bool HasFingerData = false;
