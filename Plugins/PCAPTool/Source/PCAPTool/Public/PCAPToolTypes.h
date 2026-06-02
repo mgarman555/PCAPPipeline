@@ -11,7 +11,7 @@
 // Any .cpp that resolves these soft refs must include:
 //   "Rig/IKRigDefinition.h" and "Retargeter/IKRetargeter.h"
 class UIKRigDefinition;
-class UIKRetargeterAsset;
+class UIKRetargeter;
 
 #include "PCAPToolTypes.generated.h"
 
@@ -124,7 +124,7 @@ struct PCAPTOOL_API FRetargetConfig
     TSoftObjectPtr<UIKRigDefinition> IKRigTarget;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
-    TSoftObjectPtr<UIKRetargeterAsset> IKRetargeter;
+    TSoftObjectPtr<UIKRetargeter> IKRetargeter;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Retarget")
     bool HasFingerData = false;
