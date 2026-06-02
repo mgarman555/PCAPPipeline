@@ -1,108 +1,3 @@
-
-C:\Users\mocapstaff\Desktop\PCAPPipeline>git status
-On branch main
-Your branch is behind 'origin/main' by 2 commits, and can be fast-forwarded.
-  (use "git pull" to update your local branch)
-
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-        modified:   PCAPPipeline.uproject
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-        .vsconfig
-        Config/
-        Content/
-
-no changes added to commit (use "git add" and/or "git commit -a")
-
-C:\Users\mocapstaff\Desktop\PCAPPipeline>git stash
-warning: in the working copy of 'PCAPPipeline.uproject', CRLF will be replaced by LF the next time Git touches it
-Saved working directory and index state WIP on main: df0ce36 fix: replace IK soft pointers with FString paths to unblock build
-
-C:\Users\mocapstaff\Desktop\PCAPPipeline>git pull origin main
-fatal: unable to get credential storage lock in 1000 ms: Permission denied
-From https://github.com/mgarman555/PCAPPipeline
- * branch            main       -> FETCH_HEAD
-Updating df0ce36..44c5dae
-Fast-forward
- CurrentErrorCodes                                  |  61 +++------
- PCAPPipeline.uproject                              |   6 +
- Plugins/PCAPTool/PCAPTool.uplugin                  |   8 ++
- Plugins/PCAPTool/Source/PCAPTool/PCAPTool.Build.cs |   7 +
- .../PCAPTool/Private/HMCMonitorComponent.cpp       | 149 +++++++++++++++++++++
- .../Source/PCAPTool/Public/HMCMonitorComponent.h   |  53 ++++++++
- .../Source/PCAPTool/Public/PCAPToolTypes.h         |  45 ++++++-
- 7 files changed, 279 insertions(+), 50 deletions(-)
- create mode 100644 Plugins/PCAPTool/Source/PCAPTool/Private/HMCMonitorComponent.cpp
- create mode 100644 Plugins/PCAPTool/Source/PCAPTool/Public/HMCMonitorComponent.h
-
-C:\Users\mocapstaff\Desktop\PCAPPipeline>git stash pop
-Auto-merging PCAPPipeline.uproject
-CONFLICT (content): Merge conflict in PCAPPipeline.uproject
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Unmerged paths:
-  (use "git restore --staged <file>..." to unstage)
-  (use "git add <file>..." to mark resolution)
-        both modified:   PCAPPipeline.uproject
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-        .vsconfig
-        Config/
-        Content/
-
-no changes added to commit (use "git add" and/or "git commit -a")
-The stash entry is kept in case you need it again.
-
-C:\Users\mocapstaff\Desktop\PCAPPipeline>git checkout --PCAPPipeline.uproject
-error: unknown option `PCAPPipeline.uproject'
-usage: git checkout [<options>] <branch>
-   or: git checkout [<options>] [<branch>] -- <file>...
-
-    -b <branch>           create and checkout a new branch
-    -B <branch>           create/reset and checkout a branch
-    -l                    create reflog for new branch
-    --[no-]guess          second guess 'git checkout <no-such-branch>' (default)
-    --[no-]overlay        use overlay mode (default)
-    --[no-]auto-advance   auto advance to the next file when selecting hunks interactively
-    -q, --[no-]quiet      suppress progress reporting
-    --[no-]recurse-submodules[=<checkout>]
-                          control recursive updating of submodules
-    --[no-]progress       force progress reporting
-    -m, --[no-]merge      perform a 3-way merge with the new branch
-    --[no-]conflict <style>
-                          conflict style (merge, diff3, or zdiff3)
-    -d, --[no-]detach     detach HEAD at named commit
-    -t, --[no-]track[=(direct|inherit)]
-                          set branch tracking configuration
-    -f, --[no-]force      force checkout (throw away local modifications)
-    --[no-]orphan <new-branch>
-                          new unborn branch
-    --[no-]overwrite-ignore
-                          update ignored files (default)
-    --[no-]ignore-other-worktrees
-                          do not check if another worktree is using this branch
-    -2, --ours            checkout our version for unmerged files
-    -3, --theirs          checkout their version for unmerged files
-    -p, --[no-]patch      select hunks interactively
-    -U, --unified <n>     generate diffs with <n> lines context
-    --inter-hunk-context <n>
-                          show context between diff hunks up to the specified number of lines
-    --[no-]ignore-skip-worktree-bits
-                          do not limit pathspecs to sparse entries only
-    --[no-]pathspec-from-file <file>
-                          read pathspec from file
-    --[no-]pathspec-file-nul
-                          with --pathspec-from-file, pathspec elements are separated with NUL character
-
-
-C:\Users\mocapstaff\Desktop\PCAPPipeline>git stash drop
-Dropped refs/stash@{0} (246cdd9bd4f5a445ed72e5de83e84afd76650ac8)
-
 C:\Users\mocapstaff\Desktop\PCAPPipeline>git status
 On branch main
 Your branch is up to date with 'origin/main'.
@@ -119,5 +14,24 @@ Untracked files:
         Content/
 
 no changes added to commit (use "git add" and/or "git commit -a")
+
+C:\Users\mocapstaff\Desktop\PCAPPipeline>git checkout -- PCAPPipeline.uproject
+error: path 'PCAPPipeline.uproject' is unmerged
+
+C:\Users\mocapstaff\Desktop\PCAPPipeline>git restore --staged PCAPPipeline.uproject
+
+C:\Users\mocapstaff\Desktop\PCAPPipeline>git restore PCAPPipeline.uproject
+
+C:\Users\mocapstaff\Desktop\PCAPPipeline>git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .vsconfig
+        Config/
+        Content/
+
+nothing added to commit but untracked files present (use "git add" to track)
 
 C:\Users\mocapstaff\Desktop\PCAPPipeline>
