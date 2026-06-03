@@ -1,4 +1,4 @@
-Build started at 12:50 PM...
+Build started at 1:00 PM...
 1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
 1>Using bundled DotNet SDK version: 8.0.412 win-x64
 1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
@@ -8,156 +8,32 @@ Build started at 12:50 PM...
 1>UHT compiled-in object format Default
 1>Parsing headers for PCAPPipelineEditor
 1>  Running Internal UnrealHeaderTool C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject C:\Users\mocapstaff\Desktop\PCAPPipeline\Intermediate\Build\Win64\PCAPPipelineEditor\Development\PCAPPipelineEditor.uhtmanifest -WarningsAsErrors -installed
-1>UHT processed PCAPPipelineEditor in 1.0080035 seconds (6 files written)
+1>UHT processed PCAPPipelineEditor in 0.7864437 seconds (3 files written)
 1>Building PCAPPipelineEditor...
 1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
 1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
 1>  Executing up to 32 processes, one per physical core
-1>Using Unreal Build Accelerator local executor to run 4 action(s)
+1>Using Unreal Build Accelerator local executor to run 6 action(s)
 1>  Storage capacity 40Gb
-1>---- Starting trace: 260603_125058_vs29040 ----
+1>---- Starting trace: 260603_130103_vs31340 ----
 1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
-1>[1/4] Compile [x64] Module.PCAPTool.cpp
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\HMCMonitorComponent.h(141,31): error C2061: syntax error: identifier 'FHttpRequestPtr'
-1>    void OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
-1>                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(279,41): error C2665: 'TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject': no overloaded function could convert all the argument types
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy
-1>        ]
-1>    Request->OnProcessRequestComplete().BindUObject(
-1>                                        ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Delegates\DelegateSignatureImpl.inl(283,14): note: could be 'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject<UHMCMonitorComponent,const FString&,int32&>(const UserClass *,void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,int) const,const FString &,int32 &)'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy,
-1>            UserClass=UHMCMonitorComponent
-1>        ]
-1>	inline void BindUObject(const UserClass* InUserObject, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., std::decay_t<VarTypes>...)>::Type InFunc, VarTypes&&... Vars)
-1>	            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(279,41): note: 'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject<UHMCMonitorComponent,const FString&,int32&>(const UserClass *,void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,int) const,const FString &,int32 &)': cannot convert argument 2 from 'void (__cdecl UHMCMonitorComponent::* )(void)' to 'void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,int) const'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy,
-1>            UserClass=UHMCMonitorComponent
-1>        ]
-1>    Request->OnProcessRequestComplete().BindUObject(
-1>                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(280,15): note: Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
-1>        this, &UHMCMonitorComponent::OnVideoFrameResponse, DeviceName, CameraIndex);
-1>              ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Delegates\DelegateSignatureImpl.inl(276,14): note: or       'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject<UHMCMonitorComponent,const FString&,int32&>(UserClass *,void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,int),const FString &,int32 &)'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy,
-1>            UserClass=UHMCMonitorComponent
-1>        ]
-1>	inline void BindUObject(UserClass* InUserObject, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., std::decay_t<VarTypes>...)>::Type InFunc, VarTypes&&... Vars)
-1>	            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(279,41): note: 'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject<UHMCMonitorComponent,const FString&,int32&>(UserClass *,void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,int),const FString &,int32 &)': cannot convert argument 2 from 'void (__cdecl UHMCMonitorComponent::* )(void)' to 'void (__cdecl UHMCMonitorComponent::* )(FHttpRequestPtr,FHttpResponsePtr,bool,FString,int)'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy,
-1>            UserClass=UHMCMonitorComponent
-1>        ]
-1>    Request->OnProcessRequestComplete().BindUObject(
-1>                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(280,15): note: Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
-1>        this, &UHMCMonitorComponent::OnVideoFrameResponse, DeviceName, CameraIndex);
-1>              ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Delegates\DelegateSignatureImpl.inl(295,14): note: or       'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject(TObjectPtr<UObjectTemplate>,TMemFunPtrType<true,UserClass,void(FHttpRequestPtr,FHttpResponsePtr,bool,decay<VarTypes>::type...)>::Type,VarTypes ...)'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy
-1>        ]
-1>	inline void BindUObject(TObjectPtr<UserClass> InUserObject, typename TMemFunPtrType<true, UserClass, RetValType (ParamTypes..., std::decay_t<VarTypes>...)>::Type InFunc, VarTypes&&... Vars)
-1>	            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(279,41): note: 'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject(TObjectPtr<UObjectTemplate>,TMemFunPtrType<true,UserClass,void(FHttpRequestPtr,FHttpResponsePtr,bool,decay<VarTypes>::type...)>::Type,VarTypes ...)': could not deduce template argument for 'TObjectPtr<UObjectTemplate>' from 'UHMCMonitorComponent *'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy
-1>        ]
-1>    Request->OnProcessRequestComplete().BindUObject(
-1>                                        ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Delegates\DelegateSignatureImpl.inl(288,14): note: or       'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject(TObjectPtr<UObjectTemplate>,TMemFunPtrType<false,UserClass,void(FHttpRequestPtr,FHttpResponsePtr,bool,decay<VarTypes>::type...)>::Type,VarTypes ...)'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy
-1>        ]
-1>	inline void BindUObject(TObjectPtr<UserClass> InUserObject, typename TMemFunPtrType<false, UserClass, RetValType (ParamTypes..., std::decay_t<VarTypes>...)>::Type InFunc, VarTypes&&... Vars)
-1>	            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(279,41): note: 'void TDelegateRegistration<InRetValType (FHttpRequestPtr,FHttpResponsePtr,bool),UserPolicy>::BindUObject(TObjectPtr<UObjectTemplate>,TMemFunPtrType<false,UserClass,void(FHttpRequestPtr,FHttpResponsePtr,bool,decay<VarTypes>::type...)>::Type,VarTypes ...)': could not deduce template argument for 'TObjectPtr<UObjectTemplate>' from 'UHMCMonitorComponent *'
-1>        with
-1>        [
-1>            InRetValType=void,
-1>            UserPolicy=FDefaultTSDelegateUserPolicy
-1>        ]
-1>    Request->OnProcessRequestComplete().BindUObject(
-1>                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(279,41): note: while trying to match the argument list '(UHMCMonitorComponent *, void (__cdecl UHMCMonitorComponent::* )(void), const FString, int32)'
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(292,28): error C2511: 'void UHMCMonitorComponent::OnVideoFrameResponse(FHttpRequestPtr,FHttpResponsePtr,bool,FString,int32)': overloaded member function not found in 'UHMCMonitorComponent'
-1>void UHMCMonitorComponent::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
-1>                           ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\HMCMonitorComponent.h(23,20): note: see declaration of 'UHMCMonitorComponent'
-1>class PCAPTOOL_API UHMCMonitorComponent : public UActorComponent
-1>                   ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\HMCMonitorComponent.cpp(320,27): error C2352: 'UHMCMonitorComponent::CreateTextureFromRaw': a call of a non-static member function requires an object
-1>    UTexture2D* Texture = CreateTextureFromRaw(Uncompressed, IW->GetWidth(), IW->GetHeight());
-1>                          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\HMCMonitorComponent.h(145,17): note: see declaration of 'UHMCMonitorComponent::CreateTextureFromRaw'
-1>    UTexture2D* CreateTextureFromRaw(const TArray<uint8>& RawBGRA, int32 Width, int32 Height);
-1>                ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPToolEditorWidget.cpp(439,19): error C2039: 'DeviceID': is not a member of 'FHMCDeviceStatus'
-1>    Record.Status.DeviceID = DeviceID;
-1>                  ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPToolTypes.h(277,21): note: see declaration of 'FHMCDeviceStatus'
-1>struct PCAPTOOL_API FHMCDeviceStatus
-1>                    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPToolEditorWidget.cpp(441,19): error C2039: 'IsReachable': is not a member of 'FHMCDeviceStatus'
-1>    Record.Status.IsReachable = false;
-1>                  ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPToolTypes.h(277,21): note: see declaration of 'FHMCDeviceStatus'
-1>struct PCAPTOOL_API FHMCDeviceStatus
-1>                    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPToolEditorWidget.cpp(499,12): error C2039: 'LastPollTime': is not a member of 'FHMCDeviceStatus'
-1>    Status.LastPollTime = FDateTime::UtcNow();
-1>           ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPToolTypes.h(277,21): note: see declaration of 'FHMCDeviceStatus'
-1>struct PCAPTOOL_API FHMCDeviceStatus
-1>                    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPToolEditorWidget.cpp(503,16): error C2039: 'IsReachable': is not a member of 'FHMCDeviceStatus'
-1>        Status.IsReachable = false;
-1>               ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPToolTypes.h(277,21): note: see declaration of 'FHMCDeviceStatus'
-1>struct PCAPTOOL_API FHMCDeviceStatus
-1>                    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPToolEditorWidget.cpp(508,12): error C2039: 'IsReachable': is not a member of 'FHMCDeviceStatus'
-1>    Status.IsReachable = true;
-1>           ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPToolTypes.h(277,21): note: see declaration of 'FHMCDeviceStatus'
-1>struct PCAPTOOL_API FHMCDeviceStatus
-1>                    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPToolEditorWidget.cpp(517,16): error C2039: 'IsRecording': is not a member of 'FHMCDeviceStatus'
-1>        Status.IsRecording = RecordingVal != 0.0;
-1>               ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPToolTypes.h(277,21): note: see declaration of 'FHMCDeviceStatus'
-1>struct PCAPTOOL_API FHMCDeviceStatus
-1>                    ^
-1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 11.7kb
-1>Total time in Unreal Build Accelerator local executor: 2.28 seconds
+1>[1/6] Compile [x64] Module.PCAPTool.2.cpp
+1>[2/6] Compile [x64] Module.PCAPTool.1.cpp
+1>[3/6] Compile [x64] Module.PCAPTool.3.cpp
+1>[4/6] Link [x64] UnrealEditor-PCAPTool.lib
+1>[5/6] Link [x64] UnrealEditor-PCAPTool.dll
+1>Module.PCAPTool.2.cpp.obj : error LNK2019: unresolved external symbol "__declspec(dllimport) class UClass * __cdecl Z_Construct_UClass_UEditorSubsystem_NoRegister(void)" (__imp_?Z_Construct_UClass_UEditorSubsystem_NoRegister@@YAPEAVUClass@@XZ) referenced in function "public: static class UClass * __cdecl UEditorSubsystem::StaticClass(void)" (?StaticClass@UEditorSubsystem@@SAPEAVUClass@@XZ)
+1>Module.PCAPTool.2.cpp.obj : error LNK2019: unresolved external symbol "__declspec(dllimport) public: __cdecl UEditorSubsystem::UEditorSubsystem(class FVTableHelper &)" (__imp_??0UEditorSubsystem@@QEAA@AEAVFVTableHelper@@@Z) referenced in function "public: __cdecl UPCAPToolSubsystem::UPCAPToolSubsystem(class FVTableHelper &)" (??0UPCAPToolSubsystem@@QEAA@AEAVFVTableHelper@@@Z)
+1>Module.PCAPTool.2.cpp.obj : error LNK2019: unresolved external symbol "__declspec(dllimport) public: virtual __cdecl UEditorSubsystem::~UEditorSubsystem(void)" (__imp_??1UEditorSubsystem@@UEAA@XZ) referenced in function "public: virtual __cdecl UPCAPToolSubsystem::~UPCAPToolSubsystem(void)" (??1UPCAPToolSubsystem@@UEAA@XZ)
+1>Module.PCAPTool.2.cpp.obj : error LNK2019: unresolved external symbol "__declspec(dllimport) public: __cdecl UEditorSubsystem::UEditorSubsystem(void)" (__imp_??0UEditorSubsystem@@QEAA@XZ) referenced in function "public: __cdecl UPCAPToolSubsystem::UPCAPToolSubsystem(void)" (??0UPCAPToolSubsystem@@QEAA@XZ)
+1>Module.PCAPTool.2.cpp.obj : error LNK2019: unresolved external symbol "__declspec(dllimport) class UClass * __cdecl Z_Construct_UClass_UEditorSubsystem(void)" (__imp_?Z_Construct_UClass_UEditorSubsystem@@YAPEAVUClass@@XZ) referenced in function "void __cdecl `dynamic initializer for 'public: static class UObject * (__cdecl*const * const Z_Construct_UClass_UPCAPToolSubsystem_Statics::DependentSingletons)(void)''(void)" (??__E?DependentSingletons@Z_Construct_UClass_UPCAPToolSubsystem_Statics@@2QBQ6APEAVUObject@@XZB@@YAXXZ)
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Binaries\Win64\UnrealEditor-PCAPTool.dll : fatal error LNK1120: 5 unresolved externals
+1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 5.8kb
+1>Total time in Unreal Build Accelerator local executor: 4.06 seconds
 1>
 1>Result: Failed (OtherCompilationError)
-1>Total execution time: 6.43 seconds
+1>Total execution time: 7.55 seconds
 1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
 1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
 ========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 12:51 PM and took 07.487 seconds ==========
+========== Build completed at 1:01 PM and took 08.624 seconds ==========
