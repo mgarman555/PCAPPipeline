@@ -24,7 +24,8 @@ public:
     void Construct(const FArguments& InArgs);
 
 private:
-    TSharedPtr<SVerticalBox> DeviceListBox;
+    TSharedPtr<SVerticalBox> ConnectedDeviceBox;  // refreshed by timer
+    TSharedPtr<SVerticalBox> PendingRowBox;        // never touched by timer
     TArray<TSharedPtr<FPendingDeviceRow>> PendingRows;
 
     TSharedRef<SWidget> BuildConnectedDeviceRow(const FHMCDeviceConfig& Config,
@@ -33,7 +34,9 @@ private:
     TSharedRef<SWidget> BuildVitalCell(const FString& Label, const FString& Value,
                                         const FLinearColor& ValueColor);
 
-    void RefreshDeviceList();
+    void RefreshDeviceList();        // timer-safe: only rebuilds connected rows
+    void AddPendingRow(TSharedPtr<FPendingDeviceRow> Row);
+    void RemovePendingRowWidget(TSharedPtr<FPendingDeviceRow> Row);
     EActiveTimerReturnType OnRefreshTimer(double CurrentTime, float DeltaTime);
 
     FReply OnAddDeviceClicked();

@@ -57,7 +57,17 @@ void SHMCSetupPanel::Construct(const FArguments& InArgs)
                 SNew(SScrollBox)
                 + SScrollBox::Slot()
                 [
-                    SAssignNew(DeviceListBox, SVerticalBox)
+                    SNew(SVerticalBox)
+                    // Connected devices — rebuilt by timer
+                    + SVerticalBox::Slot().AutoHeight()
+                    [
+                        SAssignNew(ConnectedDeviceBox, SVerticalBox)
+                    ]
+                    // Pending input rows — only modified by Add/Remove, never by timer
+                    + SVerticalBox::Slot().AutoHeight()
+                    [
+                        SAssignNew(PendingRowBox, SVerticalBox)
+                    ]
                 ]
             ]
 
@@ -106,32 +116,50 @@ EActiveTimerReturnType SHMCSetupPanel::OnRefreshTimer(double CurrentTime, float 
 
 void SHMCSetupPanel::RefreshDeviceList()
 {
-    if (!DeviceListBox.IsValid()) return;
+    // Only refreshes connected device rows — never touches pending input rows.
+    // This prevents the timer from destroying text boxes mid-typing.
+    if (!ConnectedDeviceBox.IsValid()) return;
     UPCAPToolSubsystem* Sub = GetSubsystem();
     if (!Sub) return;
 
-    DeviceListBox->ClearChildren();
+    ConnectedDeviceBox->ClearChildren();
 
-    // Connected devices first
     for (const FHMCDeviceConfig& Config : Sub->GetRegisteredDevices())
     {
         FHMCDeviceStatus Status = Sub->GetDeviceStatus(Config.DeviceName);
-        DeviceListBox->AddSlot()
+        ConnectedDeviceBox->AddSlot()
         .AutoHeight()
         .Padding(FMargin(8.f, 4.f))
         [
             BuildConnectedDeviceRow(Config, Status)
         ];
     }
+}
 
-    // Pending (not yet saved) rows
-    for (TSharedPtr<FPendingDeviceRow>& Row : PendingRows)
+void SHMCSetupPanel::AddPendingRow(TSharedPtr<FPendingDeviceRow> Row)
+{
+    if (!PendingRowBox.IsValid()) return;
+    PendingRowBox->AddSlot()
+    .AutoHeight()
+    .Padding(FMargin(8.f, 4.f))
+    [
+        BuildPendingRow(Row)
+    ];
+}
+
+void SHMCSetupPanel::RemovePendingRowWidget(TSharedPtr<FPendingDeviceRow> Row)
+{
+    if (!PendingRowBox.IsValid()) return;
+
+    // Rebuild pending box without this row
+    PendingRowBox->ClearChildren();
+    for (TSharedPtr<FPendingDeviceRow>& R : PendingRows)
     {
-        DeviceListBox->AddSlot()
+        PendingRowBox->AddSlot()
         .AutoHeight()
         .Padding(FMargin(8.f, 4.f))
         [
-            BuildPendingRow(Row)
+            BuildPendingRow(R)
         ];
     }
 }
@@ -363,7 +391,7 @@ FReply SHMCSetupPanel::OnAddDeviceClicked()
 {
     TSharedPtr<FPendingDeviceRow> NewRow = MakeShared<FPendingDeviceRow>();
     PendingRows.Add(NewRow);
-    RefreshDeviceList();
+    AddPendingRow(NewRow);  // appends widget only — does not clear existing rows
     return FReply::Handled();
 }
 
@@ -398,7 +426,7 @@ FReply SHMCSetupPanel::OnSaveAndConnectClicked()
 FReply SHMCSetupPanel::OnRemovePendingRow(TSharedPtr<FPendingDeviceRow> Row)
 {
     PendingRows.Remove(Row);
-    RefreshDeviceList();
+    RemovePendingRowWidget(Row);
     return FReply::Handled();
 }
 
