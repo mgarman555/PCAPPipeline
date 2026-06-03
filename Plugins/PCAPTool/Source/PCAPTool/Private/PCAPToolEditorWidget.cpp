@@ -436,9 +436,9 @@ void UPCAPToolEditorWidget::RegisterHMCDevice(const FString& DeviceID, const FSt
 {
     FHMCDeviceRecord& Record = HMCDeviceRegistry.FindOrAdd(DeviceID);
     Record.IPAddress = IPAddress;
-    Record.Status.DeviceID = DeviceID;
+    Record.Status.DeviceName = DeviceID;
     Record.Status.IPAddress = IPAddress;
-    Record.Status.IsReachable = false;
+    Record.Status.ConnectionState = EHMCConnectionState::Disconnected;
 }
 
 void UPCAPToolEditorWidget::UnregisterHMCDevice(const FString& DeviceID)
@@ -496,16 +496,16 @@ void UPCAPToolEditorWidget::OnHMCPollResponse(FHttpRequestPtr Request, FHttpResp
     if (!Record) return;
 
     FHMCDeviceStatus& Status = Record->Status;
-    Status.LastPollTime = FDateTime::UtcNow();
+    Status.LastUpdateTime = FDateTime::UtcNow();
 
     if (!bWasSuccessful || !Response.IsValid() || Response->GetResponseCode() != 200)
     {
-        Status.IsReachable = false;
+        Status.ConnectionState = EHMCConnectionState::Offline;
         OnHMCStatusUpdated(Status);
         return;
     }
 
-    Status.IsReachable = true;
+    Status.ConnectionState = EHMCConnectionState::Connected;
 
     TSharedPtr<FJsonObject> JsonObj;
     TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
@@ -514,7 +514,7 @@ void UPCAPToolEditorWidget::OnHMCPollResponse(FHttpRequestPtr Request, FHttpResp
     {
         double RecordingVal = 0.0;
         JsonObj->TryGetNumberField(TEXT("nRecording"), RecordingVal);
-        Status.IsRecording = RecordingVal != 0.0;
+        Status.bIsRecording = RecordingVal != 0.0;
 
         double BattVoltage = 0.0;
         JsonObj->TryGetNumberField(TEXT("batteryVoltage"), BattVoltage);
