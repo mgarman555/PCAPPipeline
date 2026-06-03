@@ -5,6 +5,7 @@
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "PCAPToolTypes.h"
+#include "PCAPToolSubsystem.h"
 #include "PCAPToolEditorWidget.generated.h"
 
 class UPCAPDatabase;
@@ -38,6 +39,18 @@ public:
 
     UPROPERTY(BlueprintReadOnly, Category = "PCAP|Selection")
     FString ActiveShotID;
+
+    // ─── Subsystem access ────────────────────────────────────────────────────
+    // Pre-wired in NativeConstruct. Use this in Blueprint instead of
+    // manually calling Get Engine Subsystem.
+
+    UPROPERTY(BlueprintReadOnly, Category = "PCAP|HMC")
+    UPCAPToolSubsystem* HMCSubsystem = nullptr;
+
+    // Quick helper for testing: registers a device by name + IP and connects.
+    // WebSocketEndpoint auto-set to ws://[IP]/ws.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void RegisterTestDevice(const FString& DeviceName, const FString& IPAddress);
 
     // ─── Database ────────────────────────────────────────────────────────────
 

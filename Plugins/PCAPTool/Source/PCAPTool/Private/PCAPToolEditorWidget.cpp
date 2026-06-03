@@ -1,5 +1,6 @@
 #include "PCAPToolEditorWidget.h"
 #include "PCAPToolSettings.h"
+#include "PCAPToolSubsystem.h"
 #include "PCAPDatabase.h"
 #include "FileHelpers.h"
 #include "HttpModule.h"
@@ -14,9 +15,28 @@
 void UPCAPToolEditorWidget::NativeConstruct()
 {
     Super::NativeConstruct();
-    // Fire both events so Blueprint can populate its lists on first open.
+
+    // Pre-wire the subsystem — Blueprint accesses it via the HMCSubsystem property.
+    if (GEngine)
+    {
+        HMCSubsystem = GEngine->GetEngineSubsystem<UPCAPToolSubsystem>();
+    }
+
     OnDatabaseChanged();
     OnSelectionChanged();
+}
+
+void UPCAPToolEditorWidget::RegisterTestDevice(const FString& DeviceName, const FString& IPAddress)
+{
+    if (!HMCSubsystem) return;
+
+    FHMCDeviceConfig Config;
+    Config.DeviceName        = DeviceName;
+    Config.IPAddress         = IPAddress;
+    Config.WebSocketEndpoint = FString::Printf(TEXT("ws://%s/ws"), *IPAddress);
+
+    HMCSubsystem->RegisterDevice(Config);
+    HMCSubsystem->ConnectDevice(DeviceName);
 }
 
 // ─── Database ─────────────────────────────────────────────────────────────────
