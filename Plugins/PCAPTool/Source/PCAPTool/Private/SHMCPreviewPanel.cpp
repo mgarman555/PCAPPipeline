@@ -354,6 +354,13 @@ FLinearColor SHMCPreviewPanel::CPUColor(float Pct)
     return FLinearColor(0.800f, 0.133f, 0.133f);
 }
 
+FLinearColor SHMCPreviewPanel::TempColor(float C)
+{
+    if (C < 40.f) return FLinearColor(0.137f, 0.467f, 0.220f);
+    if (C < 50.f) return FLinearColor(0.800f, 0.600f, 0.0f);
+    return FLinearColor(0.800f, 0.133f, 0.133f);
+}
+
 FString SHMCPreviewPanel::FormatStorage(float MB)
 {
     const float GB = MB / 1024.f;
