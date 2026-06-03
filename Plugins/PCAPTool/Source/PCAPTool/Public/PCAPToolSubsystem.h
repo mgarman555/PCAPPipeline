@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "EditorSubsystem.h"
+#include "Subsystems/EngineSubsystem.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "PCAPToolTypes.h"
@@ -24,10 +24,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPCAPHMCConnectionChanged,
  * Lives from editor open to editor close — no actor, no PIE required.
  *
  * Blueprint access:
- *   Get Editor Subsystem → PCAPToolSubsystem → call any function below.
+ *   Get Engine Subsystem → PCAPToolSubsystem → call any function below.
  */
 UCLASS()
-class PCAPTOOL_API UPCAPToolSubsystem : public UEditorSubsystem
+class PCAPTOOL_API UPCAPToolSubsystem : public UEngineSubsystem
 {
     GENERATED_BODY()
 
