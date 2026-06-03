@@ -20,11 +20,12 @@ public class PCAPTool : ModuleRules
             "UMG",                // UUserWidget base — PCAPToolEditorWidget
             "Blutility",          // UEditorUtilityWidget
             "ImageWrapper",       // JPEG decode for HMC video frames
+            "UnrealEd",           // UEditorSubsystem base class
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]
         {
-            "UnrealEd",           // FEditorFileUtils::PromptForCheckoutAndSave
+            // UnrealEd moved to Public so PCAPToolSubsystem.h can include EditorSubsystem.h
             // IKRig is Private so UHT does not scan IKRIG_API macros when
             // processing PCAPToolTypes.h. Types are forward-declared in the header;
             // any .cpp resolving soft refs must include IKRig headers directly.
