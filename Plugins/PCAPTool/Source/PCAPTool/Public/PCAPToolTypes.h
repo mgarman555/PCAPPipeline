@@ -215,7 +215,62 @@ struct PCAPTOOL_API FAudioStreamEntry
 };
 
 // ---------------------------------------------------------------------------
-// HMC Device Status
+// HMC — Connection / Camera / Feed enums
+// ---------------------------------------------------------------------------
+
+UENUM(BlueprintType)
+enum class EHMCConnectionState : uint8
+{
+    Disconnected UMETA(DisplayName = "Disconnected"),
+    Connected    UMETA(DisplayName = "Connected"),
+    Offline      UMETA(DisplayName = "Offline")
+};
+
+UENUM(BlueprintType)
+enum class EHMCCameraRole : uint8
+{
+    Top    UMETA(DisplayName = "Top"),
+    Bottom UMETA(DisplayName = "Bottom"),
+    Center UMETA(DisplayName = "Center"),
+    Left   UMETA(DisplayName = "Left"),
+    Right  UMETA(DisplayName = "Right")
+};
+
+UENUM(BlueprintType)
+enum class EHMCFeedState : uint8
+{
+    Clear        UMETA(DisplayName = "Clear"),
+    NeedsFix     UMETA(DisplayName = "Needs Fix"),
+    Disconnected UMETA(DisplayName = "Disconnected")
+};
+
+// ---------------------------------------------------------------------------
+// HMC Device Config — registration data (persisted to HMCConfig.json)
+// ---------------------------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FHMCDeviceConfig
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString DeviceName;     // e.g. "ORION" — operator-facing label
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString IPAddress;      // e.g. "192.168.50.117"
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString ActorName;      // FShotSubject.ActorName — set after connection
+
+    // WebSocket endpoint — default "ws://[IPAddress]/ws".
+    // Configurable because Technoprops firmware version determines actual path.
+    // Confirm path from device browser network tab before first use.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString WebSocketEndpoint;
+};
+
+// ---------------------------------------------------------------------------
+// HMC Device Status — live state pushed from device via WebSocket
 // ---------------------------------------------------------------------------
 
 USTRUCT(BlueprintType)
@@ -223,26 +278,85 @@ struct PCAPTOOL_API FHMCDeviceStatus
 {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString DeviceID;
+    UPROPERTY(BlueprintReadOnly)
+    FString DeviceName;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(BlueprintReadOnly)
     FString IPAddress;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool IsRecording = false;
+    UPROPERTY(BlueprintReadOnly)
+    FString ActorName;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float BatteryVoltage = 0.f;
+    UPROPERTY(BlueprintReadOnly)
+    EHMCConnectionState ConnectionState = EHMCConnectionState::Disconnected;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(BlueprintReadOnly)
+    bool bIsRecording = false;
+
+    UPROPERTY(BlueprintReadOnly)
+    float BatteryVoltage = 0.f;         // raw volts — 4S LiPo, nominal ~15.5V
+
+    UPROPERTY(BlueprintReadOnly)
     float AvailableStorageMB = 0.f;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FDateTime LastPollTime = FDateTime(0);
+    UPROPERTY(BlueprintReadOnly)
+    float CPUUsagePercent = 0.f;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool IsReachable = false;
+    UPROPERTY(BlueprintReadOnly)
+    float TemperatureCelsius = 0.f;
+
+    UPROPERTY(BlueprintReadOnly)
+    FString LastClipStatus;             // "Not ready", "Ready", etc.
+
+    UPROPERTY(BlueprintReadOnly)
+    FString StatusMessage;              // quip from GenerateStatusQuip()
+
+    UPROPERTY(BlueprintReadOnly)
+    FString CurrentTakeName;
+
+    UPROPERTY(BlueprintReadOnly)
+    FDateTime LastUpdateTime = FDateTime(0);
+
+    UPROPERTY(BlueprintReadOnly)
+    float FPS = 0.f;
+};
+
+// ---------------------------------------------------------------------------
+// HMC Camera Feed — one camera per entry, grouped by ActorName in Preview
+// ---------------------------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FHMCCameraFeed
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite)
+    FString DeviceName;
+
+    UPROPERTY(BlueprintReadWrite)
+    FString ActorName;
+
+    UPROPERTY(BlueprintReadWrite)
+    EHMCCameraRole Role = EHMCCameraRole::Top;
+
+    // FeedState: manually toggled in Setup (Clear/NeedsFix).
+    // Set to Disconnected by the component when the WebSocket drops.
+    // Never manually set to Disconnected from the UI.
+    UPROPERTY(BlueprintReadWrite)
+    EHMCFeedState FeedState = EHMCFeedState::Disconnected;
+
+    // Null until a frame arrives. Widget shows "No Feed" placeholder when null.
+    // Texture lifetime managed by UHMCMonitorComponent::FrameTextureCache.
+    UPROPERTY(BlueprintReadOnly)
+    TObjectPtr<UTexture2D> FrameTexture = nullptr;
+
+    UPROPERTY(BlueprintReadOnly)
+    FString Timecode;
+
+    // Camera index on device (0 = first cam, 1 = second cam).
+    // Used internally for HTTP frame requests and binary frame routing.
+    UPROPERTY(BlueprintReadOnly)
+    int32 CameraIndex = 0;
 };
 
 USTRUCT(BlueprintType)

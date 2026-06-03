@@ -13,9 +13,10 @@ public class PCAPTool : ModuleRules
             "Engine",
             "DeveloperSettings",  // UDeveloperSettings
             "LevelSequence",      // ULevelSequence in PCAPToolTypes.h
-            "HTTP",               // FHttpModule — HMCMonitorComponent
+            "HTTP",               // FHttpModule — HMC video frame pull
+            "WebSockets",         // IWebSocket — HMC status push connection
             "Json",               // FJsonObject parsing
-            "JsonUtilities",      // TJsonReader helpers
+            "JsonUtilities",      // TJsonReader/Writer helpers
             "UMG",                // UUserWidget base — PCAPToolEditorWidget
             "Blutility",          // UEditorUtilityWidget
             "ImageWrapper",       // JPEG decode for HMC video frames
