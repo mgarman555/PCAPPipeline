@@ -32,6 +32,7 @@ private:
     static FLinearColor VoltageColor(float V);
     static FLinearColor StorageColor(float MB);
     static FLinearColor CPUColor(float Pct);
+    static FLinearColor TempColor(float C);
     static FString FormatStorage(float MB);
     static FString FormatSecondsSince(const FDateTime& T);
 
