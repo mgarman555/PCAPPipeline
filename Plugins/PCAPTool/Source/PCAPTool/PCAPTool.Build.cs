@@ -11,24 +11,26 @@ public class PCAPTool : ModuleRules
             "Core",
             "CoreUObject",
             "Engine",
-            "DeveloperSettings",  // UDeveloperSettings
-            "LevelSequence",      // ULevelSequence in PCAPToolTypes.h
-            "HTTP",               // FHttpModule — HMC video frame pull
-            "WebSockets",         // IWebSocket — HMC status push connection
-            "Json",               // FJsonObject parsing
-            "JsonUtilities",      // TJsonReader/Writer helpers
-            "UMG",                // UUserWidget base — PCAPToolEditorWidget
-            "Blutility",          // UEditorUtilityWidget
-            "ImageWrapper",       // JPEG decode for HMC video frames
+            "DeveloperSettings",    // UDeveloperSettings
+            "LevelSequence",        // ULevelSequence in PCAPToolTypes.h
+            "HTTP",                 // FHttpModule — HMC video frame pull
+            "WebSockets",           // IWebSocket — HMC status push
+            "Json",                 // FJsonObject parsing
+            "JsonUtilities",        // TJsonReader/Writer helpers
+            "UMG",                  // UUserWidget — PCAPToolEditorWidget
+            "Blutility",            // UEditorUtilityWidget
+            "ImageWrapper",         // JPEG decode for HMC video frames
+            "Slate",                // Slate UI framework
+            "SlateCore",            // Slate core types
+            "ToolMenus",            // Window menu registration
+            "WorkspaceMenuStructure",// Window menu category
+            "InputCore",            // FKey, keyboard input in Slate
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]
         {
-            "UnrealEd",           // FEditorFileUtils::PromptForCheckoutAndSave
-            // IKRig is Private so UHT does not scan IKRIG_API macros when
-            // processing PCAPToolTypes.h. Types are forward-declared in the header;
-            // any .cpp resolving soft refs must include IKRig headers directly.
-            "IKRig",
+            "UnrealEd",             // FEditorFileUtils, tab manager
+            "IKRig",                // Forward-declared in PCAPToolTypes.h
         });
     }
 }
