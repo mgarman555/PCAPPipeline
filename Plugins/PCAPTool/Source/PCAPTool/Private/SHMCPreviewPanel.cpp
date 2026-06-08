@@ -348,6 +348,25 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FHMCDeviceStatus& Status, 
     UTexture2D* Frame = Sub ? Sub->GetLastFrame(Status.DeviceName, CameraIndex) : nullptr;
     const bool bConnected = Status.ConnectionState == EHMCConnectionState::Connected;
 
+    // Size the cell to the camera's display aspect so the whole frame shows without
+    // crop or distortion. Prefer the decoded frame's true pixels; fall back to
+    // control.json geometry (rotation-aware: a 2048x1536 sensor at 90° = portrait).
+    float AspectWH = 0.75f;   // ORION rotated-portrait default
+    if (Frame && Frame->GetSizeY() > 0)
+    {
+        AspectWH = (float)Frame->GetSizeX() / (float)Frame->GetSizeY();
+    }
+    else if (Status.FrameWidth > 0 && Status.FrameHeight > 0)
+    {
+        const int32 Rot   = (CameraIndex == 0) ? Status.Rotation0 : Status.Rotation1;
+        const bool  bSwap = (((Rot % 180) + 180) % 180) == 90;   // 90/270 → portrait
+        const float DW = bSwap ? (float)Status.FrameHeight : (float)Status.FrameWidth;
+        const float DH = bSwap ? (float)Status.FrameWidth  : (float)Status.FrameHeight;
+        if (DH > 0.f) AspectWH = DW / DH;
+    }
+    // Feed occupies ~half the 440px card; derive height from the camera aspect.
+    const float FeedH = FMath::Clamp(212.f / FMath::Max(0.2f, AspectWH), 110.f, 380.f);
+
     // Issue-driven border + banner (hardware ∪ manual flags → severity → color/text).
     const int32 Flags = Sub ? Sub->GetEffectiveIssueFlags(Status.DeviceName, CameraIndex) : 0;
     const EHMCIssueSeverity Sev = UPCAPToolStatics::GetIssueSeverity(Flags);
@@ -391,7 +410,7 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FHMCDeviceStatus& Status, 
         .BorderBackgroundColor(BorderCol)
         .Padding(2.f)
         [
-            SNew(SBox).HeightOverride(200.f)
+            SNew(SBox).HeightOverride(FeedH)
             [
                 SNew(SBorder)                         // black feed background
                 .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
@@ -474,9 +493,9 @@ FLinearColor SHMCPreviewPanel::TempColor(float C)
 FString SHMCPreviewPanel::FormatStorage(float MB)
 {
     const float GB = MB / 1024.f;
-    return GB < 1.f
-        ? FString::Printf(TEXT("%.0f MB"), MB)
-        : FString::Printf(TEXT("%.1f GB"), GB);
+    if (GB < 1.f)   return FString::Printf(TEXT("%.0fMB"), MB);
+    if (GB < 100.f) return FString::Printf(TEXT("%.1fGB"), GB);
+    return FString::Printf(TEXT("%.0fGB"), GB);   // compact for large drives (642GB)
 }
 
 FString SHMCPreviewPanel::FormatSecondsSince(const FDateTime& T)

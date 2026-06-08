@@ -333,6 +333,13 @@ struct PCAPTOOL_API FHMCDeviceStatus
     UPROPERTY(BlueprintReadOnly) bool  bStreaming0 = false;  // streaming0
     UPROPERTY(BlueprintReadOnly) bool  bStreaming1 = false;  // streaming1
 
+    // Camera geometry (control.json). Sensor is landscape; rotation is applied for
+    // display — a 2048x1536 sensor at rotation 90 shows as 1536x2048 portrait.
+    UPROPERTY(BlueprintReadOnly) int32 FrameWidth  = 0;      // width  (e.g. 2048)
+    UPROPERTY(BlueprintReadOnly) int32 FrameHeight = 0;      // height (e.g. 1536)
+    UPROPERTY(BlueprintReadOnly) int32 Rotation0   = 0;      // rotation0 (degrees)
+    UPROPERTY(BlueprintReadOnly) int32 Rotation1   = 0;      // rotation1 (degrees)
+
     // Hardware issue bitmasks (EHMCIssueFlag), evaluated each poll. Per camera.
     UPROPERTY(BlueprintReadOnly) int32 IssueFlags0 = 0;
     UPROPERTY(BlueprintReadOnly) int32 IssueFlags1 = 0;
