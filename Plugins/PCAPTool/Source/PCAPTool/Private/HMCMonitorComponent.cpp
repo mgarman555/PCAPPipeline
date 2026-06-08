@@ -140,6 +140,17 @@ void UHMCMonitorComponent::ConnectAll()
     }
 }
 
+void UHMCMonitorComponent::PollAllDevicesNow()
+{
+    // PollTimers holds exactly the set of connected devices.
+    TArray<FString> DeviceNames;
+    PollTimers.GenerateKeyArray(DeviceNames);
+    for (const FString& Name : DeviceNames)
+    {
+        PollDevice(Name);
+    }
+}
+
 void UHMCMonitorComponent::DisconnectDevice(const FString& DeviceName)
 {
     if (FTimerHandle* Handle = PollTimers.Find(DeviceName))
