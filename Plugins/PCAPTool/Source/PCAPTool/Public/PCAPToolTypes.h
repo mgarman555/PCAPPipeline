@@ -262,15 +262,16 @@ struct PCAPTOOL_API FHMCDeviceConfig
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString ActorName;      // FShotSubject.ActorName — set after connection
 
-    // WebSocket endpoint — default "ws://[IPAddress]/ws".
-    // Configurable because Technoprops firmware version determines actual path.
-    // Confirm path from device browser network tab before first use.
+    // DEPRECATED — unused. The HMC layer polls over HTTP; there is no WebSocket.
+    // Retained only for HMCConfig.json save-format compatibility (avoids a schema
+    // migration). Leave empty when registering devices. Do not remove this field.
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString WebSocketEndpoint;
 };
 
 // ---------------------------------------------------------------------------
-// HMC Device Status — live state pushed from device via WebSocket
+// HMC Device Status — live state pulled from the device via HTTP polling
+// (GET /control?cmd=no&param=, parsed from control.json)
 // ---------------------------------------------------------------------------
 
 USTRUCT(BlueprintType)
@@ -340,7 +341,7 @@ struct PCAPTOOL_API FHMCCameraFeed
     EHMCCameraRole Role = EHMCCameraRole::Top;
 
     // FeedState: manually toggled in Setup (Clear/NeedsFix).
-    // Set to Disconnected by the component when the WebSocket drops.
+    // Set to Disconnected by the component when a device poll fails (offline).
     // Never manually set to Disconnected from the UI.
     UPROPERTY(BlueprintReadWrite)
     EHMCFeedState FeedState = EHMCFeedState::Disconnected;
@@ -354,7 +355,7 @@ struct PCAPTOOL_API FHMCCameraFeed
     FString Timecode;
 
     // Camera index on device (0 = first cam, 1 = second cam).
-    // Used internally for HTTP frame requests and binary frame routing.
+    // Used internally to build HTTP frame requests (/video?cam=CameraIndex+1).
     UPROPERTY(BlueprintReadOnly)
     int32 CameraIndex = 0;
 };
