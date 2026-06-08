@@ -178,8 +178,8 @@ private:
     // Continuous video pump state — see PCAPToolSubsystem for the rationale. Frames
     // run a self-sustaining chain off HTTP completions (no world timer), so they
     // stream even on an editor-placed actor where the poll timer can't tick.
-    TSet<FString> FrameStreamDevices;   // devices with an active frame chain
-    TSet<FString> FrameInFlight;        // devices with a video request in flight
+    TSet<FString> FrameStreamDevices;   // devices with active frame chains
+    TSet<FString> FrameInFlight;        // "DeviceName_Cam" with a request in flight
     TSet<FString> FrameNoFace;          // "DeviceName_Cam" with no subject in frame
 
     // GC root for frame textures — keeps transient textures alive between broadcasts.
