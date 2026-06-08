@@ -20,7 +20,7 @@ private:
     FReply OnSetupClicked();
     FReply OnPreviewClicked();
 
-    int32 ActiveMode = 0; // 0 = Setup, 1 = Preview
+    int32 ActiveMode = 1; // 0 = Setup, 1 = Preview — opens in Preview
 
     const FLinearColor BgPanel  = FLinearColor(0.102f, 0.102f, 0.102f);
     const FLinearColor BgHeader = FLinearColor(0.067f, 0.067f, 0.067f);

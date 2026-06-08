@@ -130,7 +130,7 @@ void SHMCPreviewPanel::RefreshCards()
         .ForceNewLine(false)
         [
             SNew(SBox)
-            .WidthOverride(300.f)
+            .WidthOverride(440.f)
             [
                 BuildDeviceCard(Status)
             ]
@@ -391,7 +391,7 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FHMCDeviceStatus& Status, 
         .BorderBackgroundColor(BorderCol)
         .Padding(2.f)
         [
-            SNew(SBox).HeightOverride(140.f)
+            SNew(SBox).HeightOverride(200.f)
             [
                 SNew(SBorder)                         // black feed background
                 .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
