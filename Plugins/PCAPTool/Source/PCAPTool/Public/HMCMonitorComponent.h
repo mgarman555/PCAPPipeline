@@ -175,9 +175,20 @@ private:
     TMap<FString, FTimerHandle>              PollTimers;          // keyed by DeviceName
     TMap<FString, int32>                     ManualIssueFlags;    // keyed by DeviceName
 
+    // Continuous video pump state — see PCAPToolSubsystem for the rationale. Frames
+    // run a self-sustaining chain off HTTP completions (no world timer), so they
+    // stream even on an editor-placed actor where the poll timer can't tick.
+    TSet<FString> FrameStreamDevices;   // devices with an active frame chain
+    TSet<FString> FrameInFlight;        // devices with a video request in flight
+
     // GC root for frame textures — keeps transient textures alive between broadcasts.
     UPROPERTY()
     TMap<FString, TObjectPtr<UTexture2D>> FrameTextureCache; // key = "DeviceName_CamIndex"
+
+    // Requests one frame for the given camera if the device is streaming, connected,
+    // and has no request already in flight. The chain re-arms from OnVideoFrameResponse
+    // (alternating cameras); kicked once on connect and re-kicked each successful poll.
+    void PumpFrameCam(const FString& DeviceName, int32 CameraIndex);
 
     // HTTP status poll (control.json)
     void PollDevice(FString DeviceName);

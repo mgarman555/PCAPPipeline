@@ -176,6 +176,11 @@ void UHMCMonitorComponent::ConnectDevice(const FString& DeviceName)
             true);   // looping
         PollTimers.Add(DeviceName, Handle);
     }
+
+    // Start the continuous frame chain (runs off HTTP completions, not the timer —
+    // so video streams even though this actor's world timer can't tick in-editor).
+    FrameStreamDevices.Add(DeviceName);
+    PumpFrameCam(DeviceName, 0);
 }
 
 void UHMCMonitorComponent::ConnectAll()
@@ -207,6 +212,9 @@ void UHMCMonitorComponent::DisconnectDevice(const FString& DeviceName)
         }
         PollTimers.Remove(DeviceName);
     }
+    // Stop the frame chain (any in-flight request just finishes unused).
+    FrameStreamDevices.Remove(DeviceName);
+    FrameInFlight.Remove(DeviceName);
     SetConnectionState(DeviceName, EHMCConnectionState::Disconnected);
     MarkFeedsDisconnected(DeviceName);
 }
@@ -312,11 +320,9 @@ void UHMCMonitorComponent::OnPollResponse(FHttpRequestPtr Request, FHttpResponse
     // HTTP completes on the game thread in UE5 — no AsyncTask needed
     OnStatusUpdated.Broadcast(DeviceName, *Status);
 
-    // Device is confirmed online — pull a fresh frame for each camera. This is the
-    // ONLY driver of video: frames are coupled to the (driven) status poll so no UI
-    // timer can forget to request them. Failures resolve to a null frame → "No Feed".
-    RequestVideoFrame(DeviceName, 0);
-    RequestVideoFrame(DeviceName, 1);
+    // Re-arm the frame chain in case it stalled (e.g. after a reconnect).
+    // Idempotent — no-ops while a request is already in flight.
+    PumpFrameCam(DeviceName, 0);
 }
 
 // ─── Status accessors ───────────────────────────────────────────────────────────
@@ -510,41 +516,52 @@ UTexture2D* UHMCMonitorComponent::GetLastFrame(const FString& DeviceName, int32 
 void UHMCMonitorComponent::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
                                                   bool bWasSuccessful, FString DeviceName, int32 CameraIndex)
 {
-    if (!bWasSuccessful || !Response.IsValid() || Response->GetResponseCode() != 200)
+    FrameInFlight.Remove(DeviceName);   // this request is done; the chain re-arms below
+
+    UTexture2D* Texture = nullptr;
+    if (bWasSuccessful && Response.IsValid() && Response->GetResponseCode() == 200)
+    {
+        // Decode is thread-safe; texture creation happens here since HTTP callbacks
+        // fire on the game thread in UE5.
+        const TArray<uint8>& RawBytes = Response->GetContent();
+        IImageWrapperModule& IWM = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
+        TSharedPtr<IImageWrapper> IW = IWM.CreateImageWrapper(EImageFormat::JPEG);
+
+        TArray<uint8> Uncompressed;
+        if (IW.IsValid() && IW->SetCompressed(RawBytes.GetData(), RawBytes.Num())
+            && IW->GetRaw(ERGBFormat::BGRA, 8, Uncompressed))
+        {
+            Texture = CreateTextureFromRaw(Uncompressed, IW->GetWidth(), IW->GetHeight());
+            if (Texture)
+            {
+                const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+                FrameTextureCache.Add(Key, Texture);
+            }
+        }
+    }
+    else
     {
         UE_LOG(LogTemp, Warning, TEXT("[PCAPTool] HMC %s cam%d frame request failed (HTTP %d)"),
             *DeviceName, CameraIndex, Response.IsValid() ? Response->GetResponseCode() : -1);
-        OnFrameReceived.Broadcast(DeviceName, CameraIndex, nullptr);
-        return;
-    }
-
-    // Decode is thread-safe; texture creation happens here since HTTP callbacks
-    // fire on the game thread in UE5.
-    const TArray<uint8>& RawBytes = Response->GetContent();
-    IImageWrapperModule& IWM = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-    TSharedPtr<IImageWrapper> IW = IWM.CreateImageWrapper(EImageFormat::JPEG);
-
-    if (!IW.IsValid() || !IW->SetCompressed(RawBytes.GetData(), RawBytes.Num()))
-    {
-        OnFrameReceived.Broadcast(DeviceName, CameraIndex, nullptr);
-        return;
-    }
-
-    TArray<uint8> Uncompressed;
-    if (!IW->GetRaw(ERGBFormat::BGRA, 8, Uncompressed))
-    {
-        OnFrameReceived.Broadcast(DeviceName, CameraIndex, nullptr);
-        return;
-    }
-
-    UTexture2D* Texture = CreateTextureFromRaw(Uncompressed, IW->GetWidth(), IW->GetHeight());
-    if (Texture)
-    {
-        const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
-        FrameTextureCache.Add(Key, Texture);
     }
 
     OnFrameReceived.Broadcast(DeviceName, CameraIndex, Texture);
+
+    // Continue the chain on the OTHER camera — alternating keeps exactly one request
+    // in flight per device, which single-stream firmware can actually serve.
+    PumpFrameCam(DeviceName, 1 - CameraIndex);
+}
+
+void UHMCMonitorComponent::PumpFrameCam(const FString& DeviceName, int32 CameraIndex)
+{
+    if (!FrameStreamDevices.Contains(DeviceName)) return;   // not streaming
+    if (FrameInFlight.Contains(DeviceName)) return;         // one already in flight
+
+    const FHMCDeviceStatus* S = DeviceStatuses.Find(DeviceName);
+    if (!S || S->ConnectionState != EHMCConnectionState::Connected) return;
+
+    FrameInFlight.Add(DeviceName);
+    RequestVideoFrame(DeviceName, CameraIndex);
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────

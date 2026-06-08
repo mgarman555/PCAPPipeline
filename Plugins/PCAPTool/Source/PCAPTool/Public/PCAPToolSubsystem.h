@@ -150,6 +150,13 @@ private:
     TMap<FString, FTimerHandle>           PollTimers;     // keyed by DeviceName
     TMap<FString, int32>                  ManualIssueFlags; // keyed by DeviceName
 
+    // Continuous video pump state. Frames are NOT tied to the 2s status poll —
+    // each device runs a self-sustaining chain that alternates cameras as fast as
+    // the device can serve (one request in flight per device → kind to firmware,
+    // and both cameras get served on single-stream hardware).
+    TSet<FString> FrameStreamDevices;   // devices with an active frame chain
+    TSet<FString> FrameInFlight;        // devices with a video request in flight
+
     // No world context on an EngineSubsystem — polled via GEditor's timer manager.
     float PollIntervalSeconds = 2.0f;
 
@@ -159,6 +166,12 @@ private:
     void PollDevice(FString DeviceName);
     void OnPollResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
                         bool bWasSuccessful, FString DeviceName);
+
+    // Requests one frame for the given camera if the device is streaming, connected,
+    // and has no request already in flight. The chain re-arms itself from
+    // OnVideoFrameResponse (alternating cameras), so this only needs kicking once
+    // per device (on connect) and re-kicking after a stall (each successful poll).
+    void PumpFrameCam(const FString& DeviceName, int32 CameraIndex);
 
     void OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
                               bool bWasSuccessful, FString DeviceName, int32 CameraIndex);

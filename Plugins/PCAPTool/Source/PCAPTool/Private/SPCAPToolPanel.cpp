@@ -53,7 +53,7 @@ void SPCAPToolPanel::Construct(const FArguments& InArgs)
             .FillHeight(1.f)
             [
                 SAssignNew(ModeSwitcher, SWidgetSwitcher)
-                .WidgetIndex(0)
+                .WidgetIndex(1)   // open in Preview by default
 
                 // Slot 0 — Setup
                 + SWidgetSwitcher::Slot()

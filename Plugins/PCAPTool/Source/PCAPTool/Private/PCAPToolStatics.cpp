@@ -93,8 +93,11 @@ int32 UPCAPToolStatics::EvaluateCameraIssues(const FHMCDeviceStatus& S, int32 Ca
 
     // Device-wide signals — apply to both cameras. Guard against the all-zero
     // default a status carries before its first successful parse.
-    if (!S.LastClipStatus.IsEmpty() && S.LastClipStatus != TEXT("Ready"))
-        Flags |= HMC_Issue_ClipNotReady;
+    //
+    // NOTE: ClipNotReady is intentionally NOT evaluated here. "Not Ready" is the
+    // normal idle state before/between takes, so flagging it turned every feed
+    // amber at rest. Clip state is surfaced in the CLIP vital cell instead; this
+    // mask drives only live-feed health.
     if (S.BatteryVoltage > 0.f      && S.BatteryVoltage < 13.0f)        Flags |= HMC_Issue_LowBattery;
     if (S.AvailableStorageMB > 0.f  && S.AvailableStorageMB < 10240.f)  Flags |= HMC_Issue_LowStorage;
     if (S.CPUUsagePercent > 80.f)                                      Flags |= HMC_Issue_HighCPU;
