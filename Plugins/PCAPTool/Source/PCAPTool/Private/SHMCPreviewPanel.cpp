@@ -88,13 +88,25 @@ void SHMCPreviewPanel::Construct(const FArguments& InArgs)
         Sub->ConnectAll();
 
     RefreshCards();
-    RegisterActiveTimer(2.0f, FWidgetActiveTimerDelegate::CreateSP(
+    // Structure + vitals refresh (cards rebuilt) — modest rate is fine for telemetry.
+    RegisterActiveTimer(0.5f, FWidgetActiveTimerDelegate::CreateSP(
         this, &SHMCPreviewPanel::OnRefreshTimer));
+    // Fast repaint (~30fps) so the in-place-updated feed textures show new frames.
+    // Returning Continue also keeps the editor un-throttled → faster frame pulls.
+    RegisterActiveTimer(1.0f / 30.0f, FWidgetActiveTimerDelegate::CreateSP(
+        this, &SHMCPreviewPanel::OnFastRepaint));
 }
 
 EActiveTimerReturnType SHMCPreviewPanel::OnRefreshTimer(double CurrentTime, float DeltaTime)
 {
     RefreshCards();
+    return EActiveTimerReturnType::Continue;
+}
+
+EActiveTimerReturnType SHMCPreviewPanel::OnFastRepaint(double CurrentTime, float DeltaTime)
+{
+    // Feed textures are updated in place by the subsystem; just force a repaint.
+    Invalidate(EInvalidateWidgetReason::Paint);
     return EActiveTimerReturnType::Continue;
 }
 

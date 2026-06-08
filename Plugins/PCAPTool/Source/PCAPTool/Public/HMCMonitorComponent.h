@@ -200,8 +200,9 @@ private:
     void OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
                               bool bWasSuccessful, FString DeviceName, int32 CameraIndex);
 
-    // Creates UTexture2D from raw BGRA data. Must be called on game thread.
-    UTexture2D* CreateTextureFromRaw(const TArray<uint8>& RawBGRA, int32 Width, int32 Height);
+    // Reuses one persistent texture per "DeviceName_Cam", updating its pixels in
+    // place via UpdateTextureRegions — no per-frame allocation or UpdateResource.
+    UTexture2D* UpdateFrameTexture(const FString& Key, const TArray<uint8>& BGRA, int32 Width, int32 Height);
 
     void SetConnectionState(const FString& DeviceName, EHMCConnectionState NewState);
     void MarkFeedsDisconnected(const FString& DeviceName);

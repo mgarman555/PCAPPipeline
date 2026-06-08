@@ -22,6 +22,11 @@ private:
     void RefreshCards();
     EActiveTimerReturnType OnRefreshTimer(double CurrentTime, float DeltaTime);
 
+    // Fast repaint loop (~30fps): feed textures update their pixels in place, so the
+    // panel just needs to be invalidated to show new frames. Also keeps the editor
+    // ticking, which keeps the HTTP frame pulls flowing.
+    EActiveTimerReturnType OnFastRepaint(double CurrentTime, float DeltaTime);
+
     TSharedRef<SWidget> BuildDeviceCard(const FHMCDeviceStatus& Status);
     TSharedRef<SWidget> BuildStatusStrip(const FHMCDeviceStatus& Status);
     TSharedRef<SWidget> BuildVitalBar(const FHMCDeviceStatus& Status);
