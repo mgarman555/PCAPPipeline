@@ -1,13 +1,20 @@
 #include "SHMCPreviewPanel.h"
 #include "PCAPToolSubsystem.h"
+#include "PCAPToolStatics.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Widgets/Images/SImage.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SScaleBox.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SWrapBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Styling/AppStyle.h"
 #include "Styling/SlateColor.h"
+#include "Styling/SlateBrush.h"
+#include "Slate/DeferredCleanupSlateBrush.h"
+#include "Engine/Texture2D.h"
 
 UPCAPToolSubsystem* SHMCPreviewPanel::GetSubsystem()
 {
@@ -97,6 +104,8 @@ void SHMCPreviewPanel::RefreshCards()
     UPCAPToolSubsystem* Sub = GetSubsystem();
 
     CardContainer->ClearChildren();
+    // Old cards are gone — safe to release last cycle's frame brushes.
+    FeedBrushes.Reset();
 
     if (!Sub || Sub->GetAllDeviceStatuses().Num() == 0)
     {
@@ -203,9 +212,9 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FHMCDeviceStatus& St
             [
                 SNew(SHorizontalBox)
                 + SHorizontalBox::Slot().FillWidth(1.f).Padding(0,0,4,0)
-                [ BuildFeedPlaceholder(TEXT("Top")) ]
+                [ BuildFeed(Status, 0, TEXT("TOP")) ]
                 + SHorizontalBox::Slot().FillWidth(1.f)
-                [ BuildFeedPlaceholder(TEXT("Bot")) ]
+                [ BuildFeed(Status, 1, TEXT("BOT")) ]
             ]
 
             // ── Vitals bar ────────────────────────────────────────────
@@ -295,7 +304,15 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildVitalBar(const FHMCDeviceStatus& Stat
             CPUColor(Status.CPUUsagePercent)) ]
         + SHorizontalBox::Slot().FillWidth(1.f)
         [ VitalCell(TEXT("TEMP"), FString::Printf(TEXT("%.0f°C"), Status.TemperatureCelsius),
-            TempColor(Status.TemperatureCelsius)) ];
+            TempColor(Status.TemperatureCelsius)) ]
+        + SHorizontalBox::Slot().FillWidth(1.f)
+        [ VitalCell(TEXT("CLIP"),
+            Status.LastClipStatus.IsEmpty() ? TEXT("—") : Status.LastClipStatus,
+            Status.LastClipStatus == TEXT("Ready") ? ColGreen : ColYellow) ]
+        + SHorizontalBox::Slot().FillWidth(1.f)
+        [ VitalCell(TEXT("DROP"),
+            FString::Printf(TEXT("%d"), Status.DroppedFrames0 + Status.DroppedFrames1),
+            (Status.DroppedFrames0 + Status.DroppedFrames1) == 0 ? ColGreen : ColYellow) ];
 }
 
 TSharedRef<SWidget> SHMCPreviewPanel::BuildFeedPlaceholder(const FString& Label)
@@ -320,6 +337,94 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildFeedPlaceholder(const FString& Label)
                     SNew(STextBlock)
                     .Text(FText::FromString(Label))
                     .ColorAndOpacity(FSlateColor(ColMuted))
+                ]
+            ]
+        ];
+}
+
+TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FHMCDeviceStatus& Status, int32 CameraIndex, const FString& Label)
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    UTexture2D* Frame = Sub ? Sub->GetLastFrame(Status.DeviceName, CameraIndex) : nullptr;
+    const bool bConnected = Status.ConnectionState == EHMCConnectionState::Connected;
+
+    // Issue-driven border + banner (hardware ∪ manual flags → severity → color/text).
+    const int32 Flags = Sub ? Sub->GetEffectiveIssueFlags(Status.DeviceName, CameraIndex) : 0;
+    const EHMCIssueSeverity Sev = UPCAPToolStatics::GetIssueSeverity(Flags);
+    const FLinearColor BorderCol =
+        !bConnected                       ? ColGray :
+        (Sev == EHMCIssueSeverity::Red)   ? ColRed :
+        (Sev == EHMCIssueSeverity::Amber) ? ColYellow : ColGreen;
+    const FString Banner = bConnected ? UPCAPToolStatics::GetIssueBannerText(Flags) : TEXT("OFFLINE");
+
+    // Inner: live frame (scaled to fit, aspect preserved) or "No Feed".
+    TSharedRef<SWidget> Inner = SNullWidget::NullWidget;
+    if (Frame)
+    {
+        FSlateBrush B;
+        B.SetResourceObject(Frame);
+        B.ImageSize = FVector2D(Frame->GetSizeX(), Frame->GetSizeY());
+        B.DrawAs    = ESlateBrushDrawType::Image;
+
+        TSharedRef<FDeferredCleanupSlateBrush> Brush = FDeferredCleanupSlateBrush::CreateBrush(B);
+        FeedBrushes.Add(Brush);
+
+        Inner = SNew(SScaleBox)
+            .Stretch(EStretch::ScaleToFit)
+            [
+                SNew(SImage).Image(Brush->GetSlateBrush())
+            ];
+    }
+    else
+    {
+        Inner = SNew(SVerticalBox)
+            + SVerticalBox::Slot().FillHeight(1.f).VAlign(VAlign_Center).HAlign(HAlign_Center)
+            [
+                SNew(STextBlock)
+                .Text(FText::FromString(bConnected ? TEXT("No Feed") : TEXT("—")))
+                .ColorAndOpacity(FSlateColor(ColGray))
+            ];
+    }
+
+    return SNew(SBorder)                              // colored issue border
+        .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+        .BorderBackgroundColor(BorderCol)
+        .Padding(2.f)
+        [
+            SNew(SBox).HeightOverride(140.f)
+            [
+                SNew(SBorder)                         // black feed background
+                .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                .BorderBackgroundColor(BgFeed)
+                .Padding(0.f)
+                [
+                    SNew(SOverlay)
+                    + SOverlay::Slot() [ Inner ]
+
+                    // Issue banner across the top
+                    + SOverlay::Slot()
+                    .VAlign(VAlign_Top)
+                    [
+                        SNew(SBorder)
+                        .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                        .BorderBackgroundColor(FLinearColor(BorderCol.R, BorderCol.G, BorderCol.B, 0.65f))
+                        .Padding(FMargin(4.f, 2.f))
+                        [
+                            SNew(STextBlock)
+                            .Text(FText::FromString(Banner))
+                            .ColorAndOpacity(FSlateColor(ColWhite))
+                        ]
+                    ]
+
+                    // View label, bottom-right
+                    + SOverlay::Slot()
+                    .VAlign(VAlign_Bottom).HAlign(HAlign_Right)
+                    .Padding(FMargin(0.f, 0.f, 4.f, 2.f))
+                    [
+                        SNew(STextBlock)
+                        .Text(FText::FromString(Label))
+                        .ColorAndOpacity(FSlateColor(ColMuted))
+                    ]
                 ]
             ]
         ];
