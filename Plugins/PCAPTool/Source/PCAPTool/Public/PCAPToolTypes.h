@@ -320,6 +320,70 @@ struct PCAPTOOL_API FHMCDeviceStatus
 
     UPROPERTY(BlueprintReadOnly)
     float FPS = 0.f;
+
+    // ── Per-camera telemetry (control.json, parsed in OnPollResponse) ──
+    UPROPERTY(BlueprintReadOnly) int32 DroppedFrames0 = 0;   // skippedFrames0
+    UPROPERTY(BlueprintReadOnly) int32 DroppedFrames1 = 0;   // skippedFrames1
+    UPROPERTY(BlueprintReadOnly) int32 Exposure0 = 0;        // exposure0 (raw, ~4550 normal)
+    UPROPERTY(BlueprintReadOnly) int32 Exposure1 = 0;        // exposure1
+    UPROPERTY(BlueprintReadOnly) int32 Gain0 = 0;            // gain0 (dB, 2 normal)
+    UPROPERTY(BlueprintReadOnly) int32 Gain1 = 0;            // gain1
+    UPROPERTY(BlueprintReadOnly) int32 TopLights = 0;        // topLights (0–100)
+    UPROPERTY(BlueprintReadOnly) int32 BottomLights = 0;     // bottomLights (0–100)
+    UPROPERTY(BlueprintReadOnly) bool  bStreaming0 = false;  // streaming0
+    UPROPERTY(BlueprintReadOnly) bool  bStreaming1 = false;  // streaming1
+
+    // Hardware issue bitmasks (EHMCIssueFlag), evaluated each poll. Per camera.
+    UPROPERTY(BlueprintReadOnly) int32 IssueFlags0 = 0;
+    UPROPERTY(BlueprintReadOnly) int32 IssueFlags1 = 0;
+};
+
+// ---------------------------------------------------------------------------
+// HMC issue flags — bitmask, OR'd together. NOT a UENUM (not BP-exposed as a
+// type); the int32 masks live on FHMCDeviceStatus and are interpreted by
+// UPCAPToolStatics. Bits 0–8 are hardware (from control.json); bits 16+ are
+// operator-reported manual flags (the device has no sensor for these).
+// ---------------------------------------------------------------------------
+enum EHMCIssueFlag : int32
+{
+    HMC_Issue_None          = 0,
+    HMC_Issue_NotStreaming  = 1 << 0,   // streamingN == 0
+    HMC_Issue_Overexposed   = 1 << 1,   // exposureN > 7000
+    HMC_Issue_Underexposed  = 1 << 2,   // exposureN < 1000
+    HMC_Issue_DroppedFrames = 1 << 3,   // skippedFramesN > 0
+    HMC_Issue_ClipNotReady  = 1 << 4,   // lastMovieIntegrityStatus != "Ready"
+    HMC_Issue_LowBattery    = 1 << 5,   // batteryVoltage < 13.0
+    HMC_Issue_LowStorage    = 1 << 6,   // availableStorageInMB < 10240
+    HMC_Issue_HighCPU       = 1 << 7,   // cpuUsage > 80
+    HMC_Issue_HighTemp      = 1 << 8,   // cpuTemp > 50
+
+    // Operator-reported (manual) — device cannot detect these. Setup-mode toggles.
+    HMC_Manual_FaceOffAxis  = 1 << 16,
+    HMC_Manual_HeadsetShift = 1 << 17,
+    HMC_Manual_OutOfFocus   = 1 << 18,
+    HMC_Manual_LipSeal      = 1 << 19,
+    HMC_Manual_Eyelid       = 1 << 20,
+};
+
+// Severity rollup for a set of flags — drives the feed border color.
+UENUM(BlueprintType)
+enum class EHMCIssueSeverity : uint8
+{
+    None  UMETA(DisplayName = "None"),    // green border
+    Amber UMETA(DisplayName = "Amber"),   // amber border (warning)
+    Red   UMETA(DisplayName = "Red")      // red border (hard issue)
+};
+
+// Operator-reported issues, BP-friendly. Enumerator order MUST match the
+// HMC_Manual_* bit order in EHMCIssueFlag (bit = 1 << (16 + index)).
+UENUM(BlueprintType)
+enum class EHMCManualIssue : uint8
+{
+    FaceOffAxis  UMETA(DisplayName = "Face off-axis"),
+    HeadsetShift UMETA(DisplayName = "Headset shifted"),
+    OutOfFocus   UMETA(DisplayName = "Out of focus"),
+    LipSeal      UMETA(DisplayName = "Lip seal not visible"),
+    Eyelid       UMETA(DisplayName = "Eyelid not visible")
 };
 
 // ---------------------------------------------------------------------------

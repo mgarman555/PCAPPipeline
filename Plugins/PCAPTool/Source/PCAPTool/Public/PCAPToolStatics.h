@@ -28,4 +28,22 @@ public:
     // Seeds a new shoot day with standard calibration/test/retarget/production shots.
     UFUNCTION(BlueprintCallable, Category="PCAP|Days")
     static FShootDay SeedNewShootDay(const FString& DayID, const FDateTime& CalendarDate);
+
+    // ── HMC issue evaluation (single source of truth for both monitor paths) ──
+
+    // Hardware issue bitmask (EHMCIssueFlag) for one camera of a polled device.
+    // Combines per-camera signals (streaming/exposure/dropped) with device-wide
+    // ones (battery/storage/cpu/temp/clip). CameraIndex 0 = Top, 1 = Bot.
+    UFUNCTION(BlueprintCallable, Category="PCAP|HMC")
+    static int32 EvaluateCameraIssues(const FHMCDeviceStatus& Status, int32 CameraIndex);
+
+    // Rolls a flag bitmask up to a single severity for border color.
+    // Red wins over Amber wins over None. Accepts hardware | manual flags.
+    UFUNCTION(BlueprintPure, Category="PCAP|HMC")
+    static EHMCIssueSeverity GetIssueSeverity(int32 IssueFlags);
+
+    // Highest-priority human-readable banner line for a flag bitmask.
+    // Returns "All clear · Ready to record" when no flags are set.
+    UFUNCTION(BlueprintPure, Category="PCAP|HMC")
+    static FString GetIssueBannerText(int32 IssueFlags);
 };
