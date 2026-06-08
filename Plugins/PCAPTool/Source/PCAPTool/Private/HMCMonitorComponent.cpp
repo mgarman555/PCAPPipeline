@@ -177,10 +177,12 @@ void UHMCMonitorComponent::ConnectDevice(const FString& DeviceName)
         PollTimers.Add(DeviceName, Handle);
     }
 
-    // Start the continuous frame chain (runs off HTTP completions, not the timer —
+    // Start the continuous frame chains (run off HTTP completions, not the timer —
     // so video streams even though this actor's world timer can't tick in-editor).
+    // One per camera, concurrent.
     FrameStreamDevices.Add(DeviceName);
     PumpFrameCam(DeviceName, 0);
+    PumpFrameCam(DeviceName, 1);
 }
 
 void UHMCMonitorComponent::ConnectAll()
@@ -212,9 +214,10 @@ void UHMCMonitorComponent::DisconnectDevice(const FString& DeviceName)
         }
         PollTimers.Remove(DeviceName);
     }
-    // Stop the frame chain (any in-flight request just finishes unused).
+    // Stop both frame chains (any in-flight requests just finish unused).
     FrameStreamDevices.Remove(DeviceName);
-    FrameInFlight.Remove(DeviceName);
+    FrameInFlight.Remove(FString::Printf(TEXT("%s_0"), *DeviceName));
+    FrameInFlight.Remove(FString::Printf(TEXT("%s_1"), *DeviceName));
     FrameNoFace.Remove(FString::Printf(TEXT("%s_0"), *DeviceName));
     FrameNoFace.Remove(FString::Printf(TEXT("%s_1"), *DeviceName));
     SetConnectionState(DeviceName, EHMCConnectionState::Disconnected);
@@ -326,9 +329,10 @@ void UHMCMonitorComponent::OnPollResponse(FHttpRequestPtr Request, FHttpResponse
     // HTTP completes on the game thread in UE5 — no AsyncTask needed
     OnStatusUpdated.Broadcast(DeviceName, *Status);
 
-    // Re-arm the frame chain in case it stalled (e.g. after a reconnect).
-    // Idempotent — no-ops while a request is already in flight.
+    // Re-arm both camera chains in case one stalled (e.g. after a reconnect).
+    // Idempotent — no-ops while that camera already has a request in flight.
     PumpFrameCam(DeviceName, 0);
+    PumpFrameCam(DeviceName, 1);
 }
 
 // ─── Status accessors ───────────────────────────────────────────────────────────
@@ -502,9 +506,9 @@ void UHMCMonitorComponent::RequestVideoFrame(const FString& DeviceName, int32 Ca
     const FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
     if (!Config) return;
 
-    // HTTP cam index is 1-based per HMC API spec
+    // Device cameras are 0-based: cam=0 (Top), cam=1 (Bot). cam=2 returns HTTP 400.
     const FString URL = FString::Printf(TEXT("http://%s/video?cam=%d"),
-        *Config->IPAddress, CameraIndex + 1);
+        *Config->IPAddress, CameraIndex);
 
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
     Request->SetURL(URL);
@@ -527,7 +531,7 @@ UTexture2D* UHMCMonitorComponent::GetLastFrame(const FString& DeviceName, int32 
 void UHMCMonitorComponent::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
                                                   bool bWasSuccessful, FString DeviceName, int32 CameraIndex)
 {
-    FrameInFlight.Remove(DeviceName);   // this request is done; the chain re-arms below
+    FrameInFlight.Remove(FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex));
 
     UTexture2D* Texture = nullptr;
     bool bSubject = false;
@@ -564,20 +568,23 @@ void UHMCMonitorComponent::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpRe
 
     OnFrameReceived.Broadcast(DeviceName, CameraIndex, Texture);
 
-    // Continue the chain on the OTHER camera — alternating keeps exactly one request
-    // in flight per device, which single-stream firmware can actually serve.
-    PumpFrameCam(DeviceName, 1 - CameraIndex);
+    // Immediately request this camera's next frame — continuous per-camera stream.
+    PumpFrameCam(DeviceName, CameraIndex);
 }
 
 void UHMCMonitorComponent::PumpFrameCam(const FString& DeviceName, int32 CameraIndex)
 {
     if (!FrameStreamDevices.Contains(DeviceName)) return;   // not streaming
-    if (FrameInFlight.Contains(DeviceName)) return;         // one already in flight
+
+    // One chain PER CAMERA — the device serves cam0 and cam1 concurrently, so both
+    // stream at full rate in parallel instead of alternating.
+    const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+    if (FrameInFlight.Contains(Key)) return;                // this camera already in flight
 
     const FHMCDeviceStatus* S = DeviceStatuses.Find(DeviceName);
     if (!S || S->ConnectionState != EHMCConnectionState::Connected) return;
 
-    FrameInFlight.Add(DeviceName);
+    FrameInFlight.Add(Key);
     RequestVideoFrame(DeviceName, CameraIndex);
 }
 

@@ -154,8 +154,8 @@ private:
     // each device runs a self-sustaining chain that alternates cameras as fast as
     // the device can serve (one request in flight per device → kind to firmware,
     // and both cameras get served on single-stream hardware).
-    TSet<FString> FrameStreamDevices;   // devices with an active frame chain
-    TSet<FString> FrameInFlight;        // devices with a video request in flight
+    TSet<FString> FrameStreamDevices;   // devices with active frame chains
+    TSet<FString> FrameInFlight;        // "DeviceName_Cam" with a request in flight
     TSet<FString> FrameNoFace;          // "DeviceName_Cam" with no subject in frame
 
     // No world context on an EngineSubsystem — polled via GEditor's timer manager.
