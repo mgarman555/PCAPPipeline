@@ -246,6 +246,10 @@ void UPCAPToolSubsystem::OnPollResponse(FHttpRequestPtr Request, FHttpResponsePt
     Val = 0.0; JsonObj->TryGetNumberField(TEXT("bottomLights"),   Val); Status->BottomLights   = (int32)Val;
     Val = 0.0; JsonObj->TryGetNumberField(TEXT("streaming0"),     Val); Status->bStreaming0    = Val != 0.0;
     Val = 0.0; JsonObj->TryGetNumberField(TEXT("streaming1"),     Val); Status->bStreaming1    = Val != 0.0;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("width"),          Val); Status->FrameWidth     = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("height"),         Val); Status->FrameHeight    = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("rotation0"),      Val); Status->Rotation0      = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("rotation1"),      Val); Status->Rotation1      = (int32)Val;
 
     JsonObj->TryGetStringField(TEXT("takename"),                 Status->CurrentTakeName);
     JsonObj->TryGetStringField(TEXT("lastMovieIntegrityStatus"), Status->LastClipStatus);
