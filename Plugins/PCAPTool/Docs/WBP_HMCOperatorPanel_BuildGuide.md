@@ -1,3 +1,8 @@
+> **DEPRECATED.** The HMC monitor is now a single two-mode panel. Build from
+> `WBP_HMCMonitorPanel_BuildGuide.md` instead — it supersedes this OperatorPanel
+> guide, the Setup guide, and the Preview guide, and reflects the current C++
+> data-reception architecture. Kept for reference only.
+
 # WBP_HMCOperatorPanel — Blueprint Build Guide
 
 Target location: `Content/PCAPTool/Widgets/WBP_HMCOperatorPanel`

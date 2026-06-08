@@ -1,3 +1,8 @@
+> **DEPRECATED.** The HMC monitor is now a single two-mode panel. Build from
+> `WBP_HMCMonitorPanel_BuildGuide.md` instead — it supersedes this Setup guide,
+> the Preview guide, and the OperatorPanel guide, and reflects the current C++
+> data-reception architecture. Kept for reference only.
+
 # WBP_HMCSetup — Blueprint Build Guide
 Location: Content/PCAPTool/Widgets/WBP_HMCSetup.uasset
 Parent: User Widget (plain UUserWidget, not EUW)
