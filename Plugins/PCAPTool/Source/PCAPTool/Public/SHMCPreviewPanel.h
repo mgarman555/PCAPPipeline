@@ -6,6 +6,7 @@
 
 class UPCAPToolSubsystem;
 class SVerticalBox;
+class FDeferredCleanupSlateBrush;
 
 class PCAPTOOL_API SHMCPreviewPanel : public SCompoundWidget
 {
@@ -25,6 +26,14 @@ private:
     TSharedRef<SWidget> BuildStatusStrip(const FHMCDeviceStatus& Status);
     TSharedRef<SWidget> BuildVitalBar(const FHMCDeviceStatus& Status);
     TSharedRef<SWidget> BuildFeedPlaceholder(const FString& Label);
+
+    // Live feed cell: renders the cached frame texture for one camera, with an
+    // issue-driven border + banner. Falls back to a "No Feed" placeholder.
+    TSharedRef<SWidget> BuildFeed(const FHMCDeviceStatus& Status, int32 CameraIndex, const FString& Label);
+
+    // Frame brushes rebuilt each refresh; held alive for the current widget tree.
+    // Cleared after ClearChildren so old widgets release before their brushes do.
+    TArray<TSharedPtr<FDeferredCleanupSlateBrush>> FeedBrushes;
 
     static UPCAPToolSubsystem* GetSubsystem();
 
