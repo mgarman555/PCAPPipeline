@@ -4,10 +4,9 @@
 #include "Components/ActorComponent.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
+#include "Engine/TimerHandle.h"
 #include "PCAPToolTypes.h"
 #include "HMCMonitorComponent.generated.h"
-
-class IWebSocket;
 
 // DeviceName + full status struct (value copy — acceptable for a monitoring tool)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHMCStatusUpdated,
@@ -32,9 +31,13 @@ public:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+    // How often each connected device is polled over HTTP, in seconds.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PCAP|HMC")
+    float PollIntervalSeconds = 2.0f;
+
     // ─── Registration ────────────────────────────────────────────────────────
 
-    // Add or update a device entry. Does NOT open the WebSocket — call ConnectDevice after.
+    // Add or update a device entry. Does NOT start polling — call ConnectDevice after.
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void RegisterDevice(const FHMCDeviceConfig& Config);
 
@@ -46,11 +49,11 @@ public:
 
     // ─── Connection ───────────────────────────────────────────────────────────
 
-    // Opens WebSocket for one device. Idempotent — safe to call if already connected.
+    // Starts the HTTP poll timer for one device. Idempotent — safe if already polling.
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void ConnectDevice(const FString& DeviceName);
 
-    // Opens WebSockets for all registered devices.
+    // Starts polling for all registered devices.
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void ConnectAll();
 
@@ -86,7 +89,7 @@ public:
 
     // ─── Commands ─────────────────────────────────────────────────────────────
 
-    // Sends JSON {"cmd": "[Command]"} over the device's WebSocket.
+    // Fires GET /control?cmd=[Command]&param= on the device.
     // For startrecording / stoprecording — TEST ONLY, not used in production pipeline.
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void SendCommand(const FString& DeviceName, const FString& Command);
@@ -126,18 +129,16 @@ private:
     TMap<FString, FHMCDeviceConfig>          RegisteredConfigs;   // keyed by DeviceName
     TMap<FString, FHMCDeviceStatus>          DeviceStatuses;      // keyed by DeviceName
     TMap<FString, TArray<FHMCCameraFeed>>    CameraFeeds;         // keyed by ActorName
-    TMap<FString, TSharedPtr<IWebSocket>>    ActiveSockets;       // keyed by DeviceName
+    TMap<FString, FTimerHandle>              PollTimers;          // keyed by DeviceName
 
     // GC root for frame textures — keeps transient textures alive between broadcasts.
     UPROPERTY()
     TMap<FString, TObjectPtr<UTexture2D>> FrameTextureCache; // key = "DeviceName_CamIndex"
 
-    // WebSocket event handlers (may fire on any thread — all marshal to game thread)
-    void HandleConnected(FString DeviceName);
-    void HandleConnectionError(const FString& Error, FString DeviceName);
-    void HandleClosed(int32 StatusCode, const FString& Reason, bool bWasClean, FString DeviceName);
-    void HandleMessage(const FString& Message, FString DeviceName);
-    void HandleRawMessage(const void* Data, SIZE_T Size, SIZE_T BytesRemaining, FString DeviceName);
+    // HTTP status poll (control.json)
+    void PollDevice(FString DeviceName);
+    void OnPollResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
+                        bool bWasSuccessful, FString DeviceName);
 
     // HTTP frame response
     void OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
@@ -145,10 +146,6 @@ private:
 
     // Creates UTexture2D from raw BGRA data. Must be called on game thread.
     UTexture2D* CreateTextureFromRaw(const TArray<uint8>& RawBGRA, int32 Width, int32 Height);
-
-    // Per-device binary frame counter — alternates between cam 0 and cam 1
-    // for devices that push frames over WebSocket without a camera header.
-    TMap<FString, int32> BinaryFrameCounter; // keyed by DeviceName
 
     void SetConnectionState(const FString& DeviceName, EHMCConnectionState NewState);
     void MarkFeedsDisconnected(const FString& DeviceName);

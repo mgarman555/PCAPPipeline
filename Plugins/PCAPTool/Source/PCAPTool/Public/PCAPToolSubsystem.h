@@ -4,10 +4,9 @@
 #include "Subsystems/EngineSubsystem.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
+#include "Engine/TimerHandle.h"
 #include "PCAPToolTypes.h"
 #include "PCAPToolSubsystem.generated.h"
-
-class IWebSocket;
 
 // Same delegate signatures as UHMCMonitorComponent — widget bindings are identical.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPCAPHMCStatusUpdated,
@@ -117,18 +116,18 @@ public:
 private:
     TMap<FString, FHMCDeviceConfig>       RegisteredConfigs;
     TMap<FString, FHMCDeviceStatus>       DeviceStatuses;
-    TMap<FString, TArray<FHMCCameraFeed>> CameraFeeds;        // keyed by ActorName
-    TMap<FString, TSharedPtr<IWebSocket>> ActiveSockets;      // keyed by DeviceName
-    TMap<FString, int32>                  BinaryFrameCounter; // keyed by DeviceName
+    TMap<FString, TArray<FHMCCameraFeed>> CameraFeeds;   // keyed by ActorName
+    TMap<FString, FTimerHandle>           PollTimers;     // keyed by DeviceName
+
+    // No world context on an EngineSubsystem — polled via GEditor's timer manager.
+    float PollIntervalSeconds = 2.0f;
 
     UPROPERTY()
     TMap<FString, TObjectPtr<UTexture2D>> FrameTextureCache;  // key = "DeviceName_CamIndex"
 
-    void HandleConnected(FString DeviceName);
-    void HandleConnectionError(const FString& Error, FString DeviceName);
-    void HandleClosed(int32 StatusCode, const FString& Reason, bool bWasClean, FString DeviceName);
-    void HandleMessage(const FString& Message, FString DeviceName);
-    void HandleRawMessage(const void* Data, SIZE_T Size, SIZE_T BytesRemaining, FString DeviceName);
+    void PollDevice(FString DeviceName);
+    void OnPollResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
+                        bool bWasSuccessful, FString DeviceName);
 
     void OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
                               bool bWasSuccessful, FString DeviceName, int32 CameraIndex);
