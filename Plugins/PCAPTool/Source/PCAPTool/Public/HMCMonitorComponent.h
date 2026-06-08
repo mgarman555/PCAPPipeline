@@ -180,6 +180,7 @@ private:
     // stream even on an editor-placed actor where the poll timer can't tick.
     TSet<FString> FrameStreamDevices;   // devices with an active frame chain
     TSet<FString> FrameInFlight;        // devices with a video request in flight
+    TSet<FString> FrameNoFace;          // "DeviceName_Cam" with no subject in frame
 
     // GC root for frame textures — keeps transient textures alive between broadcasts.
     UPROPERTY()

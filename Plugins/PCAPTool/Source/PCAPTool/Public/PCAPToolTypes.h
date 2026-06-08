@@ -363,6 +363,8 @@ enum EHMCIssueFlag : int32
     HMC_Issue_LowStorage    = 1 << 6,   // availableStorageInMB < 10240
     HMC_Issue_HighCPU       = 1 << 7,   // cpuUsage > 80
     HMC_Issue_HighTemp      = 1 << 8,   // cpuTemp > 50
+    HMC_Issue_NoFace        = 1 << 9,   // no subject in frame — derived from the
+                                        // video pixels, NOT control.json (red)
 
     // Operator-reported (manual) — device cannot detect these. Setup-mode toggles.
     HMC_Manual_FaceOffAxis  = 1 << 16,

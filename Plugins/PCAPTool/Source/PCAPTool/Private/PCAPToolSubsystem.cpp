@@ -153,6 +153,8 @@ void UPCAPToolSubsystem::DisconnectDevice(const FString& DeviceName)
     // Stop the frame chain (the in-flight request, if any, just finishes unused).
     FrameStreamDevices.Remove(DeviceName);
     FrameInFlight.Remove(DeviceName);
+    FrameNoFace.Remove(FString::Printf(TEXT("%s_0"), *DeviceName));
+    FrameNoFace.Remove(FString::Printf(TEXT("%s_1"), *DeviceName));
     SetConnectionState(DeviceName, EHMCConnectionState::Disconnected);
     MarkFeedsDisconnected(DeviceName);
 }
@@ -411,7 +413,12 @@ int32 UPCAPToolSubsystem::GetEffectiveIssueFlags(const FString& DeviceName, int3
     int32 Hardware = 0;
     if (const FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName))
         Hardware = (CameraIndex == 0) ? Status->IssueFlags0 : Status->IssueFlags1;
-    return Hardware | GetManualIssueFlags(DeviceName);
+
+    // Frame-derived: no subject detected (or no signal) → red NoFace flag.
+    const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+    const int32 FrameFlags = FrameNoFace.Contains(Key) ? HMC_Issue_NoFace : 0;
+
+    return Hardware | GetManualIssueFlags(DeviceName) | FrameFlags;
 }
 
 // ─── Video Frames ─────────────────────────────────────────────────────────────
@@ -446,6 +453,7 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
     FrameInFlight.Remove(DeviceName);   // this request is done; the chain re-arms below
 
     UTexture2D* Texture = nullptr;
+    bool bSubject = false;
     if (bWasSuccessful && Response.IsValid() && Response->GetResponseCode() == 200)
     {
         const TArray<uint8>& RawBytes = Response->GetContent();
@@ -462,6 +470,7 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
                 const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
                 FrameTextureCache.Add(Key, Texture);
             }
+            bSubject = UPCAPToolStatics::FrameHasSubject(Uncompressed, IW->GetWidth(), IW->GetHeight());
         }
     }
     else
@@ -469,6 +478,10 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
         UE_LOG(LogTemp, Warning, TEXT("[PCAPTool] HMC %s cam%d frame request failed (HTTP %d)"),
             *DeviceName, CameraIndex, Response.IsValid() ? Response->GetResponseCode() : -1);
     }
+
+    // No subject in frame (or no signal at all) → mark so the feed border goes red.
+    const FString FaceKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+    if (bSubject) FrameNoFace.Remove(FaceKey); else FrameNoFace.Add(FaceKey);
 
     OnFrameReceived.Broadcast(DeviceName, CameraIndex, Texture);
 

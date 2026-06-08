@@ -110,7 +110,8 @@ EHMCIssueSeverity UPCAPToolStatics::GetIssueSeverity(int32 Flags)
 {
     const int32 RedMask =
         HMC_Issue_NotStreaming | HMC_Issue_Overexposed |
-        HMC_Issue_LowBattery   | HMC_Issue_LowStorage   | HMC_Issue_HighTemp;
+        HMC_Issue_LowBattery   | HMC_Issue_LowStorage   | HMC_Issue_HighTemp |
+        HMC_Issue_NoFace;
 
     const int32 AmberMask =
         HMC_Issue_Underexposed | HMC_Issue_DroppedFrames | HMC_Issue_ClipNotReady |
@@ -126,6 +127,7 @@ EHMCIssueSeverity UPCAPToolStatics::GetIssueSeverity(int32 Flags)
 FString UPCAPToolStatics::GetIssueBannerText(int32 Flags)
 {
     // Red (hard) issues — highest priority
+    if (Flags & HMC_Issue_NoFace)        return TEXT("NO FACE IN FRAME · Reframe");
     if (Flags & HMC_Issue_NotStreaming)  return TEXT("Camera disconnected · Check device");
     if (Flags & HMC_Issue_Overexposed)   return TEXT("Overexposed · Reduce exposure");
     if (Flags & HMC_Issue_LowBattery)    return TEXT("Battery low · Eyes on it");
@@ -143,4 +145,31 @@ FString UPCAPToolStatics::GetIssueBannerText(int32 Flags)
     if (Flags & HMC_Manual_LipSeal)      return TEXT("Lip seal not visible · Adjust camera");
     if (Flags & HMC_Manual_Eyelid)       return TEXT("Eyelid not visible · Adjust camera");
     return TEXT("All clear · Ready to record");
+}
+
+bool UPCAPToolStatics::FrameHasSubject(const TArray<uint8>& BGRA, int32 Width, int32 Height)
+{
+    const int32 NumBytes = BGRA.Num();
+    if (NumBytes < 4 || Width <= 0 || Height <= 0) return false;
+
+    // Sample luminance across the frame (every ~64th pixel) — cheap at any res.
+    const int32 Step = 64 * 4;   // BGRA = 4 bytes/pixel
+    double Sum = 0.0;
+    int32 Count = 0;
+    for (int32 i = 0; i + 2 < NumBytes; i += Step)
+    {
+        const double B = BGRA[i];
+        const double G = BGRA[i + 1];
+        const double R = BGRA[i + 2];
+        Sum += 0.114 * B + 0.587 * G + 0.299 * R;   // Rec.601 luma
+        ++Count;
+    }
+    if (Count == 0) return false;
+
+    const double MeanLuma = Sum / Count;
+
+    // IR head-cams light the face brightly when it's in the box; an empty or
+    // averted frame is markedly darker. TUNE this on the real feed — start ~40/255.
+    const double MeanLumaThreshold = 40.0;
+    return MeanLuma > MeanLumaThreshold;
 }

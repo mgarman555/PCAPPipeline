@@ -156,6 +156,7 @@ private:
     // and both cameras get served on single-stream hardware).
     TSet<FString> FrameStreamDevices;   // devices with an active frame chain
     TSet<FString> FrameInFlight;        // devices with a video request in flight
+    TSet<FString> FrameNoFace;          // "DeviceName_Cam" with no subject in frame
 
     // No world context on an EngineSubsystem — polled via GEditor's timer manager.
     float PollIntervalSeconds = 2.0f;
