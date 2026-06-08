@@ -57,6 +57,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void ConnectAll();
 
+    // Polls every currently-connected device once, immediately. Driven by the
+    // OperatorPanel EUW timer because the component's world timer does not fire
+    // on an editor-placed actor outside PIE.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void PollAllDevicesNow();
+
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void DisconnectDevice(const FString& DeviceName);
 
