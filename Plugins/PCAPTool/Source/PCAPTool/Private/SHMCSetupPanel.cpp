@@ -104,6 +104,14 @@ void SHMCSetupPanel::Construct(const FArguments& InArgs)
 
     // Populate with any already-registered devices and start refresh timer
     RefreshDeviceList();
+
+    // Auto-connect devices restored from HMCConfig.json. Without this, saved
+    // devices sit Disconnected (zero vitals) until the operator manually re-saves,
+    // because Initialize() loads config but never starts the poll. Idempotent —
+    // ConnectDevice early-outs on devices already polling.
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        Sub->ConnectAll();
+
     RegisterActiveTimer(2.0f, FWidgetActiveTimerDelegate::CreateSP(
         this, &SHMCSetupPanel::OnRefreshTimer));
 }

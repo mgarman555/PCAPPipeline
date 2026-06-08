@@ -74,3 +74,70 @@ FShootDay UPCAPToolStatics::SeedNewShootDay(const FString& DayID, const FDateTim
     Day.Sessions.Add(Session);
     return Day;
 }
+
+// ── HMC issue evaluation ────────────────────────────────────────────────────
+
+int32 UPCAPToolStatics::EvaluateCameraIssues(const FHMCDeviceStatus& S, int32 CameraIndex)
+{
+    int32 Flags = HMC_Issue_None;
+
+    // Per-camera signals
+    const bool  bStreaming = (CameraIndex == 0) ? S.bStreaming0     : S.bStreaming1;
+    const int32 Exposure   = (CameraIndex == 0) ? S.Exposure0       : S.Exposure1;
+    const int32 Dropped    = (CameraIndex == 0) ? S.DroppedFrames0  : S.DroppedFrames1;
+
+    if (!bStreaming)                            Flags |= HMC_Issue_NotStreaming;
+    if (Exposure > 7000)                        Flags |= HMC_Issue_Overexposed;
+    else if (Exposure > 0 && Exposure < 1000)   Flags |= HMC_Issue_Underexposed;
+    if (Dropped > 0)                            Flags |= HMC_Issue_DroppedFrames;
+
+    // Device-wide signals — apply to both cameras. Guard against the all-zero
+    // default a status carries before its first successful parse.
+    if (!S.LastClipStatus.IsEmpty() && S.LastClipStatus != TEXT("Ready"))
+        Flags |= HMC_Issue_ClipNotReady;
+    if (S.BatteryVoltage > 0.f      && S.BatteryVoltage < 13.0f)        Flags |= HMC_Issue_LowBattery;
+    if (S.AvailableStorageMB > 0.f  && S.AvailableStorageMB < 10240.f)  Flags |= HMC_Issue_LowStorage;
+    if (S.CPUUsagePercent > 80.f)                                      Flags |= HMC_Issue_HighCPU;
+    if (S.TemperatureCelsius > 50.f)                                   Flags |= HMC_Issue_HighTemp;
+
+    return Flags;
+}
+
+EHMCIssueSeverity UPCAPToolStatics::GetIssueSeverity(int32 Flags)
+{
+    const int32 RedMask =
+        HMC_Issue_NotStreaming | HMC_Issue_Overexposed |
+        HMC_Issue_LowBattery   | HMC_Issue_LowStorage   | HMC_Issue_HighTemp;
+
+    const int32 AmberMask =
+        HMC_Issue_Underexposed | HMC_Issue_DroppedFrames | HMC_Issue_ClipNotReady |
+        HMC_Issue_HighCPU      |
+        HMC_Manual_FaceOffAxis | HMC_Manual_HeadsetShift | HMC_Manual_OutOfFocus |
+        HMC_Manual_LipSeal     | HMC_Manual_Eyelid;
+
+    if (Flags & RedMask)   return EHMCIssueSeverity::Red;
+    if (Flags & AmberMask) return EHMCIssueSeverity::Amber;
+    return EHMCIssueSeverity::None;
+}
+
+FString UPCAPToolStatics::GetIssueBannerText(int32 Flags)
+{
+    // Red (hard) issues — highest priority
+    if (Flags & HMC_Issue_NotStreaming)  return TEXT("Camera disconnected · Check device");
+    if (Flags & HMC_Issue_Overexposed)   return TEXT("Overexposed · Reduce exposure");
+    if (Flags & HMC_Issue_LowBattery)    return TEXT("Battery low · Eyes on it");
+    if (Flags & HMC_Issue_LowStorage)    return TEXT("Storage critical · Wrap soon");
+    if (Flags & HMC_Issue_HighTemp)      return TEXT("Overheating · Check rig");
+    // Amber (warning) issues
+    if (Flags & HMC_Issue_Underexposed)  return TEXT("Underexposed · Raise exposure or gain");
+    if (Flags & HMC_Issue_DroppedFrames) return TEXT("Frames dropped · Check connection");
+    if (Flags & HMC_Issue_ClipNotReady)  return TEXT("Last clip not verified · SSD may still be writing");
+    if (Flags & HMC_Issue_HighCPU)       return TEXT("Running hot · Keep takes short");
+    // Operator-reported (manual)
+    if (Flags & HMC_Manual_FaceOffAxis)  return TEXT("Face off-axis · Reposition performer");
+    if (Flags & HMC_Manual_HeadsetShift) return TEXT("Headset shifted · Re-seat rig");
+    if (Flags & HMC_Manual_OutOfFocus)   return TEXT("Out of focus · Adjust lens");
+    if (Flags & HMC_Manual_LipSeal)      return TEXT("Lip seal not visible · Adjust camera");
+    if (Flags & HMC_Manual_Eyelid)       return TEXT("Eyelid not visible · Adjust camera");
+    return TEXT("All clear · Ready to record");
+}

@@ -75,6 +75,11 @@ void SHMCPreviewPanel::Construct(const FArguments& InArgs)
         ]
     ];
 
+    // Auto-connect saved devices so Preview shows live data when opened on its own
+    // (without first visiting Setup). Idempotent — already-polling devices skip.
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        Sub->ConnectAll();
+
     RefreshCards();
     RegisterActiveTimer(2.0f, FWidgetActiveTimerDelegate::CreateSP(
         this, &SHMCPreviewPanel::OnRefreshTimer));

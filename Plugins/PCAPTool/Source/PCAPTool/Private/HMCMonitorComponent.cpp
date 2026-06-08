@@ -1,4 +1,5 @@
 #include "HMCMonitorComponent.h"
+#include "PCAPToolStatics.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
@@ -288,14 +289,34 @@ void UHMCMonitorComponent::OnPollResponse(FHttpRequestPtr Request, FHttpResponse
     JsonObj->TryGetNumberField(TEXT("frameRate"),             Val);
     Status->FPS = static_cast<float>(Val);
 
+    // Per-camera telemetry
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("skippedFrames0"), Val); Status->DroppedFrames0 = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("skippedFrames1"), Val); Status->DroppedFrames1 = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("exposure0"),      Val); Status->Exposure0      = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("exposure1"),      Val); Status->Exposure1      = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("gain0"),          Val); Status->Gain0          = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("gain1"),          Val); Status->Gain1          = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("topLights"),      Val); Status->TopLights      = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("bottomLights"),   Val); Status->BottomLights   = (int32)Val;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("streaming0"),     Val); Status->bStreaming0    = Val != 0.0;
+    Val = 0.0; JsonObj->TryGetNumberField(TEXT("streaming1"),     Val); Status->bStreaming1    = Val != 0.0;
+
     JsonObj->TryGetStringField(TEXT("takename"),                 Status->CurrentTakeName);
     JsonObj->TryGetStringField(TEXT("lastMovieIntegrityStatus"), Status->LastClipStatus);
 
     Status->LastUpdateTime = FDateTime::UtcNow();
     Status->StatusMessage  = GenerateStatusQuip(*Status);
+    Status->IssueFlags0    = UPCAPToolStatics::EvaluateCameraIssues(*Status, 0);
+    Status->IssueFlags1    = UPCAPToolStatics::EvaluateCameraIssues(*Status, 1);
 
     // HTTP completes on the game thread in UE5 — no AsyncTask needed
     OnStatusUpdated.Broadcast(DeviceName, *Status);
+
+    // Device is confirmed online — pull a fresh frame for each camera. This is the
+    // ONLY driver of video: frames are coupled to the (driven) status poll so no UI
+    // timer can forget to request them. Failures resolve to a null frame → "No Feed".
+    RequestVideoFrame(DeviceName, 0);
+    RequestVideoFrame(DeviceName, 1);
 }
 
 // ─── Status accessors ───────────────────────────────────────────────────────────
@@ -403,6 +424,60 @@ void UHMCMonitorComponent::SendCommand(const FString& DeviceName, const FString&
     Request->ProcessRequest();
 }
 
+void UHMCMonitorComponent::SendDeviceCommand(const FString& DeviceName, const FString& Cmd,
+                                             const FString& Param, const FString& ExtraKey,
+                                             const FString& ExtraVal)
+{
+    const FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
+    if (!Config) return;
+
+    // Mirrors the proven poll endpoint (GET query on /control). If firmware rejects
+    // GET, switch SetVerb to POST and move the query into the request body.
+    FString URL = FString::Printf(TEXT("http://%s/control?cmd=%s&param=%s"),
+        *Config->IPAddress, *Cmd, *Param);
+    if (!ExtraKey.IsEmpty())
+        URL += FString::Printf(TEXT("&%s=%s"), *ExtraKey, *ExtraVal);
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(URL);
+    Request->SetVerb(TEXT("GET"));
+    Request->SetTimeout(1.5f);
+    Request->ProcessRequest();   // fire and forget — value confirms on next poll
+}
+
+// ─── Issue flags ───────────────────────────────────────────────────────────────
+
+void UHMCMonitorComponent::SetManualIssue(const FString& DeviceName, EHMCManualIssue Issue, bool bSet)
+{
+    const int32 FlagBit = 1 << (16 + static_cast<int32>(Issue));   // maps to HMC_Manual_*
+    int32& Flags = ManualIssueFlags.FindOrAdd(DeviceName);
+    if (bSet) Flags |= FlagBit;
+    else      Flags &= ~FlagBit;
+
+    if (FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName))
+        OnStatusUpdated.Broadcast(DeviceName, *Status);
+}
+
+bool UHMCMonitorComponent::GetManualIssue(const FString& DeviceName, EHMCManualIssue Issue) const
+{
+    const int32 FlagBit = 1 << (16 + static_cast<int32>(Issue));
+    return (GetManualIssueFlags(DeviceName) & FlagBit) != 0;
+}
+
+int32 UHMCMonitorComponent::GetManualIssueFlags(const FString& DeviceName) const
+{
+    const int32* Flags = ManualIssueFlags.Find(DeviceName);
+    return Flags ? *Flags : 0;
+}
+
+int32 UHMCMonitorComponent::GetEffectiveIssueFlags(const FString& DeviceName, int32 CameraIndex) const
+{
+    int32 Hardware = 0;
+    if (const FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName))
+        Hardware = (CameraIndex == 0) ? Status->IssueFlags0 : Status->IssueFlags1;
+    return Hardware | GetManualIssueFlags(DeviceName);
+}
+
 // ─── Video Frames (HTTP pull) ─────────────────────────────────────────────────
 
 void UHMCMonitorComponent::RequestVideoFrame(const FString& DeviceName, int32 CameraIndex)
@@ -437,6 +512,8 @@ void UHMCMonitorComponent::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpRe
 {
     if (!bWasSuccessful || !Response.IsValid() || Response->GetResponseCode() != 200)
     {
+        UE_LOG(LogTemp, Warning, TEXT("[PCAPTool] HMC %s cam%d frame request failed (HTTP %d)"),
+            *DeviceName, CameraIndex, Response.IsValid() ? Response->GetResponseCode() : -1);
         OnFrameReceived.Broadcast(DeviceName, CameraIndex, nullptr);
         return;
     }
@@ -490,9 +567,17 @@ UTexture2D* UHMCMonitorComponent::CreateTextureFromRaw(const TArray<uint8>& RawB
 void UHMCMonitorComponent::SetConnectionState(const FString& DeviceName, EHMCConnectionState NewState)
 {
     FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName);
+    const bool bChanged = !Status || Status->ConnectionState != NewState;
     if (Status)
     {
         Status->ConnectionState = NewState;
+    }
+    if (bChanged)
+    {
+        const TCHAR* StateStr =
+            NewState == EHMCConnectionState::Connected ? TEXT("Connected") :
+            NewState == EHMCConnectionState::Offline   ? TEXT("Offline")   : TEXT("Disconnected");
+        UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s -> %s"), *DeviceName, StateStr);
     }
     OnConnectionChanged.Broadcast(DeviceName, NewState);
 }

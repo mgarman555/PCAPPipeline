@@ -107,6 +107,36 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void SendCommand(const FString& DeviceName, const FString& Command);
 
+    // Generic device write: GET /control?cmd=[Cmd]&param=[Param][&ExtraKey=ExtraVal].
+    // Pass empty ExtraKey/ExtraVal when unused. Examples:
+    //   exposure cam0: SendDeviceCommand(Dev,"setexposure","4550","cam","0")
+    //   gain cam1:     SendDeviceCommand(Dev,"setgain","2","cam","1")
+    //   lights top:    SendDeviceCommand(Dev,"setlights","80","which","top")
+    // NOTE: command tokens are best-guess from the MugShot web UI — verify against
+    // the device JS. Fire-and-forget; the value confirms on the next poll.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void SendDeviceCommand(const FString& DeviceName, const FString& Cmd,
+                           const FString& Param, const FString& ExtraKey, const FString& ExtraVal);
+
+    // ─── Issue flags ───────────────────────────────────────────────────────────
+
+    // Operator-reported flags the device cannot sense (face off-axis, lip seal…).
+    // Re-broadcasts status so UI repaints immediately.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void SetManualIssue(const FString& DeviceName, EHMCManualIssue Issue, bool bSet);
+
+    // Current on/off state of one manual flag — drives the Setup-mode toggle.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    bool GetManualIssue(const FString& DeviceName, EHMCManualIssue Issue) const;
+
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    int32 GetManualIssueFlags(const FString& DeviceName) const;
+
+    // Hardware issues for the camera OR'd with the device's manual flags — the
+    // value the widget feeds to GetIssueSeverity / GetIssueBannerText.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    int32 GetEffectiveIssueFlags(const FString& DeviceName, int32 CameraIndex) const;
+
     // ─── Video Frames (HTTP pull) ─────────────────────────────────────────────
 
     // Fires GET /video?cam=[CameraIndex+1] for an on-demand snapshot.
@@ -143,6 +173,7 @@ private:
     TMap<FString, FHMCDeviceStatus>          DeviceStatuses;      // keyed by DeviceName
     TMap<FString, TArray<FHMCCameraFeed>>    CameraFeeds;         // keyed by ActorName
     TMap<FString, FTimerHandle>              PollTimers;          // keyed by DeviceName
+    TMap<FString, int32>                     ManualIssueFlags;    // keyed by DeviceName
 
     // GC root for frame textures — keeps transient textures alive between broadcasts.
     UPROPERTY()
