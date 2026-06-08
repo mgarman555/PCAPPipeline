@@ -91,6 +91,51 @@ void UHMCMonitorComponent::UnregisterDevice(const FString& DeviceName)
     SaveConfig();
 }
 
+void UHMCMonitorComponent::AssignActor(const FString& DeviceName, const FString& NewActorName)
+{
+    FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
+    if (!Config) return;
+
+    const FString OldActorName = Config->ActorName;
+    if (OldActorName == NewActorName) return;   // nothing to do
+
+    // 1. Config + status both carry the actor name.
+    Config->ActorName = NewActorName;
+    if (FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName))
+    {
+        Status->ActorName = NewActorName;
+    }
+
+    // 2. CameraFeeds is keyed by ActorName — move this device's feeds to the new key.
+    TArray<FHMCCameraFeed>& NewGroup = CameraFeeds.FindOrAdd(NewActorName);
+    if (TArray<FHMCCameraFeed>* OldGroup = CameraFeeds.Find(OldActorName))
+    {
+        for (int32 i = OldGroup->Num() - 1; i >= 0; --i)
+        {
+            if ((*OldGroup)[i].DeviceName == DeviceName)
+            {
+                FHMCCameraFeed Feed = (*OldGroup)[i];
+                Feed.ActorName = NewActorName;
+                NewGroup.Add(Feed);
+                OldGroup->RemoveAt(i);
+            }
+        }
+        // Drop the old actor's group if it no longer holds any feeds.
+        if (OldGroup->Num() == 0)
+        {
+            CameraFeeds.Remove(OldActorName);
+        }
+    }
+
+    SaveConfig();
+
+    // 3. Refresh any bound UI (Preview regroups by actor, OperatorPanel card relabels).
+    if (FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName))
+    {
+        OnStatusUpdated.Broadcast(DeviceName, *Status);
+    }
+}
+
 TArray<FHMCDeviceConfig> UHMCMonitorComponent::GetRegisteredDevices() const
 {
     TArray<FHMCDeviceConfig> Out;
