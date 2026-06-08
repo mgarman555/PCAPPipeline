@@ -46,4 +46,10 @@ public:
     // Returns "All clear · Ready to record" when no flags are set.
     UFUNCTION(BlueprintPure, Category="PCAP|HMC")
     static FString GetIssueBannerText(int32 IssueFlags);
+
+    // Cheap "is a subject in the frame" heuristic over a decoded BGRA buffer
+    // (sampled mean luminance vs threshold). Interim stand-in for real face
+    // detection — IR head-cams light the face brightly when it's in the box.
+    // Not BlueprintCallable (raw pixel buffer); called from the monitor classes.
+    static bool FrameHasSubject(const TArray<uint8>& BGRA, int32 Width, int32 Height);
 };
