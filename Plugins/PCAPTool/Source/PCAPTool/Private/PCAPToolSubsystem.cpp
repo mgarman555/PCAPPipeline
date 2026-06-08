@@ -1,6 +1,4 @@
 #include "PCAPToolSubsystem.h"
-#include "WebSocketsModule.h"
-#include "IWebSocket.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
@@ -14,8 +12,9 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
-#include "Async/Async.h"
 #include "Engine/Texture2D.h"
+#include "TimerManager.h"
+#include "Editor.h"
 #include "Modules/ModuleManager.h"
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
@@ -93,35 +92,39 @@ TArray<FHMCDeviceConfig> UPCAPToolSubsystem::GetRegisteredDevices() const
     return Out;
 }
 
-// ─── Connection ───────────────────────────────────────────────────────────────
+// ─── Connection (HTTP polling) ──────────────────────────────────────────────────
 
 void UPCAPToolSubsystem::ConnectDevice(const FString& DeviceName)
 {
+    // Already polling — skip
+    if (PollTimers.Contains(DeviceName)) return;
+
     const FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
     if (!Config) return;
 
-    if (TSharedPtr<IWebSocket>* Existing = ActiveSockets.Find(DeviceName))
+    SetConnectionState(DeviceName, EHMCConnectionState::Connected);
+
+    // Mark feeds as Clear (standby) on "connect"
+    for (auto& Pair : CameraFeeds)
+        for (FHMCCameraFeed& Feed : Pair.Value)
+            if (Feed.DeviceName == DeviceName &&
+                Feed.FeedState == EHMCFeedState::Disconnected)
+                Feed.FeedState = EHMCFeedState::Clear;
+
+    // Fire first poll immediately, then on timer
+    PollDevice(DeviceName);
+
+    // EngineSubsystem has no world — use the editor's timer manager.
+    if (GEditor)
     {
-        if ((*Existing)->IsConnected()) return; // already connected
-        (*Existing)->Close();
+        FTimerHandle Handle;
+        GEditor->GetTimerManager()->SetTimer(
+            Handle,
+            FTimerDelegate::CreateUObject(this, &UPCAPToolSubsystem::PollDevice, DeviceName),
+            PollIntervalSeconds,
+            true);   // looping
+        PollTimers.Add(DeviceName, Handle);
     }
-
-    FString Endpoint = Config->WebSocketEndpoint;
-    if (Endpoint.IsEmpty())
-    {
-        Endpoint = FString::Printf(TEXT("ws://%s/ws"), *Config->IPAddress);
-    }
-
-    TSharedPtr<IWebSocket> Socket = FWebSocketsModule::Get().CreateWebSocket(Endpoint, TEXT("ws"));
-
-    Socket->OnConnected().AddUObject(this, &UPCAPToolSubsystem::HandleConnected, DeviceName);
-    Socket->OnConnectionError().AddUObject(this, &UPCAPToolSubsystem::HandleConnectionError, DeviceName);
-    Socket->OnClosed().AddUObject(this, &UPCAPToolSubsystem::HandleClosed, DeviceName);
-    Socket->OnMessage().AddUObject(this, &UPCAPToolSubsystem::HandleMessage, DeviceName);
-    Socket->OnRawMessage().AddUObject(this, &UPCAPToolSubsystem::HandleRawMessage, DeviceName);
-
-    ActiveSockets.Add(DeviceName, Socket);
-    Socket->Connect();
 }
 
 void UPCAPToolSubsystem::ConnectAll()
@@ -134,10 +137,13 @@ void UPCAPToolSubsystem::ConnectAll()
 
 void UPCAPToolSubsystem::DisconnectDevice(const FString& DeviceName)
 {
-    if (TSharedPtr<IWebSocket>* Socket = ActiveSockets.Find(DeviceName))
+    if (FTimerHandle* Handle = PollTimers.Find(DeviceName))
     {
-        (*Socket)->Close();
-        ActiveSockets.Remove(DeviceName);
+        if (GEditor)
+        {
+            GEditor->GetTimerManager()->ClearTimer(*Handle);
+        }
+        PollTimers.Remove(DeviceName);
     }
     SetConnectionState(DeviceName, EHMCConnectionState::Disconnected);
     MarkFeedsDisconnected(DeviceName);
@@ -146,14 +152,92 @@ void UPCAPToolSubsystem::DisconnectDevice(const FString& DeviceName)
 void UPCAPToolSubsystem::DisconnectAll()
 {
     TArray<FString> Names;
-    ActiveSockets.GenerateKeyArray(Names);
+    PollTimers.GenerateKeyArray(Names);
     for (const FString& Name : Names)
     {
         DisconnectDevice(Name);
     }
 }
 
-// ─── Status ───────────────────────────────────────────────────────────────────
+// ─── Status Poll ────────────────────────────────────────────────────────────────
+
+void UPCAPToolSubsystem::PollDevice(FString DeviceName)
+{
+    const FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
+    if (!Config) return;
+
+    // Exact endpoint the Technoprops MugShot web UI uses
+    const FString URL = FString::Printf(
+        TEXT("http://%s/control?cmd=no&param="), *Config->IPAddress);
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(URL);
+    Request->SetVerb(TEXT("GET"));
+    Request->SetTimeout(1.5f);
+    Request->OnProcessRequestComplete().BindUObject(
+        this, &UPCAPToolSubsystem::OnPollResponse, DeviceName);
+    Request->ProcessRequest();
+}
+
+void UPCAPToolSubsystem::OnPollResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
+                                        bool bWasSuccessful, FString DeviceName)
+{
+    FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName);
+    if (!Status) return;
+
+    if (!bWasSuccessful || !Response.IsValid() || Response->GetResponseCode() != 200)
+    {
+        SetConnectionState(DeviceName, EHMCConnectionState::Offline);
+        MarkFeedsDisconnected(DeviceName);
+        OnStatusUpdated.Broadcast(DeviceName, *Status);
+        return;
+    }
+
+    // Back online after offline
+    if (Status->ConnectionState == EHMCConnectionState::Offline)
+        SetConnectionState(DeviceName, EHMCConnectionState::Connected);
+
+    TSharedPtr<FJsonObject> JsonObj;
+    TSharedRef<TJsonReader<>> Reader =
+        TJsonReaderFactory<>::Create(Response->GetContentAsString());
+    if (!FJsonSerializer::Deserialize(Reader, JsonObj) || !JsonObj.IsValid()) return;
+
+    double Val = 0.0;
+
+    JsonObj->TryGetNumberField(TEXT("nRecording"),            Val);
+    Status->bIsRecording = Val != 0.0;
+
+    Val = 0.0;
+    JsonObj->TryGetNumberField(TEXT("batteryVoltage"),        Val);
+    Status->BatteryVoltage = static_cast<float>(Val);
+
+    Val = 0.0;
+    JsonObj->TryGetNumberField(TEXT("availableStorageInMB"),  Val);
+    Status->AvailableStorageMB = static_cast<float>(Val);
+
+    Val = 0.0;
+    JsonObj->TryGetNumberField(TEXT("cpuUsage"),              Val);
+    Status->CPUUsagePercent = static_cast<float>(Val);
+
+    Val = 0.0;
+    JsonObj->TryGetNumberField(TEXT("cpuTemp"),               Val);
+    Status->TemperatureCelsius = static_cast<float>(Val);
+
+    Val = 0.0;
+    JsonObj->TryGetNumberField(TEXT("frameRate"),             Val);
+    Status->FPS = static_cast<float>(Val);
+
+    JsonObj->TryGetStringField(TEXT("takename"),                 Status->CurrentTakeName);
+    JsonObj->TryGetStringField(TEXT("lastMovieIntegrityStatus"), Status->LastClipStatus);
+
+    Status->LastUpdateTime = FDateTime::UtcNow();
+    Status->StatusMessage  = GenerateStatusQuip(*Status);
+
+    // HTTP completes on the game thread in UE5 — no AsyncTask needed
+    OnStatusUpdated.Broadcast(DeviceName, *Status);
+}
+
+// ─── Status accessors ───────────────────────────────────────────────────────────
 
 FHMCDeviceStatus UPCAPToolSubsystem::GetDeviceStatus(const FString& DeviceName) const
 {
@@ -226,15 +310,22 @@ void UPCAPToolSubsystem::SetCameraRole(const FString& DeviceName, int32 CameraIn
             }
 }
 
-// ─── Commands ─────────────────────────────────────────────────────────────────
+// ─── Commands (HTTP) ──────────────────────────────────────────────────────────
 
 void UPCAPToolSubsystem::SendCommand(const FString& DeviceName, const FString& Command)
 {
-    TSharedPtr<IWebSocket>* Socket = ActiveSockets.Find(DeviceName);
-    if (!Socket || !(*Socket)->IsConnected()) return;
+    const FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
+    if (!Config) return;
 
-    const FString Payload = FString::Printf(TEXT("{\"cmd\":\"%s\"}"), *Command);
-    (*Socket)->Send(Payload);
+    // Technoprops MugShot control endpoint. TEST ONLY — fire and forget.
+    const FString URL = FString::Printf(
+        TEXT("http://%s/control?cmd=%s&param="), *Config->IPAddress, *Command);
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(URL);
+    Request->SetVerb(TEXT("GET"));
+    Request->SetTimeout(1.5f);
+    Request->ProcessRequest();
 }
 
 // ─── Video Frames ─────────────────────────────────────────────────────────────
@@ -296,117 +387,6 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
         FrameTextureCache.Add(Key, Texture);
     }
     OnFrameReceived.Broadcast(DeviceName, CameraIndex, Texture);
-}
-
-// ─── WebSocket Handlers ───────────────────────────────────────────────────────
-
-void UPCAPToolSubsystem::HandleConnected(FString DeviceName)
-{
-    AsyncTask(ENamedThreads::GameThread, [this, DeviceName]()
-    {
-        SetConnectionState(DeviceName, EHMCConnectionState::Connected);
-        for (auto& Pair : CameraFeeds)
-            for (FHMCCameraFeed& Feed : Pair.Value)
-                if (Feed.DeviceName == DeviceName &&
-                    Feed.FeedState == EHMCFeedState::Disconnected)
-                    Feed.FeedState = EHMCFeedState::Clear;
-    });
-}
-
-void UPCAPToolSubsystem::HandleConnectionError(const FString& Error, FString DeviceName)
-{
-    AsyncTask(ENamedThreads::GameThread, [this, DeviceName, Error]()
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[PCAPTool] %s WS error: %s"), *DeviceName, *Error);
-        SetConnectionState(DeviceName, EHMCConnectionState::Offline);
-        MarkFeedsDisconnected(DeviceName);
-    });
-}
-
-void UPCAPToolSubsystem::HandleClosed(int32 StatusCode, const FString& Reason,
-                                       bool bWasClean, FString DeviceName)
-{
-    AsyncTask(ENamedThreads::GameThread, [this, DeviceName, bWasClean]()
-    {
-        SetConnectionState(DeviceName,
-            bWasClean ? EHMCConnectionState::Disconnected : EHMCConnectionState::Offline);
-        MarkFeedsDisconnected(DeviceName);
-        ActiveSockets.Remove(DeviceName);
-    });
-}
-
-void UPCAPToolSubsystem::HandleMessage(const FString& Message, FString DeviceName)
-{
-    TSharedPtr<FJsonObject> JsonObj;
-    TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Message);
-    if (!FJsonSerializer::Deserialize(Reader, JsonObj) || !JsonObj.IsValid()) return;
-
-    double RecordingVal = 0, BattV = 0, StorageMB = 0, CPU = 0, Temp = 0, FPS = 0;
-    FString TakeName, ClipStatus;
-
-    JsonObj->TryGetNumberField(TEXT("nRecording"),           RecordingVal);
-    JsonObj->TryGetNumberField(TEXT("batteryVoltage"),       BattV);
-    JsonObj->TryGetNumberField(TEXT("availableStorageInMB"), StorageMB);
-    JsonObj->TryGetNumberField(TEXT("cpuUsage"),             CPU);
-    JsonObj->TryGetNumberField(TEXT("temperature"),          Temp);
-    JsonObj->TryGetNumberField(TEXT("fps"),                  FPS);
-    JsonObj->TryGetStringField(TEXT("takename"),             TakeName);
-    JsonObj->TryGetStringField(TEXT("lastClipStatus"),       ClipStatus);
-
-    AsyncTask(ENamedThreads::GameThread, [this, DeviceName,
-        RecordingVal, BattV, StorageMB, CPU, Temp, FPS, TakeName, ClipStatus]()
-    {
-        FHMCDeviceStatus* S = DeviceStatuses.Find(DeviceName);
-        if (!S) return;
-
-        S->bIsRecording       = RecordingVal != 0.0;
-        S->BatteryVoltage     = static_cast<float>(BattV);
-        S->AvailableStorageMB = static_cast<float>(StorageMB);
-        S->CPUUsagePercent    = static_cast<float>(CPU);
-        S->TemperatureCelsius = static_cast<float>(Temp);
-        S->FPS                = static_cast<float>(FPS);
-        S->CurrentTakeName    = TakeName;
-        S->LastClipStatus     = ClipStatus;
-        S->LastUpdateTime     = FDateTime::UtcNow();
-        S->StatusMessage      = GenerateStatusQuip(*S);
-
-        OnStatusUpdated.Broadcast(DeviceName, *S);
-    });
-}
-
-void UPCAPToolSubsystem::HandleRawMessage(const void* Data, SIZE_T Size,
-                                           SIZE_T BytesRemaining, FString DeviceName)
-{
-    if (BytesRemaining != 0) return;
-
-    TArray<uint8> Bytes;
-    Bytes.Append(static_cast<const uint8*>(Data), Size);
-
-    IImageWrapperModule& IWM = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
-    TSharedPtr<IImageWrapper> IW = IWM.CreateImageWrapper(EImageFormat::JPEG);
-    if (!IW.IsValid() || !IW->SetCompressed(Bytes.GetData(), Bytes.Num())) return;
-
-    TArray<uint8> RawBGRA;
-    if (!IW->GetRaw(ERGBFormat::BGRA, 8, RawBGRA)) return;
-
-    const int32 W = IW->GetWidth();
-    const int32 H = IW->GetHeight();
-
-    int32& Counter = BinaryFrameCounter.FindOrAdd(DeviceName);
-    const int32 CameraIndex = Counter % 2;
-    Counter++;
-
-    AsyncTask(ENamedThreads::GameThread, [this, DeviceName, CameraIndex, W, H,
-                                           RawBGRA = MoveTemp(RawBGRA)]() mutable
-    {
-        UTexture2D* Texture = CreateTextureFromRaw(RawBGRA, W, H);
-        if (Texture)
-        {
-            const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
-            FrameTextureCache.Add(Key, Texture);
-        }
-        OnFrameReceived.Broadcast(DeviceName, CameraIndex, Texture);
-    });
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
