@@ -1,13 +1,18 @@
 #include "SHMCSetupPanel.h"
 #include "PCAPToolSubsystem.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/SWindow.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBox.h"
-#include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Commands/UIAction.h"
+#include "Textures/SlateIcon.h"
 #include "Styling/AppStyle.h"
 #include "Styling/SlateColor.h"
 
@@ -16,8 +21,19 @@ UPCAPToolSubsystem* SHMCSetupPanel::GetSubsystem()
     return GEngine ? GEngine->GetEngineSubsystem<UPCAPToolSubsystem>() : nullptr;
 }
 
+FHMCDeviceStatus SHMCSetupPanel::GetStatus(const FString& DeviceName) const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    return Sub ? Sub->GetDeviceStatus(DeviceName) : FHMCDeviceStatus();
+}
+
 void SHMCSetupPanel::Construct(const FArguments& InArgs)
 {
+    // Starter actor list — these come from the production database later.
+    ActorOptions.Add(MakeShared<FString>(TEXT("kevinDorman")));
+    ActorOptions.Add(MakeShared<FString>(TEXT("madiGarman")));
+    ActorOptions.Add(MakeShared<FString>(TEXT("mannyTester")));
+
     ChildSlot
     [
         SNew(SBorder)
@@ -26,23 +42,19 @@ void SHMCSetupPanel::Construct(const FArguments& InArgs)
         [
             SNew(SVerticalBox)
 
-            // ── Panel header ───────────────────────────────────────────────
+            // ── Header ─────────────────────────────────────────────────────
             + SVerticalBox::Slot()
             .AutoHeight()
             .Padding(12.f, 10.f)
             [
                 SNew(SHorizontalBox)
-
-                + SHorizontalBox::Slot()
-                .FillWidth(1.f)
+                + SHorizontalBox::Slot().FillWidth(1.f)
                 [
                     SNew(STextBlock)
                     .Text(FText::FromString(TEXT("HMC SETUP")))
                     .ColorAndOpacity(FSlateColor(ColMuted))
                 ]
-
-                + SHorizontalBox::Slot()
-                .AutoWidth()
+                + SHorizontalBox::Slot().AutoWidth()
                 [
                     SNew(SButton)
                     .Text(FText::FromString(TEXT("+ Add Device")))
@@ -57,21 +69,11 @@ void SHMCSetupPanel::Construct(const FArguments& InArgs)
                 SNew(SScrollBox)
                 + SScrollBox::Slot()
                 [
-                    SNew(SVerticalBox)
-                    // Connected devices — rebuilt by timer
-                    + SVerticalBox::Slot().AutoHeight()
-                    [
-                        SAssignNew(ConnectedDeviceBox, SVerticalBox)
-                    ]
-                    // Pending input rows — only modified by Add/Remove, never by timer
-                    + SVerticalBox::Slot().AutoHeight()
-                    [
-                        SAssignNew(PendingRowBox, SVerticalBox)
-                    ]
+                    SAssignNew(DeviceListBox, SVerticalBox)
                 ]
             ]
 
-            // ── Save bar ───────────────────────────────────────────────────
+            // ── Bottom bar ─────────────────────────────────────────────────
             + SVerticalBox::Slot()
             .AutoHeight()
             [
@@ -80,398 +82,298 @@ void SHMCSetupPanel::Construct(const FArguments& InArgs)
                 .Padding(FMargin(12.f, 8.f))
                 [
                     SNew(SHorizontalBox)
-
-                    + SHorizontalBox::Slot()
-                    .FillWidth(1.f)
-                    .VAlign(VAlign_Center)
+                    + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
                     [
                         SNew(STextBlock)
-                        .Text(FText::FromString(TEXT("Enter device name and IP, then save.")))
+                        .Text(FText::FromString(TEXT("Assign an actor to each headset, then mark it prepped.")))
                         .ColorAndOpacity(FSlateColor(ColMuted))
                     ]
-
-                    + SHorizontalBox::Slot()
-                    .AutoWidth()
+                    + SHorizontalBox::Slot().AutoWidth()
                     [
                         SNew(SButton)
-                        .Text(FText::FromString(TEXT("Save and Connect All")))
-                        .OnClicked(this, &SHMCSetupPanel::OnSaveAndConnectClicked)
+                        .Text(FText::FromString(TEXT("Prepped for Preview")))
+                        .OnClicked(this, &SHMCSetupPanel::OnPreppedClicked)
                     ]
                 ]
             ]
         ]
     ];
 
-    // Populate with any already-registered devices and start refresh timer
     RefreshDeviceList();
 
-    // Auto-connect devices restored from HMCConfig.json. Without this, saved
-    // devices sit Disconnected (zero vitals) until the operator manually re-saves,
-    // because Initialize() loads config but never starts the poll. Idempotent —
-    // ConnectDevice early-outs on devices already polling.
+    // Auto-connect saved devices (idempotent) so vitals/feed are live immediately.
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
         Sub->ConnectAll();
 
-    RegisterActiveTimer(2.0f, FWidgetActiveTimerDelegate::CreateSP(
+    RegisterActiveTimer(1.0f, FWidgetActiveTimerDelegate::CreateSP(
         this, &SHMCSetupPanel::OnRefreshTimer));
 }
 
 EActiveTimerReturnType SHMCSetupPanel::OnRefreshTimer(double CurrentTime, float DeltaTime)
 {
-    RefreshDeviceList();
+    RefreshDeviceList();   // cheap — only rebuilds when the device set changes
     return EActiveTimerReturnType::Continue;
 }
 
 void SHMCSetupPanel::RefreshDeviceList()
 {
-    // Only refreshes connected device rows — never touches pending input rows.
-    // This prevents the timer from destroying text boxes mid-typing.
-    if (!ConnectedDeviceBox.IsValid()) return;
+    if (!DeviceListBox.IsValid()) return;
     UPCAPToolSubsystem* Sub = GetSubsystem();
-    if (!Sub) return;
 
-    ConnectedDeviceBox->ClearChildren();
+    TArray<FString> Names;
+    if (Sub)
+        for (const FHMCDeviceConfig& C : Sub->GetRegisteredDevices())
+            Names.Add(C.DeviceName);
+    Names.Sort();
 
-    for (const FHMCDeviceConfig& Config : Sub->GetRegisteredDevices())
+    // Rebuild ONLY when the set changes — rows bind to live status otherwise.
+    if (Names == BuiltDeviceNames) return;
+    BuiltDeviceNames = Names;
+
+    DeviceListBox->ClearChildren();
+
+    if (Names.Num() == 0)
     {
-        FHMCDeviceStatus Status = Sub->GetDeviceStatus(Config.DeviceName);
-        ConnectedDeviceBox->AddSlot()
-        .AutoHeight()
-        .Padding(FMargin(8.f, 4.f))
+        DeviceListBox->AddSlot().AutoHeight().Padding(24.f)
         [
-            BuildConnectedDeviceRow(Config, Status)
+            SNew(STextBlock)
+            .Text(FText::FromString(TEXT("No devices — tap + Add Device.")))
+            .ColorAndOpacity(FSlateColor(ColMuted))
+        ];
+        return;
+    }
+
+    for (const FString& Name : Names)
+    {
+        DeviceListBox->AddSlot().AutoHeight().Padding(FMargin(8.f, 4.f))
+        [
+            BuildDeviceRow(Name)
         ];
     }
 }
 
-void SHMCSetupPanel::AddPendingRow(TSharedPtr<FPendingDeviceRow> Row)
+TSharedRef<SWidget> SHMCSetupPanel::BuildDeviceRow(const FString& DeviceName)
 {
-    if (!PendingRowBox.IsValid()) return;
-    PendingRowBox->AddSlot()
-    .AutoHeight()
-    .Padding(FMargin(8.f, 4.f))
-    [
-        BuildPendingRow(Row)
-    ];
-}
-
-void SHMCSetupPanel::RemovePendingRowWidget(TSharedPtr<FPendingDeviceRow> Row)
-{
-    if (!PendingRowBox.IsValid()) return;
-
-    // Rebuild pending box without this row
-    PendingRowBox->ClearChildren();
-    for (TSharedPtr<FPendingDeviceRow>& R : PendingRows)
-    {
-        PendingRowBox->AddSlot()
-        .AutoHeight()
-        .Padding(FMargin(8.f, 4.f))
-        [
-            BuildPendingRow(R)
-        ];
-    }
-}
-
-TSharedRef<SWidget> SHMCSetupPanel::BuildConnectedDeviceRow(const FHMCDeviceConfig& Config,
-                                                              const FHMCDeviceStatus& Status)
-{
-    const bool bConnected = (Status.ConnectionState == EHMCConnectionState::Connected);
-    const FLinearColor DotColor = bConnected ? ColGreen :
-        (Status.ConnectionState == EHMCConnectionState::Offline ? ColRed : ColGray);
-    const FString StateText = bConnected ? TEXT("Connected") :
-        (Status.ConnectionState == EHMCConnectionState::Offline ? TEXT("Offline") : TEXT("Disconnected"));
+    const FHMCDeviceStatus Snap = GetStatus(DeviceName);
 
     return SNew(SBorder)
         .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-        .Padding(0)
+        .Padding(FMargin(12.f, 10.f))
         [
             SNew(SVerticalBox)
 
-            // Identity row
+            // Name → actor dropdown ........ state  [Disconnect]
             + SVerticalBox::Slot()
             .AutoHeight()
-            .Padding(12.f, 10.f)
             [
                 SNew(SHorizontalBox)
-
-                + SHorizontalBox::Slot()
-                .FillWidth(1.f)
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0,0,8,0)
                 [
-                    SNew(SVerticalBox)
-                    + SVerticalBox::Slot().AutoHeight()
-                    [
-                        SNew(SHorizontalBox)
-                        + SHorizontalBox::Slot().AutoWidth().Padding(0,0,8,0)
-                        [
-                            SNew(STextBlock)
-                            .Text(FText::FromString(Config.DeviceName))
-                        ]
-                        + SHorizontalBox::Slot().AutoWidth()
-                        [
-                            SNew(STextBlock)
-                            .Text(FText::FromString(Config.IPAddress))
-                            .ColorAndOpacity(FSlateColor(ColMuted))
-                        ]
-                    ]
-                    + SVerticalBox::Slot().AutoHeight()
-                    [
-                        SNew(STextBlock)
-                        .Text(FText::FromString(Status.StatusMessage.IsEmpty()
-                            ? TEXT("Waiting for data...") : Status.StatusMessage))
-                        .ColorAndOpacity(FSlateColor(ColMuted))
-                    ]
+                    SNew(STextBlock).Text(FText::FromString(DeviceName))
+                ]
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0,0,8,0)
+                [
+                    SNew(STextBlock).Text(FText::FromString(TEXT("→")))   // →
+                    .ColorAndOpacity(FSlateColor(ColMuted))
+                ]
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+                [
+                    BuildActorDropdown(DeviceName)
                 ]
 
-                // Status indicator
-                + SHorizontalBox::Slot()
-                .AutoWidth()
-                .VAlign(VAlign_Center)
-                .Padding(8.f, 0.f)
+                + SHorizontalBox::Slot().FillWidth(1.f)
+
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f)
                 [
                     SNew(STextBlock)
-                    .Text(FText::FromString(StateText))
-                    .ColorAndOpacity(FSlateColor(DotColor))
+                    .Text_Lambda([this, DeviceName]()
+                    {
+                        switch (GetStatus(DeviceName).ConnectionState)
+                        {
+                            case EHMCConnectionState::Connected: return FText::FromString(TEXT("Connected"));
+                            case EHMCConnectionState::Offline:   return FText::FromString(TEXT("Offline"));
+                            default:                             return FText::FromString(TEXT("Disconnected"));
+                        }
+                    })
+                    .ColorAndOpacity_Lambda([this, DeviceName]()
+                    {
+                        switch (GetStatus(DeviceName).ConnectionState)
+                        {
+                            case EHMCConnectionState::Connected: return FSlateColor(ColGreen);
+                            case EHMCConnectionState::Offline:   return FSlateColor(ColRed);
+                            default:                             return FSlateColor(ColGray);
+                        }
+                    })
                 ]
-
-                // Disconnect button
-                + SHorizontalBox::Slot()
-                .AutoWidth()
-                .VAlign(VAlign_Center)
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
                 [
                     SNew(SButton)
                     .Text(FText::FromString(TEXT("Disconnect")))
-                    .OnClicked(this, &SHMCSetupPanel::OnDisconnectDevice, Config.DeviceName)
+                    .OnClicked(this, &SHMCSetupPanel::OnDisconnectDevice, DeviceName)
                 ]
             ]
 
-            // Vitals strip (only when connected and data available)
+            // IP below
             + SVerticalBox::Slot()
             .AutoHeight()
-            [
-                SNew(SBorder)
-                .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-                .Padding(FMargin(12.f, 6.f))
-                [
-                    SNew(SHorizontalBox)
-
-                    + SHorizontalBox::Slot().AutoWidth().Padding(0,0,16,0)
-                    [
-                        BuildVitalCell(TEXT("BATTERY"),
-                            FString::Printf(TEXT("%.1f V"), Status.BatteryVoltage),
-                            VoltageColor(Status.BatteryVoltage))
-                    ]
-
-                    + SHorizontalBox::Slot().AutoWidth().Padding(0,0,16,0)
-                    [
-                        BuildVitalCell(TEXT("STORAGE"),
-                            FString::Printf(TEXT("%.0f GB"), Status.AvailableStorageMB / 1024.f),
-                            StorageColor(Status.AvailableStorageMB))
-                    ]
-
-                    + SHorizontalBox::Slot().AutoWidth().Padding(0,0,16,0)
-                    [
-                        BuildVitalCell(TEXT("CPU"),
-                            FString::Printf(TEXT("%.0f%%"), Status.CPUUsagePercent),
-                            CPUColor(Status.CPUUsagePercent))
-                    ]
-
-                    + SHorizontalBox::Slot().AutoWidth().Padding(0,0,16,0)
-                    [
-                        BuildVitalCell(TEXT("TEMP"),
-                            FString::Printf(TEXT("%.0f°C"), Status.TemperatureCelsius),
-                            TempColor(Status.TemperatureCelsius))
-                    ]
-
-                    + SHorizontalBox::Slot().AutoWidth()
-                    [
-                        BuildVitalCell(TEXT("LAST CLIP"),
-                            Status.LastClipStatus.IsEmpty() ? TEXT("—") : Status.LastClipStatus,
-                            Status.LastClipStatus == TEXT("Ready") ? ColGreen : ColYellow)
-                    ]
-                ]
-            ]
-        ];
-}
-
-TSharedRef<SWidget> SHMCSetupPanel::BuildPendingRow(TSharedPtr<FPendingDeviceRow> Row)
-{
-    return SNew(SBorder)
-        .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-        .Padding(12.f, 10.f)
-        [
-            SNew(SVerticalBox)
-
-            + SVerticalBox::Slot()
-            .AutoHeight()
-            [
-                SNew(SHorizontalBox)
-
-                // Name field
-                + SHorizontalBox::Slot()
-                .FillWidth(1.f)
-                .Padding(0, 0, 8, 0)
-                [
-                    SNew(SVerticalBox)
-                    + SVerticalBox::Slot().AutoHeight()
-                    [
-                        SNew(STextBlock)
-                        .Text(FText::FromString(TEXT("NAME")))
-                        .ColorAndOpacity(FSlateColor(ColMuted))
-                    ]
-                    + SVerticalBox::Slot().AutoHeight()
-                    [
-                        SAssignNew(Row->NameInput, SEditableTextBox)
-                        .HintText(FText::FromString(TEXT("ORION")))
-                    ]
-                ]
-
-                // IP field
-                + SHorizontalBox::Slot()
-                .FillWidth(1.f)
-                .Padding(0, 0, 8, 0)
-                [
-                    SNew(SVerticalBox)
-                    + SVerticalBox::Slot().AutoHeight()
-                    [
-                        SNew(STextBlock)
-                        .Text(FText::FromString(TEXT("IP ADDRESS")))
-                        .ColorAndOpacity(FSlateColor(ColMuted))
-                    ]
-                    + SVerticalBox::Slot().AutoHeight()
-                    [
-                        SAssignNew(Row->IPInput, SEditableTextBox)
-                        .HintText(FText::FromString(TEXT("192.168.50.x")))
-                    ]
-                ]
-
-                // Ping button
-                + SHorizontalBox::Slot()
-                .AutoWidth()
-                .VAlign(VAlign_Bottom)
-                .Padding(0, 0, 4, 0)
-                [
-                    SNew(SButton)
-                    .Text(FText::FromString(TEXT("Ping")))
-                    .OnClicked(this, &SHMCSetupPanel::OnPingDevice, Row)
-                ]
-
-                // Remove button
-                + SHorizontalBox::Slot()
-                .AutoWidth()
-                .VAlign(VAlign_Bottom)
-                [
-                    SNew(SButton)
-                    .Text(FText::FromString(TEXT("✕")))
-                    .OnClicked(this, &SHMCSetupPanel::OnRemovePendingRow, Row)
-                ]
-            ]
-
-            + SVerticalBox::Slot()
-            .AutoHeight()
-            .Padding(0, 6, 0, 0)
+            .Padding(0.f, 4.f, 0.f, 0.f)
             [
                 SNew(STextBlock)
-                .Text(FText::FromString(TEXT("Name and IP are saved to the database on completion.")))
+                .Text(FText::FromString(Snap.IPAddress))
                 .ColorAndOpacity(FSlateColor(ColMuted))
             ]
         ];
 }
 
-TSharedRef<SWidget> SHMCSetupPanel::BuildVitalCell(const FString& Label, const FString& Value,
-                                                     const FLinearColor& ValueColor)
+TSharedRef<SWidget> SHMCSetupPanel::BuildActorDropdown(const FString& DeviceName)
 {
-    return SNew(SVerticalBox)
-        + SVerticalBox::Slot().AutoHeight()
+    return SNew(SComboButton)
+        .ButtonContent()
         [
             SNew(STextBlock)
-            .Text(FText::FromString(Label))
-            .ColorAndOpacity(FSlateColor(ColMuted))
+            .Text_Lambda([this, DeviceName]()
+            {
+                const FString A = GetStatus(DeviceName).ActorName;
+                return FText::FromString(A.IsEmpty() ? TEXT("Assign actor…") : A);
+            })
         ]
-        + SVerticalBox::Slot().AutoHeight()
-        [
-            SNew(STextBlock)
-            .Text(FText::FromString(Value))
-            .ColorAndOpacity(FSlateColor(ValueColor))
-        ];
+        .OnGetMenuContent_Lambda([this, DeviceName]() -> TSharedRef<SWidget>
+        {
+            FMenuBuilder MB(/*bShouldCloseWindowAfterMenuSelection*/ true, nullptr);
+            for (const TSharedPtr<FString>& Opt : ActorOptions)
+            {
+                if (!Opt.IsValid()) continue;
+                const FString ActorName = *Opt;
+                MB.AddMenuEntry(
+                    FText::FromString(ActorName),
+                    FText::GetEmpty(),
+                    FSlateIcon(),
+                    FUIAction(FExecuteAction::CreateSP(
+                        const_cast<SHMCSetupPanel*>(this), &SHMCSetupPanel::OnActorChosen, DeviceName, ActorName)));
+            }
+            return MB.MakeWidget();
+        });
 }
+
+void SHMCSetupPanel::OnActorChosen(FString DeviceName, FString ActorName)
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        Sub->AssignActor(DeviceName, ActorName);
+}
+
+// ── Add Device modal ────────────────────────────────────────────────────────
 
 FReply SHMCSetupPanel::OnAddDeviceClicked()
 {
-    TSharedPtr<FPendingDeviceRow> NewRow = MakeShared<FPendingDeviceRow>();
-    PendingRows.Add(NewRow);
-    AddPendingRow(NewRow);  // appends widget only — does not clear existing rows
+    ModalWindow = SNew(SWindow)
+        .Title(FText::FromString(TEXT("Add HMC Device")))
+        .ClientSize(FVector2D(380.f, 230.f))
+        .SupportsMaximize(false)
+        .SupportsMinimize(false)
+        [
+            SNew(SBorder)
+            .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+            .Padding(16.f)
+            [
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,4)
+                [ SNew(STextBlock).Text(FText::FromString(TEXT("Name"))) ]
+                + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)
+                [ SAssignNew(ModalNameInput, SEditableTextBox).HintText(FText::FromString(TEXT("ORION"))) ]
+
+                + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,4)
+                [ SNew(STextBlock).Text(FText::FromString(TEXT("IP Address"))) ]
+                + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)
+                [ SAssignNew(ModalIPInput, SEditableTextBox).HintText(FText::FromString(TEXT("192.168.50.117"))) ]
+
+                + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,14)
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromString(TEXT("Name and IP address are saved to the database upon completion.")))
+                    .ColorAndOpacity(FSlateColor(ColMuted))
+                    .AutoWrapText(true)
+                ]
+
+                + SVerticalBox::Slot().AutoHeight()
+                [
+                    SNew(SHorizontalBox)
+                    + SHorizontalBox::Slot().FillWidth(1.f)
+                    [
+                        SNew(SButton)
+                        .HAlign(HAlign_Center)
+                        .Text(FText::FromString(TEXT("Connect")))
+                        .OnClicked(this, &SHMCSetupPanel::OnModalConnectClicked)
+                    ]
+                    + SHorizontalBox::Slot().AutoWidth().Padding(8.f, 0.f, 0.f, 0.f)
+                    [
+                        SNew(SButton)
+                        .Text(FText::FromString(TEXT("X")))
+                        .OnClicked(this, &SHMCSetupPanel::OnModalCancelClicked)
+                    ]
+                ]
+            ]
+        ];
+
+    FSlateApplication::Get().AddModalWindow(ModalWindow.ToSharedRef(), AsShared());
     return FReply::Handled();
 }
 
-FReply SHMCSetupPanel::OnSaveAndConnectClicked()
+FReply SHMCSetupPanel::OnModalConnectClicked()
 {
-    UPCAPToolSubsystem* Sub = GetSubsystem();
-    if (!Sub) return FReply::Handled();
+    const FString Name = ModalNameInput.IsValid() ? ModalNameInput->GetText().ToString().TrimStartAndEnd() : FString();
+    const FString IP   = ModalIPInput.IsValid()   ? ModalIPInput->GetText().ToString().TrimStartAndEnd()   : FString();
 
-    for (TSharedPtr<FPendingDeviceRow>& Row : PendingRows)
+    if (!Name.IsEmpty() && !IP.IsEmpty())
     {
-        if (!Row->NameInput.IsValid() || !Row->IPInput.IsValid()) continue;
-
-        const FString Name = Row->NameInput->GetText().ToString();
-        const FString IP   = Row->IPInput->GetText().ToString();
-
-        if (Name.IsEmpty() || IP.IsEmpty()) continue;
-
-        FHMCDeviceConfig Config;
-        Config.DeviceName        = Name;
-        Config.IPAddress         = IP;
-        Config.WebSocketEndpoint = FString::Printf(TEXT("ws://%s/ws"), *IP);
-
-        Sub->RegisterDevice(Config);
+        if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        {
+            FHMCDeviceConfig Config;
+            Config.DeviceName = Name;
+            Config.IPAddress  = IP;
+            // ActorName + WebSocketEndpoint intentionally empty.
+            Sub->RegisterDevice(Config);   // persists to HMCConfig.json
+        }
+        RefreshDeviceList();
     }
 
-    PendingRows.Empty();
-    Sub->ConnectAll();
-    RefreshDeviceList();
+    if (ModalWindow.IsValid())
+    {
+        FSlateApplication::Get().RequestDestroyWindow(ModalWindow.ToSharedRef());
+        ModalWindow.Reset();
+    }
     return FReply::Handled();
 }
 
-FReply SHMCSetupPanel::OnRemovePendingRow(TSharedPtr<FPendingDeviceRow> Row)
+FReply SHMCSetupPanel::OnModalCancelClicked()
 {
-    PendingRows.Remove(Row);
-    RemovePendingRowWidget(Row);
+    if (ModalWindow.IsValid())
+    {
+        FSlateApplication::Get().RequestDestroyWindow(ModalWindow.ToSharedRef());
+        ModalWindow.Reset();
+    }
+    return FReply::Handled();
+}
+
+// ── Bottom actions ──────────────────────────────────────────────────────────
+
+FReply SHMCSetupPanel::OnPreppedClicked()
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+    {
+        Sub->ConnectAll();
+        Sub->SaveConfig();
+    }
     return FReply::Handled();
 }
 
 FReply SHMCSetupPanel::OnDisconnectDevice(FString DeviceName)
 {
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
-    {
         Sub->DisconnectDevice(DeviceName);
-        Sub->UnregisterDevice(DeviceName);
-    }
-    RefreshDeviceList();
     return FReply::Handled();
 }
 
-FReply SHMCSetupPanel::OnPingDevice(TSharedPtr<FPendingDeviceRow> Row)
-{
-    if (!Row->NameInput.IsValid() || !Row->IPInput.IsValid()) return FReply::Handled();
-
-    const FString Name = Row->NameInput->GetText().ToString();
-    const FString IP   = Row->IPInput->GetText().ToString();
-    if (Name.IsEmpty() || IP.IsEmpty()) return FReply::Handled();
-
-    UPCAPToolSubsystem* Sub = GetSubsystem();
-    if (!Sub) return FReply::Handled();
-
-    // Register temporarily and connect — result shows up on next refresh
-    FHMCDeviceConfig Config;
-    Config.DeviceName        = Name;
-    Config.IPAddress         = IP;
-    Config.WebSocketEndpoint = FString::Printf(TEXT("ws://%s/ws"), *IP);
-    Sub->RegisterDevice(Config);
-    Sub->ConnectDevice(Name);
-
-    return FReply::Handled();
-}
-
-// ── Color helpers ─────────────────────────────────────────────────────────────
+// ── Colour helpers (used by the Increment-2 control/vital panel) ────────────
 
 FLinearColor SHMCSetupPanel::VoltageColor(float V)
 {
