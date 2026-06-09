@@ -45,6 +45,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     TArray<FHMCDeviceConfig> GetRegisteredDevices() const;
 
+    // Reassigns a registered device to a different actor: updates the config + status
+    // and migrates the device's camera feeds to the new actor's group (CameraFeeds is
+    // keyed by ActorName). No-op if the device is unknown or the actor is unchanged.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void AssignActor(const FString& DeviceName, const FString& NewActorName);
+
     // ─── Connection ───────────────────────────────────────────────────────────
 
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
