@@ -1,17 +1,30 @@
-Build started at 3:27 PM...
+Build started at 12:24 PM...
 1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
 1>Using bundled DotNet SDK version: 8.0.412 win-x64
 1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
 1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
 1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
-1>Parsing headers for PCAPPipelineEditor
-1>  Running Internal UnrealHeaderTool C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject C:\Users\mocapstaff\Desktop\PCAPPipeline\Intermediate\Build\Win64\PCAPPipelineEditor\Development\PCAPPipelineEditor.uhtmanifest -WarningsAsErrors -installed
-1>UHT processed PCAPPipelineEditor in 1.0923743 seconds (10 files written)
-1>Unable to build while Live Coding is active. Exit the editor and game, or press Ctrl+Alt+F11 if iterating on code in the editor or game
+1>Building PCAPPipelineEditor...
+1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
+1>  Executing up to 32 processes, one per physical core
+1>Using Unreal Build Accelerator local executor to run 4 action(s)
+1>  Storage capacity 40Gb
+1>---- Starting trace: 260609_122439_vs33148 ----
+1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
+1>[1/4] Compile [x64] Module.PCAPTool.3.cpp
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SHMCSetupPanel.cpp(261,14): error C2039: 'AssignActor': is not a member of 'UPCAPToolSubsystem'
+1>        Sub->AssignActor(DeviceName, ActorName);
+1>             ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPToolSubsystem.h(29,20): note: see declaration of 'UPCAPToolSubsystem'
+1>class PCAPTOOL_API UPCAPToolSubsystem : public UEngineSubsystem
+1>                   ^
+1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 2.8kb
+1>Total time in Unreal Build Accelerator local executor: 2.28 seconds
 1>
 1>Result: Failed (OtherCompilationError)
-1>Total execution time: 1.97 seconds
+1>Total execution time: 3.05 seconds
 1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
 1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
 ========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 3:27 PM and took 02.893 seconds ==========
+========== Build completed at 12:24 PM and took 03.957 seconds ==========
