@@ -12,6 +12,7 @@
 //   "Rig/IKRigDefinition.h" and "Retargeter/IKRetargeter.h"
 class UIKRigDefinition;
 class UIKRetargeter;
+class UStageConfigAsset;   // soft-ref'd by FProduction / FShootDay (see StageConfigAsset.h)
 
 #include "PCAPToolTypes.generated.h"
 
@@ -133,38 +134,8 @@ struct PCAPTOOL_API FRetargetConfig
     TSoftObjectPtr<UAnimSequence> FallbackHandPose;
 };
 
-USTRUCT(BlueprintType)
-struct PCAPTOOL_API FStageConfig
-{
-    GENERATED_BODY()
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
-    FString ConfigName;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
-    EBodySystem BodySystem = EBodySystem::None;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
-    EFaceSystem FaceSystem = EFaceSystem::None;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
-    EAudioSystem AudioSystem = EAudioSystem::None;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
-    EVCamSystem VCamSystem = EVCamSystem::None;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
-    FString LiveLinkPresetPath;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
-    FRetargetConfig RetargetChain;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
-    ETimecodeSource TimecodeSource = ETimecodeSource::Software;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
-    FString Notes;
-};
+// FStageConfig was promoted to the UStageConfigAsset DataAsset — see StageConfigAsset.h.
+// FProduction / FShootDay now reference it by TSoftObjectPtr<UStageConfigAsset>.
 
 USTRUCT(BlueprintType)
 struct PCAPTOOL_API FBodyStreamEntry
@@ -440,13 +411,13 @@ struct PCAPTOOL_API FShotSubject
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString ActorName;
+    FString ActorID;            // ref → UActorRosterEntry.ActorID
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString CharacterName;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool IsActive = true;
+    bool bIsActive = false;     // called to this shot
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool bHasBodyStream = false;
@@ -470,21 +441,18 @@ struct PCAPTOOL_API FPropEntry
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString PropName;
+    FString PropID;             // ref → UPropRosterEntry.PropID
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool IsTracked = false;
+    bool bIsTracked = false;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="IsTracked"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="bIsTracked"))
     FName LiveLinkSubjectName;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString Notes;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool bHasStreamStatus = false;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="bHasStreamStatus"))
     EStreamStatus StreamStatus = EStreamStatus::Disconnected;
 };
 
@@ -494,16 +462,16 @@ struct PCAPTOOL_API FTakeSubjectSnapshot
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString ActorName;
+    FString ActorID;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString CharacterName;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool HadBodyStream = false;
+    bool bHadBodyStream = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool HadFaceStream = false;
+    bool bHadFaceStream = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FString> AudioChannels;
@@ -515,10 +483,10 @@ struct PCAPTOOL_API FTakePropSnapshot
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString PropName;
+    FString PropID;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool WasTracked = false;
+    bool bWasTracked = false;
 };
 
 USTRUCT(BlueprintType)
@@ -666,6 +634,9 @@ struct PCAPTOOL_API FTake
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Notes")
     FString DirectorNotes;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Notes")
+    FString CommentatorNotes;   // added June 2026
 };
 
 USTRUCT(BlueprintType)
@@ -764,10 +735,7 @@ struct PCAPTOOL_API FShootDay
     TArray<FSession> Sessions;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool bOverridesStageConfig = false;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="bOverridesStageConfig"))
-    FStageConfig ActiveStageConfig;
+    TSoftObjectPtr<UStageConfigAsset> ActiveStageConfig;   // null = inherit production
 };
 
 USTRUCT(BlueprintType)
@@ -785,7 +753,7 @@ struct PCAPTOOL_API FProduction
     FDateTime CreatedDate = FDateTime(0);
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
-    FStageConfig ActiveStageConfig;
+    TSoftObjectPtr<UStageConfigAsset> ActiveStageConfig;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Days")
     TArray<FShootDay> Days;

@@ -139,7 +139,7 @@ public:
     // Toggle whether a performer is called (active) for the current shot.
     UFUNCTION(BlueprintCallable, Category = "PCAP|Subjects")
     void SetSubjectActive(const FString& ProjectCode, const FString& DayID, const FString& SessionID,
-                          const FString& ShotID, const FString& ActorName, bool bActive);
+                          const FString& ShotID, const FString& ActorID, bool bActive);
 
     UFUNCTION(BlueprintCallable, Category = "PCAP|Subjects")
     void AddSubjectToShot(const FString& ProjectCode, const FString& DayID, const FString& SessionID,
@@ -147,7 +147,7 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "PCAP|Subjects")
     void RemoveSubjectFromShot(const FString& ProjectCode, const FString& DayID, const FString& SessionID,
-                               const FString& ShotID, const FString& ActorName);
+                               const FString& ShotID, const FString& ActorID);
 
     // ─── Props ────────────────────────────────────────────────────────────────
 
@@ -157,7 +157,7 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "PCAP|Props")
     void RemovePropFromShot(const FString& ProjectCode, const FString& DayID, const FString& SessionID,
-                            const FString& ShotID, const FString& PropName);
+                            const FString& ShotID, const FString& PropID);
 
     // ─── Takes ────────────────────────────────────────────────────────────────
 

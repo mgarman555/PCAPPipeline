@@ -286,7 +286,7 @@ void UPCAPToolEditorWidget::SetActiveShot(const FString& ShotID)
 
 void UPCAPToolEditorWidget::SetSubjectActive(const FString& ProjectCode, const FString& DayID,
                                               const FString& SessionID, const FString& ShotID,
-                                              const FString& ActorName, bool bActive)
+                                              const FString& ActorID, bool bActive)
 {
     UPCAPDatabase* DB = GetDatabase();
     if (!DB) return;
@@ -294,9 +294,9 @@ void UPCAPToolEditorWidget::SetSubjectActive(const FString& ProjectCode, const F
     if (!Shot) return;
     for (FShotSubject& Subject : Shot->Subjects)
     {
-        if (Subject.ActorName == ActorName)
+        if (Subject.ActorID == ActorID)
         {
-            Subject.IsActive = bActive;
+            Subject.bIsActive = bActive;
             MarkDirtyAndNotify();
             return;
         }
@@ -317,13 +317,13 @@ void UPCAPToolEditorWidget::AddSubjectToShot(const FString& ProjectCode, const F
 
 void UPCAPToolEditorWidget::RemoveSubjectFromShot(const FString& ProjectCode, const FString& DayID,
                                                    const FString& SessionID, const FString& ShotID,
-                                                   const FString& ActorName)
+                                                   const FString& ActorID)
 {
     UPCAPDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
-    Shot->Subjects.RemoveAll([&ActorName](const FShotSubject& S) { return S.ActorName == ActorName; });
+    Shot->Subjects.RemoveAll([&ActorID](const FShotSubject& S) { return S.ActorID == ActorID; });
     MarkDirtyAndNotify();
 }
 
@@ -343,13 +343,13 @@ void UPCAPToolEditorWidget::AddPropToShot(const FString& ProjectCode, const FStr
 
 void UPCAPToolEditorWidget::RemovePropFromShot(const FString& ProjectCode, const FString& DayID,
                                                 const FString& SessionID, const FString& ShotID,
-                                                const FString& PropName)
+                                                const FString& PropID)
 {
     UPCAPDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
-    Shot->Props.RemoveAll([&PropName](const FPropEntry& P) { return P.PropName == PropName; });
+    Shot->Props.RemoveAll([&PropID](const FPropEntry& P) { return P.PropID == PropID; });
     MarkDirtyAndNotify();
 }
 
