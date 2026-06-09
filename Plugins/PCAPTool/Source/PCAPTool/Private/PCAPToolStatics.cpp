@@ -1,4 +1,5 @@
 #include "PCAPToolStatics.h"
+#include "ActorRosterEntry.h"
 
 FString UPCAPToolStatics::GenerateTakeID(const FString& DayNumber, const FString& ShotSlot, const FString& TakeNumber)
 {
@@ -17,6 +18,28 @@ FString UPCAPToolStatics::GenerateNextTakeNumber(const FShot& Shot)
         if (Num > Max) Max = Num;
     }
     return FString::Printf(TEXT("%03d"), Max + 1);
+}
+
+FShotSubject UPCAPToolStatics::MakeShotSubjectFromRoster(const UActorRosterEntry* Entry)
+{
+    FShotSubject Subject;
+    if (!Entry)
+    {
+        return Subject;
+    }
+
+    Subject.ActorID       = Entry->ActorID;
+    Subject.CharacterName = FString();
+    Subject.bIsActive     = false;
+
+    Subject.BodyStream     = Entry->DefaultBodyStream;
+    Subject.bHasBodyStream = !Entry->DefaultBodyStream.LiveLinkSubjectName.IsNone();
+
+    Subject.FaceStream     = Entry->DefaultFaceStream;
+    Subject.bHasFaceStream = !Entry->DefaultFaceStream.LiveLinkSubjectName.IsNone();
+
+    Subject.AudioStreams = Entry->DefaultAudioStreams;
+    return Subject;
 }
 
 FString UPCAPToolStatics::ShotSlotForType(EShotType ShotType, int32 ShotIndex)

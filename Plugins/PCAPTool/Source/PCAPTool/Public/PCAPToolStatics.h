@@ -3,6 +3,9 @@
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "PCAPToolTypes.h"
+
+class UActorRosterEntry;
+
 #include "PCAPToolStatics.generated.h"
 
 UCLASS()
@@ -28,6 +31,15 @@ public:
     // Seeds a new shoot day with standard calibration/test/retarget/production shots.
     UFUNCTION(BlueprintCallable, Category="PCAP|Days")
     static FShootDay SeedNewShootDay(const FString& DayID, const FDateTime& CalendarDate);
+
+    // ── Roster ────────────────────────────────────────────────────────────────
+
+    // In-memory copy of an actor's roster defaults into a shot subject — the data
+    // half of "call actor to shot". Sets bHasBodyStream/bHasFaceStream from whether
+    // the default Live Link subject names are set. CharacterName is left blank
+    // (shot-level) and bIsActive defaults to false. No asset I/O.
+    UFUNCTION(BlueprintCallable, Category="PCAP|Roster")
+    static FShotSubject MakeShotSubjectFromRoster(const UActorRosterEntry* Entry);
 
     // ── HMC issue evaluation (single source of truth for both monitor paths) ──
 
