@@ -49,15 +49,24 @@ private:
     EActiveTimerReturnType OnFastRepaint(double CurrentTime, float DeltaTime);
 
     TSharedRef<SWidget> BuildDetailPanel();
-    TSharedRef<SWidget> BuildSetupFeed(int32 CameraIndex, const FString& Label);
+    TSharedRef<SWidget> BuildSetupFeed(int32 CameraIndex, const FString& Label);  // styled like Preview
+    TSharedRef<SWidget> BuildRoleDropdown(int32 CameraIndex);                      // Top/Bottom/Left/Right
+    TSharedRef<SWidget> BuildBoomDropdown();                                       // Left/Right
     TSharedRef<SWidget> BuildStepper(const FString& Label,
         TFunction<FText()> ValueFn, FOnClicked OnMinus, FOnClicked OnPlus);
+
+    // Issue-driven feed border + banner (mirrors Preview's look).
+    FLinearColor FeedBorderColor(const FString& DeviceName, int32 CameraIndex) const;
+    FString      FeedBannerText(const FString& DeviceName, int32 CameraIndex) const;
+    EHMCCameraRole GetCameraRole(const FString& DeviceName, int32 CameraIndex) const;
+    static FString RoleName(EHMCCameraRole Role);
 
     // Controls operate on ActiveDeviceName via SendDeviceCommand (ganged = both cams).
     FReply OnExposureStep(int32 Dir);   // ±0.05 (50 raw)
     FReply OnGainStep(int32 Dir);       // ±1 dB
     FReply OnLightStep(bool bTop, int32 Dir);  // ±5
-    FReply OnBoomToggle();              // Left (0) <-> Right (1)
+    void   OnCameraRoleChosen(int32 CameraIndex, int32 RoleValue);  // SetCameraRole
+    void   OnBoomChosen(int32 Side);    // 0 = Left, 1 = Right
 
     FHMCDeviceStatus GetStatus(const FString& DeviceName) const;
     static UPCAPToolSubsystem* GetSubsystem();

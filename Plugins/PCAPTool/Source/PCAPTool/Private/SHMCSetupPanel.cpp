@@ -1,5 +1,6 @@
 #include "SHMCSetupPanel.h"
 #include "PCAPToolSubsystem.h"
+#include "PCAPToolStatics.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/SWindow.h"
@@ -170,6 +171,10 @@ void SHMCSetupPanel::RefreshDeviceList()
     // Rebuild ONLY when the set changes — rows bind to live status otherwise.
     if (Names == BuiltDeviceNames) return;
     BuiltDeviceNames = Names;
+
+    // Auto-select a device so the detail panel + feed appear without an extra click.
+    if ((ActiveDeviceName.IsEmpty() || !Names.Contains(ActiveDeviceName)) && Names.Num() > 0)
+        ActiveDeviceName = Names[0];
 
     DeviceListBox->ClearChildren();
 
@@ -483,7 +488,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDetailPanel()
                 FOnClicked::CreateSP(this, &SHMCSetupPanel::OnLightStep, false, -1),
                 FOnClicked::CreateSP(this, &SHMCSetupPanel::OnLightStep, false,  1)) ]
 
-            // Boom side toggle
+            // Boom side dropdown (Left / Right)
             + SVerticalBox::Slot().AutoHeight().Padding(0,4,0,0)
             [
                 SNew(SHorizontalBox)
@@ -494,14 +499,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDetailPanel()
                 ]
                 + SHorizontalBox::Slot().AutoWidth()
                 [
-                    SNew(SButton)
-                    .OnClicked(this, &SHMCSetupPanel::OnBoomToggle)
-                    [
-                        SNew(STextBlock).Text_Lambda([this]()
-                        {
-                            return FText::FromString(GetStatus(ActiveDeviceName).BoomPos == 0 ? TEXT("Left") : TEXT("Right"));
-                        })
-                    ]
+                    BuildBoomDropdown()
                 ]
             ]
         ];
@@ -509,60 +507,215 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDetailPanel()
 
 TSharedRef<SWidget> SHMCSetupPanel::BuildSetupFeed(int32 CameraIndex, const FString& Label)
 {
-    return SNew(SBorder)
-        .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
-        .BorderBackgroundColor(FLinearColor(0.03f, 0.03f, 0.03f))
-        .Padding(0.f)
+    return SNew(SVerticalBox)
+
+        // Feed cell — issue-coloured border + banner, matching Preview.
+        + SVerticalBox::Slot().AutoHeight()
         [
-            SNew(SBox).HeightOverride(240.f)
+            SNew(SBorder)
+            .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+            .Padding(2.f)
+            .BorderBackgroundColor_Lambda([this, CameraIndex]()
+            {
+                return FSlateColor(FeedBorderColor(ActiveDeviceName, CameraIndex));
+            })
             [
-                SNew(SOverlay)
-                + SOverlay::Slot()
+                SNew(SBox).HeightOverride(220.f)
                 [
-                    SNew(SScaleBox).Stretch(EStretch::ScaleToFit)
+                    SNew(SBorder)
+                    .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                    .BorderBackgroundColor(FLinearColor(0.03f, 0.03f, 0.03f))
+                    .Padding(0.f)
                     [
-                        SNew(SImage)
-                        .Image_Lambda([this, CameraIndex]() -> const FSlateBrush*
-                        {
-                            const FString Dev = ActiveDeviceName;
-                            const FString Key = FString::Printf(TEXT("%s_%d"), *Dev, CameraIndex);
-                            TSharedPtr<FSlateBrush>& B = FeedBrushPersist.FindOrAdd(Key);
-                            if (!B.IsValid()) B = MakeShared<FSlateBrush>();
-                            UPCAPToolSubsystem* Sub = GetSubsystem();
-                            UTexture2D* Tex = (Sub && !Dev.IsEmpty()) ? Sub->GetLastFrame(Dev, CameraIndex) : nullptr;
-                            if (Tex)
+                        SNew(SOverlay)
+                        + SOverlay::Slot()
+                        [
+                            SNew(SScaleBox).Stretch(EStretch::ScaleToFit)
+                            [
+                                SNew(SImage)
+                                .Image_Lambda([this, CameraIndex]() -> const FSlateBrush*
+                                {
+                                    const FString Dev = ActiveDeviceName;
+                                    const FString Key = FString::Printf(TEXT("%s_%d"), *Dev, CameraIndex);
+                                    TSharedPtr<FSlateBrush>& B = FeedBrushPersist.FindOrAdd(Key);
+                                    if (!B.IsValid()) B = MakeShared<FSlateBrush>();
+                                    UPCAPToolSubsystem* Sub = GetSubsystem();
+                                    UTexture2D* Tex = (Sub && !Dev.IsEmpty()) ? Sub->GetLastFrame(Dev, CameraIndex) : nullptr;
+                                    if (Tex)
+                                    {
+                                        B->SetResourceObject(Tex);
+                                        B->ImageSize = FVector2D(Tex->GetSizeX(), Tex->GetSizeY());
+                                        B->DrawAs    = ESlateBrushDrawType::Image;
+                                    }
+                                    else
+                                    {
+                                        B->SetResourceObject(nullptr);
+                                    }
+                                    return B.Get();
+                                })
+                            ]
+                        ]
+
+                        // Issue banner across the top
+                        + SOverlay::Slot().VAlign(VAlign_Top)
+                        [
+                            SNew(SBorder)
+                            .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                            .Padding(FMargin(4.f, 2.f))
+                            .BorderBackgroundColor_Lambda([this, CameraIndex]()
                             {
-                                B->SetResourceObject(Tex);
-                                B->ImageSize = FVector2D(Tex->GetSizeX(), Tex->GetSizeY());
-                                B->DrawAs    = ESlateBrushDrawType::Image;
-                            }
-                            else
+                                const FLinearColor C = FeedBorderColor(ActiveDeviceName, CameraIndex);
+                                return FSlateColor(FLinearColor(C.R, C.G, C.B, 0.65f));
+                            })
+                            [
+                                SNew(STextBlock).ColorAndOpacity(FSlateColor(ColWhite))
+                                .Text_Lambda([this, CameraIndex]()
+                                {
+                                    return FText::FromString(FeedBannerText(ActiveDeviceName, CameraIndex));
+                                })
+                            ]
+                        ]
+
+                        // "No Feed" overlay when no frame
+                        + SOverlay::Slot().VAlign(VAlign_Center).HAlign(HAlign_Center)
+                        [
+                            SNew(STextBlock)
+                            .ColorAndOpacity(FSlateColor(ColGray))
+                            .Text(FText::FromString(TEXT("No Feed")))
+                            .Visibility_Lambda([this, CameraIndex]()
                             {
-                                B->SetResourceObject(nullptr);
-                            }
-                            return B.Get();
-                        })
+                                UPCAPToolSubsystem* Sub = GetSubsystem();
+                                const bool bHas = Sub && !ActiveDeviceName.IsEmpty()
+                                    && Sub->GetLastFrame(ActiveDeviceName, CameraIndex) != nullptr;
+                                return bHas ? EVisibility::Collapsed : EVisibility::HitTestInvisible;
+                            })
+                        ]
+
+                        // Camera label, bottom-right
+                        + SOverlay::Slot().VAlign(VAlign_Bottom).HAlign(HAlign_Right).Padding(FMargin(0.f,0.f,4.f,2.f))
+                        [
+                            SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColMuted))
+                        ]
                     ]
                 ]
-                + SOverlay::Slot().VAlign(VAlign_Center).HAlign(HAlign_Center)
-                [
-                    SNew(STextBlock)
-                    .ColorAndOpacity(FSlateColor(ColGray))
-                    .Text(FText::FromString(TEXT("No Feed")))
-                    .Visibility_Lambda([this, CameraIndex]()
-                    {
-                        UPCAPToolSubsystem* Sub = GetSubsystem();
-                        const bool bHas = Sub && !ActiveDeviceName.IsEmpty()
-                            && Sub->GetLastFrame(ActiveDeviceName, CameraIndex) != nullptr;
-                        return bHas ? EVisibility::Collapsed : EVisibility::HitTestInvisible;
-                    })
-                ]
-                + SOverlay::Slot().VAlign(VAlign_Bottom).HAlign(HAlign_Right).Padding(FMargin(0.f,0.f,4.f,2.f))
-                [
-                    SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColMuted))
-                ]
             ]
+        ]
+
+        // Position assignment dropdown below the feed
+        + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0.f, 6.f, 0.f, 0.f)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0,0,6,0)
+            [ SNew(STextBlock).Text(FText::FromString(TEXT("Position:"))).ColorAndOpacity(FSlateColor(ColMuted)) ]
+            + SHorizontalBox::Slot().AutoWidth()
+            [ BuildRoleDropdown(CameraIndex) ]
         ];
+}
+
+FLinearColor SHMCSetupPanel::FeedBorderColor(const FString& DeviceName, int32 CameraIndex) const
+{
+    if (GetStatus(DeviceName).ConnectionState != EHMCConnectionState::Connected)
+        return ColGray;
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    const int32 Flags = Sub ? Sub->GetEffectiveIssueFlags(DeviceName, CameraIndex) : 0;
+    switch (UPCAPToolStatics::GetIssueSeverity(Flags))
+    {
+        case EHMCIssueSeverity::Red:   return ColRed;
+        case EHMCIssueSeverity::Amber: return ColYellow;
+        default:                       return ColGreen;
+    }
+}
+
+FString SHMCSetupPanel::FeedBannerText(const FString& DeviceName, int32 CameraIndex) const
+{
+    if (GetStatus(DeviceName).ConnectionState != EHMCConnectionState::Connected)
+        return TEXT("OFFLINE");
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    const int32 Flags = Sub ? Sub->GetEffectiveIssueFlags(DeviceName, CameraIndex) : 0;
+    return UPCAPToolStatics::GetIssueBannerText(Flags);
+}
+
+FString SHMCSetupPanel::RoleName(EHMCCameraRole Role)
+{
+    switch (Role)
+    {
+        case EHMCCameraRole::Top:    return TEXT("Top");
+        case EHMCCameraRole::Bottom: return TEXT("Bottom");
+        case EHMCCameraRole::Left:   return TEXT("Left");
+        case EHMCCameraRole::Right:  return TEXT("Right");
+        default:                     return TEXT("Center");
+    }
+}
+
+EHMCCameraRole SHMCSetupPanel::GetCameraRole(const FString& DeviceName, int32 CameraIndex) const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (Sub)
+    {
+        const FString Actor = GetStatus(DeviceName).ActorName;
+        for (const FHMCCameraFeed& F : Sub->GetFeedsForActor(Actor))
+            if (F.DeviceName == DeviceName && F.CameraIndex == CameraIndex)
+                return F.Role;
+    }
+    return CameraIndex == 0 ? EHMCCameraRole::Top : EHMCCameraRole::Bottom;
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildRoleDropdown(int32 CameraIndex)
+{
+    return SNew(SComboButton)
+        .ButtonContent()
+        [
+            SNew(STextBlock).Text_Lambda([this, CameraIndex]()
+            {
+                return FText::FromString(RoleName(GetCameraRole(ActiveDeviceName, CameraIndex)));
+            })
+        ]
+        .OnGetMenuContent_Lambda([this, CameraIndex]() -> TSharedRef<SWidget>
+        {
+            FMenuBuilder MB(true, nullptr);
+            const EHMCCameraRole Roles[] = {
+                EHMCCameraRole::Top, EHMCCameraRole::Bottom, EHMCCameraRole::Left, EHMCCameraRole::Right };
+            for (EHMCCameraRole R : Roles)
+            {
+                MB.AddMenuEntry(FText::FromString(RoleName(R)), FText::GetEmpty(), FSlateIcon(),
+                    FUIAction(FExecuteAction::CreateSP(this, &SHMCSetupPanel::OnCameraRoleChosen, CameraIndex, (int32)R)));
+            }
+            return MB.MakeWidget();
+        });
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildBoomDropdown()
+{
+    return SNew(SComboButton)
+        .ButtonContent()
+        [
+            SNew(STextBlock).Text_Lambda([this]()
+            {
+                return FText::FromString(GetStatus(ActiveDeviceName).BoomPos == 0 ? TEXT("Left") : TEXT("Right"));
+            })
+        ]
+        .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
+        {
+            FMenuBuilder MB(true, nullptr);
+            MB.AddMenuEntry(FText::FromString(TEXT("Left")),  FText::GetEmpty(), FSlateIcon(),
+                FUIAction(FExecuteAction::CreateSP(this, &SHMCSetupPanel::OnBoomChosen, 0)));
+            MB.AddMenuEntry(FText::FromString(TEXT("Right")), FText::GetEmpty(), FSlateIcon(),
+                FUIAction(FExecuteAction::CreateSP(this, &SHMCSetupPanel::OnBoomChosen, 1)));
+            return MB.MakeWidget();
+        });
+}
+
+void SHMCSetupPanel::OnCameraRoleChosen(int32 CameraIndex, int32 RoleValue)
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        Sub->SetCameraRole(ActiveDeviceName, CameraIndex, static_cast<EHMCCameraRole>(RoleValue));
+}
+
+void SHMCSetupPanel::OnBoomChosen(int32 Side)
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+            Sub->SendDeviceCommand(ActiveDeviceName, TEXT("boom"), FString::FromInt(Side), FString(), FString());
 }
 
 TSharedRef<SWidget> SHMCSetupPanel::BuildStepper(const FString& Label,
@@ -623,16 +776,6 @@ FReply SHMCSetupPanel::OnLightStep(bool bTop, int32 Dir)
     const int32 New = FMath::Clamp(Cur + Dir * 5, 0, 100);
     Sub->SendDeviceCommand(ActiveDeviceName, bTop ? TEXT("toplights") : TEXT("bottomlights"),
         FString::FromInt(New), FString(), FString());
-    return FReply::Handled();
-}
-
-FReply SHMCSetupPanel::OnBoomToggle()
-{
-    UPCAPToolSubsystem* Sub = GetSubsystem();
-    if (!Sub || ActiveDeviceName.IsEmpty()) return FReply::Handled();
-    // Token best-guess: boom; param 0 = Left, 1 = Right.
-    const int32 New = (GetStatus(ActiveDeviceName).BoomPos == 0) ? 1 : 0;
-    Sub->SendDeviceCommand(ActiveDeviceName, TEXT("boom"), FString::FromInt(New), FString(), FString());
     return FReply::Handled();
 }
 
