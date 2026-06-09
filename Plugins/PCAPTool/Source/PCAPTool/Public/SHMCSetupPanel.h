@@ -7,13 +7,7 @@
 class UPCAPToolSubsystem;
 class SVerticalBox;
 class SEditableTextBox;
-
-// One pending device row before it's been saved and connected
-struct FPendingDeviceRow
-{
-    TSharedPtr<SEditableTextBox> NameInput;
-    TSharedPtr<SEditableTextBox> IPInput;
-};
+class SWindow;
 
 class PCAPTOOL_API SHMCSetupPanel : public SCompoundWidget
 {
@@ -24,29 +18,32 @@ public:
     void Construct(const FArguments& InArgs);
 
 private:
-    TSharedPtr<SVerticalBox> ConnectedDeviceBox;  // refreshed by timer
-    TSharedPtr<SVerticalBox> PendingRowBox;        // never touched by timer
-    TArray<TSharedPtr<FPendingDeviceRow>> PendingRows;
+    TSharedPtr<SVerticalBox> DeviceListBox;        // rebuilt only on device-set change
+    TArray<FString> BuiltDeviceNames;
+    TArray<TSharedPtr<FString>> ActorOptions;      // dropdown source (from database later)
 
-    TSharedRef<SWidget> BuildConnectedDeviceRow(const FHMCDeviceConfig& Config,
-                                                 const FHMCDeviceStatus& Status);
-    TSharedRef<SWidget> BuildPendingRow(TSharedPtr<FPendingDeviceRow> Row);
-    TSharedRef<SWidget> BuildVitalCell(const FString& Label, const FString& Value,
-                                        const FLinearColor& ValueColor);
+    // ── Add Device modal ──────────────────────────────────────────────────────
+    TSharedPtr<SWindow> ModalWindow;
+    TSharedPtr<SEditableTextBox> ModalNameInput;
+    TSharedPtr<SEditableTextBox> ModalIPInput;
 
-    void RefreshDeviceList();        // timer-safe: only rebuilds connected rows
-    void AddPendingRow(TSharedPtr<FPendingDeviceRow> Row);
-    void RemovePendingRowWidget(TSharedPtr<FPendingDeviceRow> Row);
+    // ── Device list (build once + live bindings, like Preview) ────────────────
+    void RefreshDeviceList();
     EActiveTimerReturnType OnRefreshTimer(double CurrentTime, float DeltaTime);
+    TSharedRef<SWidget> BuildDeviceRow(const FString& DeviceName);
+    TSharedRef<SWidget> BuildActorDropdown(const FString& DeviceName);
 
-    FReply OnAddDeviceClicked();
-    FReply OnSaveAndConnectClicked();
-    FReply OnRemovePendingRow(TSharedPtr<FPendingDeviceRow> Row);
+    FReply OnAddDeviceClicked();        // opens the modal
+    FReply OnModalConnectClicked();     // saves Name+IP to the database, closes modal
+    FReply OnModalCancelClicked();      // closes modal
+    FReply OnPreppedClicked();          // Prepped for Preview → ConnectAll + SaveConfig
     FReply OnDisconnectDevice(FString DeviceName);
-    FReply OnPingDevice(TSharedPtr<FPendingDeviceRow> Row);
+    void   OnActorChosen(FString DeviceName, FString ActorName);
 
+    FHMCDeviceStatus GetStatus(const FString& DeviceName) const;
     static UPCAPToolSubsystem* GetSubsystem();
 
+    // Colour helpers — retained for the Increment-2 control/vital panel.
     static FLinearColor VoltageColor(float V);
     static FLinearColor StorageColor(float MB);
     static FLinearColor CPUColor(float Pct);
