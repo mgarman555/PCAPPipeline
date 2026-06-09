@@ -1,4 +1,5 @@
 #include "MocapDatabase.h"
+#include "PCAPToolStatics.h"
 
 namespace
 {
@@ -93,4 +94,72 @@ TArray<FTake*> UMocapDatabase::GetUnprocessedQueuedTakes()
                 if (bQueueable && bPending) Result.Add(&Take);
             });
     return Result;
+}
+
+// ─── Active-selection accessors ─────────────────────────────────────────────
+
+FProduction* UMocapDatabase::GetActiveProduction()
+{
+    return GetProductionByCode(ActiveProductionCode);
+}
+
+FShootDay* UMocapDatabase::GetActiveDay()
+{
+    return GetDay(ActiveProductionCode, ActiveDayID);
+}
+
+FSession* UMocapDatabase::GetActiveSession()
+{
+    return GetSession(ActiveProductionCode, ActiveDayID, ActiveSessionID);
+}
+
+FShot* UMocapDatabase::GetActiveShot()
+{
+    return GetShot(ActiveProductionCode, ActiveDayID, ActiveSessionID, ActiveShotID);
+}
+
+UStageConfigAsset* UMocapDatabase::GetActiveStageConfig() const
+{
+    UMocapDatabase* Self = const_cast<UMocapDatabase*>(this);
+    if (FShootDay* Day = Self->GetActiveDay())
+    {
+        if (!Day->ActiveStageConfig.IsNull())
+        {
+            return Day->ActiveStageConfig.LoadSynchronous();
+        }
+    }
+    if (FProduction* Prod = Self->GetActiveProduction())
+    {
+        if (!Prod->ActiveStageConfig.IsNull())
+        {
+            return Prod->ActiveStageConfig.LoadSynchronous();
+        }
+    }
+    return nullptr;
+}
+
+// ─── Take-id / asset-path helpers ───────────────────────────────────────────
+
+FString UMocapDatabase::BuildNextTakeID() const
+{
+    const FShot* Shot = const_cast<UMocapDatabase*>(this)->GetActiveShot();
+    if (!Shot)
+    {
+        return FString();
+    }
+    const FString TakeNumber = UPCAPToolStatics::GenerateNextTakeNumber(*Shot);
+    return UPCAPToolStatics::GenerateTakeID(ActiveDayID, ActiveShotID, TakeNumber);
+}
+
+FString UMocapDatabase::BuildTakeAssetPath(const FString& TakeID, const FString& ActorID, const FString& StreamSuffix) const
+{
+    const FString Base = FString::Printf(
+        TEXT("/Game/Mocap/Productions/%s/Day_%s/Session_%s/Shot_%s/%s/"),
+        *ActiveProductionCode, *ActiveDayID, *ActiveSessionID, *ActiveShotID, *TakeID);
+
+    const FString AssetName = ActorID.IsEmpty()
+        ? FString::Printf(TEXT("%s_%s"), *TakeID, *StreamSuffix)
+        : FString::Printf(TEXT("%s_%s_%s"), *TakeID, *ActorID, *StreamSuffix);
+
+    return Base + AssetName;
 }
