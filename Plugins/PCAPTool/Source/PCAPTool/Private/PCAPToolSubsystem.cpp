@@ -456,12 +456,18 @@ UTexture2D* UPCAPToolSubsystem::GetLastFrame(const FString& DeviceName, int32 Ca
 void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
                                                bool bWasSuccessful, FString DeviceName, int32 CameraIndex)
 {
-    FrameInFlight.Remove(FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex));
+    const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+    FrameInFlight.Remove(CamKey);
+
+    // Re-arm this camera's NEXT request immediately, BEFORE decoding — its network
+    // round-trip then overlaps this frame's decode (pipelines network with decode).
+    PumpFrameCam(DeviceName, CameraIndex);
 
     UTexture2D* Texture = nullptr;
     bool bSubject = false;
     if (bWasSuccessful && Response.IsValid() && Response->GetResponseCode() == 200)
     {
+        const double DecodeT0 = FPlatformTime::Seconds();
         const TArray<uint8>& RawBytes = Response->GetContent();
         IImageWrapperModule& IWM = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
         TSharedPtr<IImageWrapper> IW = IWM.CreateImageWrapper(EImageFormat::JPEG);
@@ -470,10 +476,10 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
         if (IW.IsValid() && IW->SetCompressed(RawBytes.GetData(), RawBytes.Num())
             && IW->GetRaw(ERGBFormat::BGRA, 8, Uncompressed))
         {
-            const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
-            Texture = UpdateFrameTexture(Key, Uncompressed, IW->GetWidth(), IW->GetHeight());
+            Texture = UpdateFrameTexture(CamKey, Uncompressed, IW->GetWidth(), IW->GetHeight());
             bSubject = UPCAPToolStatics::FrameHasSubject(Uncompressed, IW->GetWidth(), IW->GetHeight());
         }
+        LogFrameRate(CamKey, (FPlatformTime::Seconds() - DecodeT0) * 1000.0, RawBytes.Num());
     }
     else
     {
@@ -482,13 +488,31 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
     }
 
     // No subject in frame (or no signal at all) → mark so the feed border goes red.
-    const FString FaceKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
-    if (bSubject) FrameNoFace.Remove(FaceKey); else FrameNoFace.Add(FaceKey);
+    if (bSubject) FrameNoFace.Remove(CamKey); else FrameNoFace.Add(CamKey);
 
     OnFrameReceived.Broadcast(DeviceName, CameraIndex, Texture);
+}
 
-    // Immediately request this camera's next frame — continuous per-camera stream.
-    PumpFrameCam(DeviceName, CameraIndex);
+void UPCAPToolSubsystem::LogFrameRate(const FString& Key, double DecodeMs, int32 FrameBytes)
+{
+    int32&  Count       = FrameRateCount.FindOrAdd(Key);
+    double& WindowStart = FrameRateWindowStart.FindOrAdd(Key);
+    double& DecodeAccum = FrameRateDecodeAccum.FindOrAdd(Key);
+
+    const double Now = FPlatformTime::Seconds();
+    if (Count == 0) WindowStart = Now;
+    ++Count;
+    DecodeAccum += DecodeMs;
+
+    if (Count >= 30)
+    {
+        const double Elapsed = Now - WindowStart;
+        const double Fps = Elapsed > 0.0 ? Count / Elapsed : 0.0;
+        UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s: %.1f fps | avg decode %.1f ms | %d KB/frame"),
+            *Key, Fps, DecodeAccum / FMath::Max(1, Count), FrameBytes / 1024);
+        Count = 0;
+        DecodeAccum = 0.0;
+    }
 }
 
 void UPCAPToolSubsystem::PumpFrameCam(const FString& DeviceName, int32 CameraIndex)

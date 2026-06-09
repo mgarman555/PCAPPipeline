@@ -158,6 +158,12 @@ private:
     TSet<FString> FrameInFlight;        // "DeviceName_Cam" with a request in flight
     TSet<FString> FrameNoFace;          // "DeviceName_Cam" with no subject in frame
 
+    // Throughput instrumentation — logs fps / decode-time / frame-size per camera.
+    TMap<FString, int32>  FrameRateCount;
+    TMap<FString, double> FrameRateWindowStart;
+    TMap<FString, double> FrameRateDecodeAccum;
+    void LogFrameRate(const FString& Key, double DecodeMs, int32 FrameBytes);
+
     // No world context on an EngineSubsystem — polled via GEditor's timer manager.
     float PollIntervalSeconds = 2.0f;
 
