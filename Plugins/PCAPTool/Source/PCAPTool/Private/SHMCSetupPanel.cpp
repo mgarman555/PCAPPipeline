@@ -596,8 +596,10 @@ FReply SHMCSetupPanel::OnExposureStep(int32 Dir)
 {
     UPCAPToolSubsystem* Sub = GetSubsystem();
     if (!Sub || ActiveDeviceName.IsEmpty()) return FReply::Handled();
-    const int32 New = FMath::Clamp(GetStatus(ActiveDeviceName).Exposure0 + Dir * 50, 0, 9990);
-    Sub->SendDeviceCommand(ActiveDeviceName, TEXT("setexposure"), FString::FromInt(New), FString(), FString());
+    // Status exposure0 is value x1000 (5550 = 5.55). The command param is value x100,
+    // i.e. exposure0/10. Confirmed: GET /control?cmd=exposure&param=<x100>.
+    const int32 NewRaw = FMath::Clamp(GetStatus(ActiveDeviceName).Exposure0 + Dir * 50, 0, 9990);
+    Sub->SendDeviceCommand(ActiveDeviceName, TEXT("exposure"), FString::FromInt(NewRaw / 10), FString(), FString());
     return FReply::Handled();
 }
 
@@ -605,8 +607,9 @@ FReply SHMCSetupPanel::OnGainStep(int32 Dir)
 {
     UPCAPToolSubsystem* Sub = GetSubsystem();
     if (!Sub || ActiveDeviceName.IsEmpty()) return FReply::Handled();
+    // Token best-guess (same no-"set" pattern as exposure); param = gain value.
     const int32 New = FMath::Clamp(GetStatus(ActiveDeviceName).Gain0 + Dir, 0, 48);
-    Sub->SendDeviceCommand(ActiveDeviceName, TEXT("setgain"), FString::FromInt(New), FString(), FString());
+    Sub->SendDeviceCommand(ActiveDeviceName, TEXT("gain"), FString::FromInt(New), FString(), FString());
     return FReply::Handled();
 }
 
@@ -614,11 +617,12 @@ FReply SHMCSetupPanel::OnLightStep(bool bTop, int32 Dir)
 {
     UPCAPToolSubsystem* Sub = GetSubsystem();
     if (!Sub || ActiveDeviceName.IsEmpty()) return FReply::Handled();
+    // Token best-guess: toplights / bottomlights (match the topLights/bottomLights fields).
     const FHMCDeviceStatus S = GetStatus(ActiveDeviceName);
     const int32 Cur = bTop ? S.TopLights : S.BottomLights;
     const int32 New = FMath::Clamp(Cur + Dir * 5, 0, 100);
-    Sub->SendDeviceCommand(ActiveDeviceName, TEXT("setlights"), FString::FromInt(New),
-        TEXT("which"), bTop ? TEXT("top") : TEXT("bot"));
+    Sub->SendDeviceCommand(ActiveDeviceName, bTop ? TEXT("toplights") : TEXT("bottomlights"),
+        FString::FromInt(New), FString(), FString());
     return FReply::Handled();
 }
 
@@ -626,8 +630,9 @@ FReply SHMCSetupPanel::OnBoomToggle()
 {
     UPCAPToolSubsystem* Sub = GetSubsystem();
     if (!Sub || ActiveDeviceName.IsEmpty()) return FReply::Handled();
+    // Token best-guess: boom; param 0 = Left, 1 = Right.
     const int32 New = (GetStatus(ActiveDeviceName).BoomPos == 0) ? 1 : 0;
-    Sub->SendDeviceCommand(ActiveDeviceName, TEXT("setboom"), FString::FromInt(New), FString(), FString());
+    Sub->SendDeviceCommand(ActiveDeviceName, TEXT("boom"), FString::FromInt(New), FString(), FString());
     return FReply::Handled();
 }
 

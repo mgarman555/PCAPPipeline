@@ -433,6 +433,9 @@ void UPCAPToolSubsystem::SendDeviceCommand(const FString& DeviceName, const FStr
         *Config->IPAddress, *Cmd, *Param);
     if (!ExtraKey.IsEmpty())
         URL += FString::Printf(TEXT("&%s=%s"), *ExtraKey, *ExtraVal);
+    // Cache-buster (as the device's own web client appends) so repeated/identical
+    // commands aren't served from cache and actually re-fire on the device.
+    URL += FString::Printf(TEXT("&_=%lld"), (long long)FDateTime::UtcNow().GetTicks());
 
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
     Request->SetURL(URL);
