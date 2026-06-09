@@ -30,6 +30,9 @@ public class PCAPTool : ModuleRules
         {
             "UnrealEd",             // FEditorFileUtils, tab manager
             "IKRig",                // Forward-declared in PCAPToolTypes.h
+            "TakeRecorder",         // UTakeRecorderBlueprintLibrary, FTakeRecorderParameters, UTakeRecorderSubsystem
+            "TakesCore",            // UTakeRecorderSources, UTakeMetaData
+            "MovieScene",           // FFrameNumber / movie-scene types used by Take Recorder params
         });
     }
 }
