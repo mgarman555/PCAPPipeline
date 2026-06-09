@@ -110,16 +110,32 @@ EActiveTimerReturnType SHMCPreviewPanel::OnFastRepaint(double CurrentTime, float
     return EActiveTimerReturnType::Continue;
 }
 
+FHMCDeviceStatus SHMCPreviewPanel::GetStatus(const FString& DeviceName) const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    return Sub ? Sub->GetDeviceStatus(DeviceName) : FHMCDeviceStatus();
+}
+
 void SHMCPreviewPanel::RefreshCards()
 {
     if (!CardContainer.IsValid()) return;
     UPCAPToolSubsystem* Sub = GetSubsystem();
 
-    CardContainer->ClearChildren();
-    // Old cards are gone — safe to release last cycle's frame brushes.
-    FeedBrushes.Reset();
+    // Current device set (sorted for a stable comparison).
+    TArray<FString> Names;
+    if (Sub)
+        for (const FHMCDeviceStatus& S : Sub->GetAllDeviceStatuses())
+            Names.Add(S.DeviceName);
+    Names.Sort();
 
-    if (!Sub || Sub->GetAllDeviceStatuses().Num() == 0)
+    // Rebuild ONLY when the set changes. Otherwise the cards update themselves via
+    // their bound lambdas + the 30fps repaint — tearing them down is what blinked.
+    if (Names == BuiltDeviceNames) return;
+    BuiltDeviceNames = Names;
+
+    CardContainer->ClearChildren();
+
+    if (Names.Num() == 0)
     {
         CardContainer->AddSlot()
         .AutoHeight()
@@ -136,7 +152,7 @@ void SHMCPreviewPanel::RefreshCards()
         .UseAllottedSize(true)
         .InnerSlotPadding(FVector2D(8.f, 8.f));
 
-    for (const FHMCDeviceStatus& Status : Sub->GetAllDeviceStatuses())
+    for (const FString& Name : Names)
     {
         WrapBox->AddSlot()
         .ForceNewLine(false)
@@ -144,7 +160,7 @@ void SHMCPreviewPanel::RefreshCards()
             SNew(SBox)
             .WidthOverride(440.f)
             [
-                BuildDeviceCard(Status)
+                BuildDeviceCard(Name)
             ]
         ];
     }
@@ -157,18 +173,18 @@ void SHMCPreviewPanel::RefreshCards()
     ];
 }
 
-TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FHMCDeviceStatus& Status)
+TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName)
 {
-    const bool bConnected  = Status.ConnectionState == EHMCConnectionState::Connected;
-    const bool bRecording  = Status.bIsRecording;
-    const bool bOffline    = Status.ConnectionState != EHMCConnectionState::Connected;
-
-    const FLinearColor StripColor = CardStatusColor(Status);
+    const FHMCDeviceStatus Snapshot = GetStatus(DeviceName);   // for static-only values
 
     return SNew(SBorder)
         .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
         .Padding(0)
-        .ColorAndOpacity(bOffline ? FLinearColor(1,1,1,0.4f) : FLinearColor::White)
+        .ColorAndOpacity_Lambda([this, DeviceName]()
+        {
+            const bool bOff = GetStatus(DeviceName).ConnectionState != EHMCConnectionState::Connected;
+            return bOff ? FLinearColor(1.f, 1.f, 1.f, 0.4f) : FLinearColor::White;
+        })
         [
             SNew(SVerticalBox)
 
@@ -178,8 +194,11 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FHMCDeviceStatus& St
             [
                 SNew(SBorder)
                 .Padding(FMargin(0.f, 4.f))
-                .BorderBackgroundColor(StripColor)
                 .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                .BorderBackgroundColor_Lambda([this, DeviceName]()
+                {
+                    return FSlateColor(CardStatusColor(GetStatus(DeviceName)));
+                })
             ]
 
             // ── Device header ─────────────────────────────────────────
@@ -195,15 +214,17 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FHMCDeviceStatus& St
                     SNew(SVerticalBox)
                     + SVerticalBox::Slot().AutoHeight()
                     [
-                        SNew(STextBlock)
-                        .Text(FText::FromString(Status.DeviceName))
+                        SNew(STextBlock).Text(FText::FromString(DeviceName))
                     ]
                     + SVerticalBox::Slot().AutoHeight()
                     [
                         SNew(STextBlock)
-                        .Text(FText::FromString(Status.ActorName.IsEmpty()
-                            ? TEXT("No actor assigned") : Status.ActorName))
                         .ColorAndOpacity(FSlateColor(ColMuted))
+                        .Text_Lambda([this, DeviceName]()
+                        {
+                            const FString A = GetStatus(DeviceName).ActorName;
+                            return FText::FromString(A.IsEmpty() ? TEXT("No actor assigned") : A);
+                        })
                     ]
                 ]
 
@@ -212,27 +233,27 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FHMCDeviceStatus& St
                 .VAlign(VAlign_Center)
                 [
                     SNew(STextBlock)
-                    .Text(FText::FromString(Status.IPAddress))
+                    .Text(FText::FromString(Snapshot.IPAddress))
                     .ColorAndOpacity(FSlateColor(ColMuted))
                 ]
             ]
 
-            // ── Feed placeholders ─────────────────────────────────────
+            // ── Feeds ─────────────────────────────────────────────────
             + SVerticalBox::Slot()
             .AutoHeight()
             .Padding(8.f, 0.f)
             [
                 SNew(SHorizontalBox)
                 + SHorizontalBox::Slot().FillWidth(1.f).Padding(0,0,4,0)
-                [ BuildFeed(Status, 0, TEXT("TOP")) ]
+                [ BuildFeed(DeviceName, 0, TEXT("TOP")) ]
                 + SHorizontalBox::Slot().FillWidth(1.f)
-                [ BuildFeed(Status, 1, TEXT("BOT")) ]
+                [ BuildFeed(DeviceName, 1, TEXT("BOT")) ]
             ]
 
             // ── Vitals bar ────────────────────────────────────────────
             + SVerticalBox::Slot()
             .AutoHeight()
-            [ BuildVitalBar(Status) ]
+            [ BuildVitalBar(DeviceName) ]
 
             // ── Recording indicator ───────────────────────────────────
             + SVerticalBox::Slot()
@@ -244,24 +265,35 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FHMCDeviceStatus& St
                 [
                     SNew(SBorder)
                     .Padding(FMargin(6.f))
-                    .BorderBackgroundColor(bRecording
-                        ? FLinearColor(0.8f, 0.1f, 0.1f)
-                        : FLinearColor(0.25f, 0.25f, 0.25f))
                     .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                    .BorderBackgroundColor_Lambda([this, DeviceName]()
+                    {
+                        return FSlateColor(GetStatus(DeviceName).bIsRecording
+                            ? FLinearColor(0.8f, 0.1f, 0.1f) : FLinearColor(0.25f, 0.25f, 0.25f));
+                    })
                 ]
                 + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
                 [
                     SNew(STextBlock)
-                    .Text(FText::FromString(bRecording ? TEXT("RECORDING") : TEXT("Standby")))
-                    .ColorAndOpacity(FSlateColor(bRecording ? ColRed : ColMuted))
+                    .Text_Lambda([this, DeviceName]()
+                    {
+                        return FText::FromString(GetStatus(DeviceName).bIsRecording ? TEXT("RECORDING") : TEXT("Standby"));
+                    })
+                    .ColorAndOpacity_Lambda([this, DeviceName]()
+                    {
+                        return FSlateColor(GetStatus(DeviceName).bIsRecording ? ColRed : ColMuted);
+                    })
                 ]
 
                 + SHorizontalBox::Slot().FillWidth(1.f)
                 + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
                 [
                     SNew(STextBlock)
-                    .Text(FText::FromString(FormatSecondsSince(Status.LastUpdateTime)))
                     .ColorAndOpacity(FSlateColor(ColMuted))
+                    .Text_Lambda([this, DeviceName]()
+                    {
+                        return FText::FromString(FormatSecondsSince(GetStatus(DeviceName).LastUpdateTime));
+                    })
                 ]
             ]
 
@@ -271,20 +303,27 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FHMCDeviceStatus& St
             .Padding(12.f, 4.f, 12.f, 10.f)
             [
                 SNew(STextBlock)
-                .Text(FText::FromString(bOffline
-                    ? TEXT("OFFLINE")
-                    : (Status.StatusMessage.IsEmpty()
-                        ? TEXT("Waiting for data...")
-                        : Status.StatusMessage)))
-                .ColorAndOpacity(FSlateColor(bOffline ? ColRed : ColMuted))
+                .Text_Lambda([this, DeviceName]()
+                {
+                    const FHMCDeviceStatus S = GetStatus(DeviceName);
+                    if (S.ConnectionState != EHMCConnectionState::Connected)
+                        return FText::FromString(TEXT("OFFLINE"));
+                    return FText::FromString(S.StatusMessage.IsEmpty() ? TEXT("Waiting for data...") : S.StatusMessage);
+                })
+                .ColorAndOpacity_Lambda([this, DeviceName]()
+                {
+                    const bool bOff = GetStatus(DeviceName).ConnectionState != EHMCConnectionState::Connected;
+                    return FSlateColor(bOff ? ColRed : ColMuted);
+                })
             ]
         ];
 }
 
-TSharedRef<SWidget> SHMCPreviewPanel::BuildVitalBar(const FHMCDeviceStatus& Status)
+TSharedRef<SWidget> SHMCPreviewPanel::BuildVitalBar(const FString& DeviceName)
 {
-    auto VitalCell = [this](const FString& Label, const FString& Value, const FLinearColor& Color)
-        -> TSharedRef<SWidget>
+    // Each cell binds its value + colour to lambdas so it updates live (no rebuild).
+    auto VitalCell = [this](const FString& Label, TFunction<FString()> ValueFn,
+        TFunction<FLinearColor()> ColorFn) -> TSharedRef<SWidget>
     {
         return SNew(SBorder)
             .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
@@ -298,156 +337,166 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildVitalBar(const FHMCDeviceStatus& Stat
                 ]
                 + SVerticalBox::Slot().AutoHeight()
                 [
-                    SNew(STextBlock).Text(FText::FromString(Value))
-                    .ColorAndOpacity(FSlateColor(Color))
+                    SNew(STextBlock)
+                    .Text_Lambda([ValueFn]() { return FText::FromString(ValueFn()); })
+                    .ColorAndOpacity_Lambda([ColorFn]() { return FSlateColor(ColorFn()); })
                 ]
             ];
     };
 
     return SNew(SHorizontalBox)
         + SHorizontalBox::Slot().FillWidth(1.f)
-        [ VitalCell(TEXT("BAT"), FString::Printf(TEXT("%.1fV"), Status.BatteryVoltage),
-            VoltageColor(Status.BatteryVoltage)) ]
+        [ VitalCell(TEXT("BAT"),
+            [this, DeviceName]() { return FString::Printf(TEXT("%.1fV"), GetStatus(DeviceName).BatteryVoltage); },
+            [this, DeviceName]() { return VoltageColor(GetStatus(DeviceName).BatteryVoltage); }) ]
         + SHorizontalBox::Slot().FillWidth(1.f)
-        [ VitalCell(TEXT("SPC"), FormatStorage(Status.AvailableStorageMB),
-            StorageColor(Status.AvailableStorageMB)) ]
+        [ VitalCell(TEXT("SPC"),
+            [this, DeviceName]() { return FormatStorage(GetStatus(DeviceName).AvailableStorageMB); },
+            [this, DeviceName]() { return StorageColor(GetStatus(DeviceName).AvailableStorageMB); }) ]
         + SHorizontalBox::Slot().FillWidth(1.f)
-        [ VitalCell(TEXT("CPU"), FString::Printf(TEXT("%.0f%%"), Status.CPUUsagePercent),
-            CPUColor(Status.CPUUsagePercent)) ]
+        [ VitalCell(TEXT("CPU"),
+            [this, DeviceName]() { return FString::Printf(TEXT("%.0f%%"), GetStatus(DeviceName).CPUUsagePercent); },
+            [this, DeviceName]() { return CPUColor(GetStatus(DeviceName).CPUUsagePercent); }) ]
         + SHorizontalBox::Slot().FillWidth(1.f)
-        [ VitalCell(TEXT("TEMP"), FString::Printf(TEXT("%.0f°C"), Status.TemperatureCelsius),
-            TempColor(Status.TemperatureCelsius)) ]
+        [ VitalCell(TEXT("TEMP"),
+            [this, DeviceName]() { return FString::Printf(TEXT("%.0f°C"), GetStatus(DeviceName).TemperatureCelsius); },
+            [this, DeviceName]() { return TempColor(GetStatus(DeviceName).TemperatureCelsius); }) ]
         + SHorizontalBox::Slot().FillWidth(1.f)
         [ VitalCell(TEXT("CLIP"),
-            Status.LastClipStatus.IsEmpty() ? TEXT("—") : Status.LastClipStatus,
-            Status.LastClipStatus == TEXT("Ready") ? ColGreen : ColYellow) ]
+            [this, DeviceName]() { const FString C = GetStatus(DeviceName).LastClipStatus; return C.IsEmpty() ? FString(TEXT("—")) : C; },
+            [this, DeviceName]() { return GetStatus(DeviceName).LastClipStatus == TEXT("Ready") ? ColGreen : ColYellow; }) ]
         + SHorizontalBox::Slot().FillWidth(1.f)
         [ VitalCell(TEXT("DROP"),
-            FString::Printf(TEXT("%d"), Status.DroppedFrames0 + Status.DroppedFrames1),
-            (Status.DroppedFrames0 + Status.DroppedFrames1) == 0 ? ColGreen : ColYellow) ];
+            [this, DeviceName]() { const FHMCDeviceStatus S = GetStatus(DeviceName); return FString::Printf(TEXT("%d"), S.DroppedFrames0 + S.DroppedFrames1); },
+            [this, DeviceName]() { const FHMCDeviceStatus S = GetStatus(DeviceName); return (S.DroppedFrames0 + S.DroppedFrames1) == 0 ? ColGreen : ColYellow; }) ];
 }
 
-TSharedRef<SWidget> SHMCPreviewPanel::BuildFeedPlaceholder(const FString& Label)
+FLinearColor SHMCPreviewPanel::FeedBorderColor(const FString& DeviceName, int32 CameraIndex) const
 {
-    return SNew(SBorder)
-        .BorderBackgroundColor(FLinearColor(0.05f, 0.05f, 0.05f))
-        .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
-        .Padding(0)
-        [
-            SNew(SBox)
-            .HeightOverride(120.f)
-            [
-                SNew(SVerticalBox)
-                + SVerticalBox::Slot().FillHeight(1.f).VAlign(VAlign_Center).HAlign(HAlign_Center)
-                [
-                    SNew(STextBlock)
-                    .Text(FText::FromString(TEXT("No Feed")))
-                    .ColorAndOpacity(FSlateColor(ColGray))
-                ]
-                + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0,0,0,4)
-                [
-                    SNew(STextBlock)
-                    .Text(FText::FromString(Label))
-                    .ColorAndOpacity(FSlateColor(ColMuted))
-                ]
-            ]
-        ];
-}
-
-TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FHMCDeviceStatus& Status, int32 CameraIndex, const FString& Label)
-{
+    if (GetStatus(DeviceName).ConnectionState != EHMCConnectionState::Connected)
+        return ColGray;
     UPCAPToolSubsystem* Sub = GetSubsystem();
-    UTexture2D* Frame = Sub ? Sub->GetLastFrame(Status.DeviceName, CameraIndex) : nullptr;
-    const bool bConnected = Status.ConnectionState == EHMCConnectionState::Connected;
-
-    // Size the cell to the camera's display aspect so the whole frame shows without
-    // crop or distortion. Prefer the decoded frame's true pixels; fall back to
-    // control.json geometry (rotation-aware: a 2048x1536 sensor at 90° = portrait).
-    float AspectWH = 0.75f;   // ORION rotated-portrait default
-    if (Frame && Frame->GetSizeY() > 0)
+    const int32 Flags = Sub ? Sub->GetEffectiveIssueFlags(DeviceName, CameraIndex) : 0;
+    switch (UPCAPToolStatics::GetIssueSeverity(Flags))
     {
-        AspectWH = (float)Frame->GetSizeX() / (float)Frame->GetSizeY();
+        case EHMCIssueSeverity::Red:   return ColRed;
+        case EHMCIssueSeverity::Amber: return ColYellow;
+        default:                       return ColGreen;
     }
-    else if (Status.FrameWidth > 0 && Status.FrameHeight > 0)
+}
+
+FString SHMCPreviewPanel::FeedBannerText(const FString& DeviceName, int32 CameraIndex) const
+{
+    if (GetStatus(DeviceName).ConnectionState != EHMCConnectionState::Connected)
+        return TEXT("OFFLINE");
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    const int32 Flags = Sub ? Sub->GetEffectiveIssueFlags(DeviceName, CameraIndex) : 0;
+    return UPCAPToolStatics::GetIssueBannerText(Flags);
+}
+
+TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FString& DeviceName, int32 CameraIndex, const FString& Label)
+{
+    const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+
+    // Feed height from the camera's display aspect (rotation-aware). ORION's rotated
+    // 2048x1536 reads as portrait 0.75; default covers the pre-first-poll case.
+    const FHMCDeviceStatus Snap = GetStatus(DeviceName);
+    float AspectWH = 0.75f;
+    if (Snap.FrameWidth > 0 && Snap.FrameHeight > 0)
     {
-        const int32 Rot   = (CameraIndex == 0) ? Status.Rotation0 : Status.Rotation1;
-        const bool  bSwap = (((Rot % 180) + 180) % 180) == 90;   // 90/270 → portrait
-        const float DW = bSwap ? (float)Status.FrameHeight : (float)Status.FrameWidth;
-        const float DH = bSwap ? (float)Status.FrameWidth  : (float)Status.FrameHeight;
+        const int32 Rot   = (CameraIndex == 0) ? Snap.Rotation0 : Snap.Rotation1;
+        const bool  bSwap = (((Rot % 180) + 180) % 180) == 90;
+        const float DW = bSwap ? (float)Snap.FrameHeight : (float)Snap.FrameWidth;
+        const float DH = bSwap ? (float)Snap.FrameWidth  : (float)Snap.FrameHeight;
         if (DH > 0.f) AspectWH = DW / DH;
     }
-    // Feed occupies ~half the 440px card; derive height from the camera aspect.
     const float FeedH = FMath::Clamp(212.f / FMath::Max(0.2f, AspectWH), 110.f, 380.f);
 
-    // Issue-driven border + banner (hardware ∪ manual flags → severity → color/text).
-    const int32 Flags = Sub ? Sub->GetEffectiveIssueFlags(Status.DeviceName, CameraIndex) : 0;
-    const EHMCIssueSeverity Sev = UPCAPToolStatics::GetIssueSeverity(Flags);
-    const FLinearColor BorderCol =
-        !bConnected                       ? ColGray :
-        (Sev == EHMCIssueSeverity::Red)   ? ColRed :
-        (Sev == EHMCIssueSeverity::Amber) ? ColYellow : ColGreen;
-    const FString Banner = bConnected ? UPCAPToolStatics::GetIssueBannerText(Flags) : TEXT("OFFLINE");
+    // Persistent image: a brush (held in FeedBrushPersist) repointed to the latest
+    // stable texture each paint. The texture is reused in place, so this never blinks.
+    TSharedRef<SImage> Img = SNew(SImage)
+        .Image_Lambda([this, DeviceName, CameraIndex, Key]() -> const FSlateBrush*
+        {
+            TSharedPtr<FSlateBrush>& B = FeedBrushPersist.FindOrAdd(Key);
+            if (!B.IsValid()) B = MakeShared<FSlateBrush>();
+            UPCAPToolSubsystem* Sub = GetSubsystem();
+            UTexture2D* Tex = Sub ? Sub->GetLastFrame(DeviceName, CameraIndex) : nullptr;
+            if (Tex)
+            {
+                B->SetResourceObject(Tex);
+                B->ImageSize = FVector2D(Tex->GetSizeX(), Tex->GetSizeY());
+                B->DrawAs    = ESlateBrushDrawType::Image;
+            }
+            else
+            {
+                B->SetResourceObject(nullptr);
+            }
+            return B.Get();
+        });
 
-    // Inner: live frame (scaled to fit, aspect preserved) or "No Feed".
-    TSharedRef<SWidget> Inner = SNullWidget::NullWidget;
-    if (Frame)
-    {
-        FSlateBrush B;
-        B.SetResourceObject(Frame);
-        B.ImageSize = FVector2D(Frame->GetSizeX(), Frame->GetSizeY());
-        B.DrawAs    = ESlateBrushDrawType::Image;
-
-        TSharedRef<FDeferredCleanupSlateBrush> Brush = FDeferredCleanupSlateBrush::CreateBrush(B);
-        FeedBrushes.Add(Brush);
-
-        Inner = SNew(SScaleBox)
-            .Stretch(EStretch::ScaleToFit)
-            [
-                SNew(SImage).Image(Brush->GetSlateBrush())
-            ];
-    }
-    else
-    {
-        Inner = SNew(SVerticalBox)
-            + SVerticalBox::Slot().FillHeight(1.f).VAlign(VAlign_Center).HAlign(HAlign_Center)
-            [
-                SNew(STextBlock)
-                .Text(FText::FromString(bConnected ? TEXT("No Feed") : TEXT("—")))
-                .ColorAndOpacity(FSlateColor(ColGray))
-            ];
-    }
-
-    return SNew(SBorder)                              // colored issue border
+    return SNew(SBorder)                               // colored issue border (live)
         .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
-        .BorderBackgroundColor(BorderCol)
         .Padding(2.f)
+        .BorderBackgroundColor_Lambda([this, DeviceName, CameraIndex]()
+        {
+            return FSlateColor(FeedBorderColor(DeviceName, CameraIndex));
+        })
         [
             SNew(SBox).HeightOverride(FeedH)
             [
-                SNew(SBorder)                         // black feed background
+                SNew(SBorder)                          // black feed background
                 .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
                 .BorderBackgroundColor(BgFeed)
                 .Padding(0.f)
                 [
                     SNew(SOverlay)
-                    + SOverlay::Slot() [ Inner ]
+                    + SOverlay::Slot()
+                    [
+                        SNew(SScaleBox).Stretch(EStretch::ScaleToFit) [ Img ]
+                    ]
 
-                    // Issue banner across the top
+                    // "No Feed" / "—" only while there is no frame
+                    + SOverlay::Slot()
+                    .VAlign(VAlign_Center).HAlign(HAlign_Center)
+                    [
+                        SNew(STextBlock)
+                        .ColorAndOpacity(FSlateColor(ColGray))
+                        .Visibility_Lambda([this, DeviceName, CameraIndex]()
+                        {
+                            UPCAPToolSubsystem* Sub = GetSubsystem();
+                            const bool bHas = Sub && Sub->GetLastFrame(DeviceName, CameraIndex) != nullptr;
+                            return bHas ? EVisibility::Collapsed : EVisibility::HitTestInvisible;
+                        })
+                        .Text_Lambda([this, DeviceName]()
+                        {
+                            const bool bConn = GetStatus(DeviceName).ConnectionState == EHMCConnectionState::Connected;
+                            return FText::FromString(bConn ? TEXT("No Feed") : TEXT("—"));
+                        })
+                    ]
+
+                    // Issue banner across the top (live)
                     + SOverlay::Slot()
                     .VAlign(VAlign_Top)
                     [
                         SNew(SBorder)
                         .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
-                        .BorderBackgroundColor(FLinearColor(BorderCol.R, BorderCol.G, BorderCol.B, 0.65f))
                         .Padding(FMargin(4.f, 2.f))
+                        .BorderBackgroundColor_Lambda([this, DeviceName, CameraIndex]()
+                        {
+                            const FLinearColor C = FeedBorderColor(DeviceName, CameraIndex);
+                            return FSlateColor(FLinearColor(C.R, C.G, C.B, 0.65f));
+                        })
                         [
                             SNew(STextBlock)
-                            .Text(FText::FromString(Banner))
                             .ColorAndOpacity(FSlateColor(ColWhite))
+                            .Text_Lambda([this, DeviceName, CameraIndex]()
+                            {
+                                return FText::FromString(FeedBannerText(DeviceName, CameraIndex));
+                            })
                         ]
                     ]
 
-                    // View label, bottom-right
+                    // View label, bottom-right (static)
                     + SOverlay::Slot()
                     .VAlign(VAlign_Bottom).HAlign(HAlign_Right)
                     .Padding(FMargin(0.f, 0.f, 4.f, 2.f))

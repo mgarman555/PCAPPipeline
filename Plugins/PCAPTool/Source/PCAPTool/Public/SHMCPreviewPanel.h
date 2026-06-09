@@ -6,7 +6,7 @@
 
 class UPCAPToolSubsystem;
 class SVerticalBox;
-class FDeferredCleanupSlateBrush;
+struct FSlateBrush;
 
 class PCAPTOOL_API SHMCPreviewPanel : public SCompoundWidget
 {
@@ -27,20 +27,28 @@ private:
     // ticking, which keeps the HTTP frame pulls flowing.
     EActiveTimerReturnType OnFastRepaint(double CurrentTime, float DeltaTime);
 
-    TSharedRef<SWidget> BuildDeviceCard(const FHMCDeviceStatus& Status);
-    TSharedRef<SWidget> BuildStatusStrip(const FHMCDeviceStatus& Status);
-    TSharedRef<SWidget> BuildVitalBar(const FHMCDeviceStatus& Status);
-    TSharedRef<SWidget> BuildFeedPlaceholder(const FString& Label);
+    // Cards are built ONCE per device and bind every dynamic value to a lambda that
+    // reads live status. The 30fps repaint updates them in place — no teardown /
+    // rebuild (the full rebuild every 0.5s was the visible blink).
+    TSharedRef<SWidget> BuildDeviceCard(const FString& DeviceName);
+    TSharedRef<SWidget> BuildVitalBar(const FString& DeviceName);
+    TSharedRef<SWidget> BuildFeed(const FString& DeviceName, int32 CameraIndex, const FString& Label);
 
-    // Live feed cell: renders the cached frame texture for one camera, with an
-    // issue-driven border + banner. Falls back to a "No Feed" placeholder.
-    TSharedRef<SWidget> BuildFeed(const FHMCDeviceStatus& Status, int32 CameraIndex, const FString& Label);
+    // Live status snapshot for a device (empty if unknown). Called by the binding lambdas.
+    FHMCDeviceStatus GetStatus(const FString& DeviceName) const;
 
-    // Frame brushes rebuilt each refresh; held alive for the current widget tree.
-    // Cleared after ClearChildren so old widgets release before their brushes do.
-    TArray<TSharedPtr<FDeferredCleanupSlateBrush>> FeedBrushes;
+    // Device names currently built into cards — rebuild only when this set changes.
+    TArray<FString> BuiltDeviceNames;
+
+    // Persistent feed brushes, one per "DeviceName_Cam"; each points at the stable
+    // reused texture and is repointed live by the feed image lambda.
+    TMap<FString, TSharedPtr<FSlateBrush>> FeedBrushPersist;
 
     static UPCAPToolSubsystem* GetSubsystem();
+
+    // Live issue-driven feed border colour / banner text for one camera.
+    FLinearColor FeedBorderColor(const FString& DeviceName, int32 CameraIndex) const;
+    FString      FeedBannerText(const FString& DeviceName, int32 CameraIndex) const;
 
     static FLinearColor CardStatusColor(const FHMCDeviceStatus& Status);
     static FLinearColor VoltageColor(float V);
