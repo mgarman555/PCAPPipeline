@@ -57,7 +57,7 @@ This document covers **Phase 1 only**. Take Recorder integration is Phase 2; the
 ## 4. Detailed design
 
 ### 4.1 New DataAsset: `UActorRosterEntry`
-New files `Public/ActorRosterEntry.h` / `Private/ActorRosterEntry.cpp`. Saved by the user to `Content/Mocap/_Roster/Actors/[actorID].uasset` (asset-creation tooling is Phase 3).
+New files `Public/ActorRosterEntry.h` / `Private/ActorRosterEntry.cpp`. Saved by the user to `Content/Mocap/_Roster/Actors/[actorID].uasset` (asset-creation tooling is Phase 3). `FirstName`/`LastName` are plain metadata fields — no `GetDisplayName()` helper, since `ActorID` is the displayed name everywhere (D5).
 
 ```cpp
 UCLASS(BlueprintType)
