@@ -42,10 +42,10 @@ void UPCAPToolSubsystem::RegisterDevice(const FHMCDeviceConfig& Config)
     FHMCDeviceStatus& Status = DeviceStatuses.FindOrAdd(Config.DeviceName);
     Status.DeviceName      = Config.DeviceName;
     Status.IPAddress       = Config.IPAddress;
-    Status.ActorName       = Config.ActorName;
+    Status.ActorID       = Config.ActorID;
     Status.ConnectionState = EHMCConnectionState::Disconnected;
 
-    TArray<FHMCCameraFeed>& Feeds = CameraFeeds.FindOrAdd(Config.ActorName);
+    TArray<FHMCCameraFeed>& Feeds = CameraFeeds.FindOrAdd(Config.ActorID);
     bool bExists = Feeds.ContainsByPredicate(
         [&](const FHMCCameraFeed& F){ return F.DeviceName == Config.DeviceName; });
 
@@ -53,7 +53,7 @@ void UPCAPToolSubsystem::RegisterDevice(const FHMCDeviceConfig& Config)
     {
         FHMCCameraFeed Top;
         Top.DeviceName  = Config.DeviceName;
-        Top.ActorName   = Config.ActorName;
+        Top.ActorID   = Config.ActorID;
         Top.Role        = EHMCCameraRole::Top;
         Top.FeedState   = EHMCFeedState::Disconnected;
         Top.CameraIndex = 0;
@@ -61,7 +61,7 @@ void UPCAPToolSubsystem::RegisterDevice(const FHMCDeviceConfig& Config)
 
         FHMCCameraFeed Bot;
         Bot.DeviceName  = Config.DeviceName;
-        Bot.ActorName   = Config.ActorName;
+        Bot.ActorID   = Config.ActorID;
         Bot.Role        = EHMCCameraRole::Bottom;
         Bot.FeedState   = EHMCFeedState::Disconnected;
         Bot.CameraIndex = 1;
@@ -94,38 +94,38 @@ TArray<FHMCDeviceConfig> UPCAPToolSubsystem::GetRegisteredDevices() const
     return Out;
 }
 
-void UPCAPToolSubsystem::AssignActor(const FString& DeviceName, const FString& NewActorName)
+void UPCAPToolSubsystem::AssignActor(const FString& DeviceName, const FString& NewActorID)
 {
     FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
     if (!Config) return;
 
-    const FString OldActorName = Config->ActorName;
-    if (OldActorName == NewActorName) return;   // nothing to do
+    const FString OldActorID = Config->ActorID;
+    if (OldActorID == NewActorID) return;   // nothing to do
 
     // 1. Config + status both carry the actor name.
-    Config->ActorName = NewActorName;
+    Config->ActorID = NewActorID;
     if (FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName))
     {
-        Status->ActorName = NewActorName;
+        Status->ActorID = NewActorID;
     }
 
-    // 2. CameraFeeds is keyed by ActorName — move this device's feeds to the new key.
-    TArray<FHMCCameraFeed>& NewGroup = CameraFeeds.FindOrAdd(NewActorName);
-    if (TArray<FHMCCameraFeed>* OldGroup = CameraFeeds.Find(OldActorName))
+    // 2. CameraFeeds is keyed by ActorID — move this device's feeds to the new key.
+    TArray<FHMCCameraFeed>& NewGroup = CameraFeeds.FindOrAdd(NewActorID);
+    if (TArray<FHMCCameraFeed>* OldGroup = CameraFeeds.Find(OldActorID))
     {
         for (int32 i = OldGroup->Num() - 1; i >= 0; --i)
         {
             if ((*OldGroup)[i].DeviceName == DeviceName)
             {
                 FHMCCameraFeed Feed = (*OldGroup)[i];
-                Feed.ActorName = NewActorName;
+                Feed.ActorID = NewActorID;
                 NewGroup.Add(Feed);
                 OldGroup->RemoveAt(i);
             }
         }
         if (OldGroup->Num() == 0)
         {
-            CameraFeeds.Remove(OldActorName);
+            CameraFeeds.Remove(OldActorID);
         }
     }
 
@@ -345,9 +345,9 @@ TArray<FHMCDeviceStatus> UPCAPToolSubsystem::GetAllDeviceStatuses() const
 
 // ─── Camera Feeds ─────────────────────────────────────────────────────────────
 
-TArray<FHMCCameraFeed> UPCAPToolSubsystem::GetFeedsForActor(const FString& ActorName) const
+TArray<FHMCCameraFeed> UPCAPToolSubsystem::GetFeedsForActor(const FString& ActorID) const
 {
-    const TArray<FHMCCameraFeed>* Feeds = CameraFeeds.Find(ActorName);
+    const TArray<FHMCCameraFeed>* Feeds = CameraFeeds.Find(ActorID);
     if (!Feeds) return {};
 
     TArray<FHMCCameraFeed> Out = *Feeds;
@@ -691,7 +691,7 @@ void UPCAPToolSubsystem::SaveConfig() const
         TSharedPtr<FJsonObject> Obj = MakeShared<FJsonObject>();
         Obj->SetStringField(TEXT("deviceName"),        C.DeviceName);
         Obj->SetStringField(TEXT("ipAddress"),         C.IPAddress);
-        Obj->SetStringField(TEXT("actorName"),         C.ActorName);
+        Obj->SetStringField(TEXT("actorID"),         C.ActorID);
         Obj->SetStringField(TEXT("webSocketEndpoint"), C.WebSocketEndpoint);
         DeviceArray.Add(MakeShared<FJsonValueObject>(Obj));
     }
@@ -727,7 +727,7 @@ void UPCAPToolSubsystem::LoadConfig()
         FHMCDeviceConfig Config;
         Obj->TryGetStringField(TEXT("deviceName"),        Config.DeviceName);
         Obj->TryGetStringField(TEXT("ipAddress"),         Config.IPAddress);
-        Obj->TryGetStringField(TEXT("actorName"),         Config.ActorName);
+        Obj->TryGetStringField(TEXT("actorID"),         Config.ActorID);
         Obj->TryGetStringField(TEXT("webSocketEndpoint"), Config.WebSocketEndpoint);
 
         if (!Config.DeviceName.IsEmpty())

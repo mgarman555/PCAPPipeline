@@ -39,7 +39,7 @@ private:
     FReply OnModalCancelClicked();      // closes modal
     FReply OnPreppedClicked();          // Prepped for Preview → ConnectAll + SaveConfig
     FReply OnDisconnectDevice(FString DeviceName);
-    void   OnActorChosen(FString DeviceName, FString ActorName);
+    void   OnActorChosen(FString DeviceName, FString ActorID);
 
     // ── Detail panel (selected device: live feed + controls) ──────────────────
     FString ActiveDeviceName;                                  // selected row

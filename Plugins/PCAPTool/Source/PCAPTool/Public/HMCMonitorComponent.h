@@ -49,10 +49,10 @@ public:
 
     // Reassigns a registered device to a different actor. Updates the config, the
     // status entry, and migrates the device's camera feeds to the new actor's group
-    // (CameraFeeds is keyed by ActorName). No-op if the device is unknown or the
+    // (CameraFeeds is keyed by ActorID). No-op if the device is unknown or the
     // actor is unchanged. Backs the OperatorPanel Combo_Actor dropdown.
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
-    void AssignActor(const FString& DeviceName, const FString& NewActorName);
+    void AssignActor(const FString& DeviceName, const FString& NewActorID);
 
     // ─── Connection ───────────────────────────────────────────────────────────
 
@@ -88,7 +88,7 @@ public:
 
     // Returns feeds for a specific actor — used by Preview to build actor groups.
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
-    TArray<FHMCCameraFeed> GetFeedsForActor(const FString& ActorName) const;
+    TArray<FHMCCameraFeed> GetFeedsForActor(const FString& ActorID) const;
 
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     TArray<FHMCCameraFeed> GetAllFeeds() const;
@@ -171,7 +171,7 @@ public:
 private:
     TMap<FString, FHMCDeviceConfig>          RegisteredConfigs;   // keyed by DeviceName
     TMap<FString, FHMCDeviceStatus>          DeviceStatuses;      // keyed by DeviceName
-    TMap<FString, TArray<FHMCCameraFeed>>    CameraFeeds;         // keyed by ActorName
+    TMap<FString, TArray<FHMCCameraFeed>>    CameraFeeds;         // keyed by ActorID
     TMap<FString, FTimerHandle>              PollTimers;          // keyed by DeviceName
     TMap<FString, int32>                     ManualIssueFlags;    // keyed by DeviceName
 

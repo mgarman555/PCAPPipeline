@@ -290,7 +290,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildActorDropdown(const FString& DeviceName
             SNew(STextBlock)
             .Text_Lambda([this, DeviceName]()
             {
-                const FString A = GetStatus(DeviceName).ActorName;
+                const FString A = GetStatus(DeviceName).ActorID;
                 return FText::FromString(A.IsEmpty() ? TEXT("Assign actor…") : A);
             })
         ]
@@ -300,22 +300,22 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildActorDropdown(const FString& DeviceName
             for (const TSharedPtr<FString>& Opt : ActorOptions)
             {
                 if (!Opt.IsValid()) continue;
-                const FString ActorName = *Opt;
+                const FString ActorID = *Opt;
                 MB.AddMenuEntry(
-                    FText::FromString(ActorName),
+                    FText::FromString(ActorID),
                     FText::GetEmpty(),
                     FSlateIcon(),
                     FUIAction(FExecuteAction::CreateSP(
-                        const_cast<SHMCSetupPanel*>(this), &SHMCSetupPanel::OnActorChosen, DeviceName, ActorName)));
+                        const_cast<SHMCSetupPanel*>(this), &SHMCSetupPanel::OnActorChosen, DeviceName, ActorID)));
             }
             return MB.MakeWidget();
         });
 }
 
-void SHMCSetupPanel::OnActorChosen(FString DeviceName, FString ActorName)
+void SHMCSetupPanel::OnActorChosen(FString DeviceName, FString ActorID)
 {
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
-        Sub->AssignActor(DeviceName, ActorName);
+        Sub->AssignActor(DeviceName, ActorID);
 }
 
 // ── Add Device modal ────────────────────────────────────────────────────────
@@ -387,7 +387,7 @@ FReply SHMCSetupPanel::OnModalConnectClicked()
             FHMCDeviceConfig Config;
             Config.DeviceName = Name;
             Config.IPAddress  = IP;
-            // ActorName + WebSocketEndpoint intentionally empty.
+            // ActorID + WebSocketEndpoint intentionally empty.
             Sub->RegisterDevice(Config);   // persists to HMCConfig.json
         }
         RefreshDeviceList();
@@ -446,7 +446,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDetailPanel()
                 if (ActiveDeviceName.IsEmpty())
                     return FText::FromString(TEXT("Select a headset to set up."));
                 const FHMCDeviceStatus S = GetStatus(ActiveDeviceName);
-                const FString Actor = S.ActorName.IsEmpty() ? TEXT("(no actor)") : S.ActorName;
+                const FString Actor = S.ActorID.IsEmpty() ? TEXT("(no actor)") : S.ActorID;
                 return FText::FromString(FString::Printf(TEXT("%s  ·  %s  ·  %s"),
                     *ActiveDeviceName, *Actor, *S.IPAddress));
             })
@@ -649,7 +649,7 @@ EHMCCameraRole SHMCSetupPanel::GetCameraRole(const FString& DeviceName, int32 Ca
     UPCAPToolSubsystem* Sub = GetSubsystem();
     if (Sub)
     {
-        const FString Actor = GetStatus(DeviceName).ActorName;
+        const FString Actor = GetStatus(DeviceName).ActorID;
         for (const FHMCCameraFeed& F : Sub->GetFeedsForActor(Actor))
             if (F.DeviceName == DeviceName && F.CameraIndex == CameraIndex)
                 return F.Role;

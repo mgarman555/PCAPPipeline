@@ -222,7 +222,7 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName)
                         .ColorAndOpacity(FSlateColor(ColMuted))
                         .Text_Lambda([this, DeviceName]()
                         {
-                            const FString A = GetStatus(DeviceName).ActorName;
+                            const FString A = GetStatus(DeviceName).ActorID;
                             return FText::FromString(A.IsEmpty() ? TEXT("No actor assigned") : A);
                         })
                     ]

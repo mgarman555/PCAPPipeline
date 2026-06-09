@@ -46,11 +46,11 @@ void UHMCMonitorComponent::RegisterDevice(const FHMCDeviceConfig& Config)
     FHMCDeviceStatus& Status = DeviceStatuses.FindOrAdd(Config.DeviceName);
     Status.DeviceName  = Config.DeviceName;
     Status.IPAddress   = Config.IPAddress;
-    Status.ActorName   = Config.ActorName;
+    Status.ActorID   = Config.ActorID;
     Status.ConnectionState = EHMCConnectionState::Disconnected;
 
     // Seed two camera feeds (Top and Bottom) keyed by actor name
-    TArray<FHMCCameraFeed>& Feeds = CameraFeeds.FindOrAdd(Config.ActorName);
+    TArray<FHMCCameraFeed>& Feeds = CameraFeeds.FindOrAdd(Config.ActorID);
     bool bHasThisDevice = Feeds.ContainsByPredicate(
         [&](const FHMCCameraFeed& F){ return F.DeviceName == Config.DeviceName; });
 
@@ -58,7 +58,7 @@ void UHMCMonitorComponent::RegisterDevice(const FHMCDeviceConfig& Config)
     {
         FHMCCameraFeed Top;
         Top.DeviceName  = Config.DeviceName;
-        Top.ActorName   = Config.ActorName;
+        Top.ActorID   = Config.ActorID;
         Top.Role        = EHMCCameraRole::Top;
         Top.FeedState   = EHMCFeedState::Disconnected;
         Top.CameraIndex = 0;
@@ -66,7 +66,7 @@ void UHMCMonitorComponent::RegisterDevice(const FHMCDeviceConfig& Config)
 
         FHMCCameraFeed Bot;
         Bot.DeviceName  = Config.DeviceName;
-        Bot.ActorName   = Config.ActorName;
+        Bot.ActorID   = Config.ActorID;
         Bot.Role        = EHMCCameraRole::Bottom;
         Bot.FeedState   = EHMCFeedState::Disconnected;
         Bot.CameraIndex = 1;
@@ -93,31 +93,31 @@ void UHMCMonitorComponent::UnregisterDevice(const FString& DeviceName)
     SaveConfig();
 }
 
-void UHMCMonitorComponent::AssignActor(const FString& DeviceName, const FString& NewActorName)
+void UHMCMonitorComponent::AssignActor(const FString& DeviceName, const FString& NewActorID)
 {
     FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
     if (!Config) return;
 
-    const FString OldActorName = Config->ActorName;
-    if (OldActorName == NewActorName) return;   // nothing to do
+    const FString OldActorID = Config->ActorID;
+    if (OldActorID == NewActorID) return;   // nothing to do
 
     // 1. Config + status both carry the actor name.
-    Config->ActorName = NewActorName;
+    Config->ActorID = NewActorID;
     if (FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName))
     {
-        Status->ActorName = NewActorName;
+        Status->ActorID = NewActorID;
     }
 
-    // 2. CameraFeeds is keyed by ActorName — move this device's feeds to the new key.
-    TArray<FHMCCameraFeed>& NewGroup = CameraFeeds.FindOrAdd(NewActorName);
-    if (TArray<FHMCCameraFeed>* OldGroup = CameraFeeds.Find(OldActorName))
+    // 2. CameraFeeds is keyed by ActorID — move this device's feeds to the new key.
+    TArray<FHMCCameraFeed>& NewGroup = CameraFeeds.FindOrAdd(NewActorID);
+    if (TArray<FHMCCameraFeed>* OldGroup = CameraFeeds.Find(OldActorID))
     {
         for (int32 i = OldGroup->Num() - 1; i >= 0; --i)
         {
             if ((*OldGroup)[i].DeviceName == DeviceName)
             {
                 FHMCCameraFeed Feed = (*OldGroup)[i];
-                Feed.ActorName = NewActorName;
+                Feed.ActorID = NewActorID;
                 NewGroup.Add(Feed);
                 OldGroup->RemoveAt(i);
             }
@@ -125,7 +125,7 @@ void UHMCMonitorComponent::AssignActor(const FString& DeviceName, const FString&
         // Drop the old actor's group if it no longer holds any feeds.
         if (OldGroup->Num() == 0)
         {
-            CameraFeeds.Remove(OldActorName);
+            CameraFeeds.Remove(OldActorID);
         }
     }
 
@@ -363,9 +363,9 @@ TArray<FHMCDeviceStatus> UHMCMonitorComponent::GetAllDeviceStatuses() const
 
 // ─── Camera Feeds ─────────────────────────────────────────────────────────────
 
-TArray<FHMCCameraFeed> UHMCMonitorComponent::GetFeedsForActor(const FString& ActorName) const
+TArray<FHMCCameraFeed> UHMCMonitorComponent::GetFeedsForActor(const FString& ActorID) const
 {
-    const TArray<FHMCCameraFeed>* Feeds = CameraFeeds.Find(ActorName);
+    const TArray<FHMCCameraFeed>* Feeds = CameraFeeds.Find(ActorID);
     if (!Feeds) return {};
 
     // Populate FrameTexture from cache before returning
@@ -716,7 +716,7 @@ void UHMCMonitorComponent::SaveConfig() const
         TSharedPtr<FJsonObject> DevObj = MakeShared<FJsonObject>();
         DevObj->SetStringField(TEXT("deviceName"),       C.DeviceName);
         DevObj->SetStringField(TEXT("ipAddress"),        C.IPAddress);
-        DevObj->SetStringField(TEXT("actorName"),        C.ActorName);
+        DevObj->SetStringField(TEXT("actorID"),        C.ActorID);
         DevObj->SetStringField(TEXT("webSocketEndpoint"),C.WebSocketEndpoint);
         DeviceArray.Add(MakeShared<FJsonValueObject>(DevObj));
     }
@@ -754,7 +754,7 @@ void UHMCMonitorComponent::LoadConfig()
         FHMCDeviceConfig Config;
         DevObj->TryGetStringField(TEXT("deviceName"),        Config.DeviceName);
         DevObj->TryGetStringField(TEXT("ipAddress"),         Config.IPAddress);
-        DevObj->TryGetStringField(TEXT("actorName"),         Config.ActorName);
+        DevObj->TryGetStringField(TEXT("actorID"),         Config.ActorID);
         DevObj->TryGetStringField(TEXT("webSocketEndpoint"), Config.WebSocketEndpoint);
 
         if (!Config.DeviceName.IsEmpty())

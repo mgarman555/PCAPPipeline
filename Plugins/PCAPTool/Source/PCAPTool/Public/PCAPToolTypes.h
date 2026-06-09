@@ -231,7 +231,7 @@ struct PCAPTOOL_API FHMCDeviceConfig
     FString IPAddress;      // e.g. "192.168.50.117"
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString ActorName;      // FShotSubject.ActorName — set after connection
+    FString ActorID;      // FShotSubject.ActorID — set after connection
 
     // DEPRECATED — unused. The HMC layer polls over HTTP; there is no WebSocket.
     // Retained only for HMCConfig.json save-format compatibility (avoids a schema
@@ -257,7 +257,7 @@ struct PCAPTOOL_API FHMCDeviceStatus
     FString IPAddress;
 
     UPROPERTY(BlueprintReadOnly)
-    FString ActorName;
+    FString ActorID;
 
     UPROPERTY(BlueprintReadOnly)
     EHMCConnectionState ConnectionState = EHMCConnectionState::Disconnected;
@@ -368,7 +368,7 @@ enum class EHMCManualIssue : uint8
 };
 
 // ---------------------------------------------------------------------------
-// HMC Camera Feed — one camera per entry, grouped by ActorName in Preview
+// HMC Camera Feed — one camera per entry, grouped by ActorID in Preview
 // ---------------------------------------------------------------------------
 
 USTRUCT(BlueprintType)
@@ -380,7 +380,7 @@ struct PCAPTOOL_API FHMCCameraFeed
     FString DeviceName;
 
     UPROPERTY(BlueprintReadWrite)
-    FString ActorName;
+    FString ActorID;
 
     UPROPERTY(BlueprintReadWrite)
     EHMCCameraRole Role = EHMCCameraRole::Top;
