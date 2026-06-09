@@ -181,6 +181,7 @@ private:
     TSet<FString> FrameStreamDevices;   // devices with active frame chains
     TSet<FString> FrameInFlight;        // "DeviceName_Cam" with a request in flight
     TSet<FString> FrameNoFace;          // "DeviceName_Cam" with no subject in frame
+    TMap<FString, int32> PollFailCount; // consecutive status-poll failures per device
 
     // GC root for frame textures — keeps transient textures alive between broadcasts.
     UPROPERTY()
