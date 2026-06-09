@@ -605,16 +605,25 @@ UTexture2D* UHMCMonitorComponent::UpdateFrameTexture(const FString& Key, const T
     if (TObjectPtr<UTexture2D>* Found = FrameTextureCache.Find(Key))
         Texture = Found->Get();
 
-    // Allocate once per camera (or if the dimensions change); reuse thereafter.
+    // (Re)create only when missing or the dimensions changed. Fill the pixels
+    // synchronously BEFORE UpdateResource so a freshly-created texture is never
+    // shown blank — otherwise it flashes on every recreation if frame sizes vary.
     if (!Texture || Texture->GetSizeX() != Width || Texture->GetSizeY() != Height)
     {
         Texture = UTexture2D::CreateTransient(Width, Height, PF_B8G8R8A8);
         if (!Texture) return nullptr;
+        FTexture2DMipMap& Mip = Texture->GetPlatformData()->Mips[0];
+        void* Data = Mip.BulkData.Lock(LOCK_READ_WRITE);
+        FMemory::Memcpy(Data, BGRA.GetData(), Width * Height * 4);
+        Mip.BulkData.Unlock();
         Texture->UpdateResource();
         FrameTextureCache.Add(Key, Texture);
+        UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s texture created %dx%d (if this repeats, frame sizes vary)"),
+            *Key, Width, Height);
+        return Texture;   // already filled — done
     }
 
-    // Update GPU pixels in place — no reallocation, no per-frame UpdateResource.
+    // Same size — fast in-place GPU update, no reallocation, no UpdateResource.
     if (Texture->GetResource())
     {
         const int32 DataSize = Width * Height * 4;
