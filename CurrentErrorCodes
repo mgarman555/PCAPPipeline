@@ -1,4 +1,4 @@
-Build started at 12:24 PM...
+Build started at 12:33 PM...
 1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
 1>Using bundled DotNet SDK version: 8.0.412 win-x64
 1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
@@ -10,7 +10,7 @@ Build started at 12:24 PM...
 1>  Executing up to 32 processes, one per physical core
 1>Using Unreal Build Accelerator local executor to run 4 action(s)
 1>  Storage capacity 40Gb
-1>---- Starting trace: 260609_122439_vs33148 ----
+1>---- Starting trace: 260609_123331_vs59296 ----
 1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
 1>[1/4] Compile [x64] Module.PCAPTool.3.cpp
 1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SHMCSetupPanel.cpp(261,14): error C2039: 'AssignActor': is not a member of 'UPCAPToolSubsystem'
@@ -20,11 +20,11 @@ Build started at 12:24 PM...
 1>class PCAPTOOL_API UPCAPToolSubsystem : public UEngineSubsystem
 1>                   ^
 1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 2.8kb
-1>Total time in Unreal Build Accelerator local executor: 2.28 seconds
+1>Total time in Unreal Build Accelerator local executor: 2.18 seconds
 1>
 1>Result: Failed (OtherCompilationError)
-1>Total execution time: 3.05 seconds
+1>Total execution time: 2.89 seconds
 1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
 1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
 ========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 12:24 PM and took 03.957 seconds ==========
+========== Build completed at 12:33 PM and took 03.736 seconds ==========
