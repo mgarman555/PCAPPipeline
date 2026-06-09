@@ -433,6 +433,12 @@ struct PCAPTOOL_API FShotSubject
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FAudioStreamEntry> AudioStreams;
+
+    // What this performance drives in the scene (static/skeletal mesh, MetaHuman, or
+    // placed level actor). Assigned by search in the operator UI; swappable per shot
+    // for quick changeover. Empty = not yet assigned.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TSoftObjectPtr<UObject> DrivenTarget;
 };
 
 USTRUCT(BlueprintType)
@@ -475,6 +481,10 @@ struct PCAPTOOL_API FTakeSubjectSnapshot
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FString> AudioChannels;
+
+    // What this performance drove (record-time provenance of FShotSubject.DrivenTarget).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TSoftObjectPtr<UObject> DrivenTarget;
 };
 
 USTRUCT(BlueprintType)
