@@ -263,11 +263,20 @@ void UHMCMonitorComponent::OnPollResponse(FHttpRequestPtr Request, FHttpResponse
 
     if (!bWasSuccessful || !Response.IsValid() || Response->GetResponseCode() != 200)
     {
-        SetConnectionState(DeviceName, EHMCConnectionState::Offline);
-        MarkFeedsDisconnected(DeviceName);
+        // Debounce: under heavy video load the status poll can occasionally time out.
+        // A single miss must NOT blank the feed — only declare Offline after several
+        // consecutive failures (~6s). The video stream keeps running until then.
+        int32& Fails = PollFailCount.FindOrAdd(DeviceName);
+        if (++Fails >= 3)
+        {
+            SetConnectionState(DeviceName, EHMCConnectionState::Offline);
+            MarkFeedsDisconnected(DeviceName);
+        }
         OnStatusUpdated.Broadcast(DeviceName, *Status);
         return;
     }
+
+    PollFailCount.Remove(DeviceName);   // a success resets the failure streak
 
     // Back online after offline
     if (Status->ConnectionState == EHMCConnectionState::Offline)

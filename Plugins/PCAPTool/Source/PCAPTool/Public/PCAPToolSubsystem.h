@@ -157,6 +157,7 @@ private:
     TSet<FString> FrameStreamDevices;   // devices with active frame chains
     TSet<FString> FrameInFlight;        // "DeviceName_Cam" with a request in flight
     TSet<FString> FrameNoFace;          // "DeviceName_Cam" with no subject in frame
+    TMap<FString, int32> PollFailCount; // consecutive status-poll failures per device
 
     // Throughput instrumentation — logs fps / decode-time / frame-size per camera.
     TMap<FString, int32>  FrameRateCount;
@@ -165,7 +166,8 @@ private:
     void LogFrameRate(const FString& Key, double DecodeMs, int32 FrameBytes);
 
     // No world context on an EngineSubsystem — polled via GEditor's timer manager.
-    float PollIntervalSeconds = 2.0f;
+    // 3s (was 2s) so the status poll contends less with the high-rate video pulls.
+    float PollIntervalSeconds = 3.0f;
 
     UPROPERTY()
     TMap<FString, TObjectPtr<UTexture2D>> FrameTextureCache;  // key = "DeviceName_CamIndex"
