@@ -8,11 +8,13 @@ class FPCAPToolModule : public IModuleInterface
 {
 public:
     static const FName HMCTabName;
+    static const FName DatabaseTabName;
 
     virtual void StartupModule() override;
     virtual void ShutdownModule() override;
 
 private:
     TSharedRef<SDockTab> SpawnHMCTab(const FSpawnTabArgs& Args);
+    TSharedRef<SDockTab> SpawnDatabaseTab(const FSpawnTabArgs& Args);
     void RegisterMenus();
 };
