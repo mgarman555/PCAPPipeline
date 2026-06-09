@@ -465,10 +465,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDetailPanel()
         [
             SNew(SVerticalBox)
             + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
-            [ BuildStepper(TEXT("EXPOSURE"),
-                [this]() { return FText::FromString(FString::Printf(TEXT("%.2f"), GetStatus(ActiveDeviceName).Exposure0 / 1000.0)); },
-                FOnClicked::CreateSP(this, &SHMCSetupPanel::OnExposureStep, -1),
-                FOnClicked::CreateSP(this, &SHMCSetupPanel::OnExposureStep,  1)) ]
+            [ BuildExposureControl() ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
             [ BuildStepper(TEXT("GAIN"),
@@ -745,15 +742,58 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildStepper(const FString& Label,
 // Controls — ganged (set both cameras). Command tokens are best-guess; the value
 // format is confirmed (exposure raw = display x 1000). See note when wiring.
 
-FReply SHMCSetupPanel::OnExposureStep(int32 Dir)
+TSharedRef<SWidget> SHMCSetupPanel::BuildExposureControl()
+{
+    // ones . tenths hundredths  (e.g. 4 . 5 5  ->  4.55)
+    return SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0,0,12,0)
+        [
+            SNew(SBox).WidthOverride(90.f)
+            [ SNew(STextBlock).Text(FText::FromString(TEXT("EXPOSURE"))).ColorAndOpacity(FSlateColor(ColMuted)) ]
+        ]
+        + SHorizontalBox::Slot().AutoWidth() [ BuildExposureDigit(0) ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f)
+        [ SNew(STextBlock).Text(FText::FromString(TEXT("."))).ColorAndOpacity(FSlateColor(ColWhite)) ]
+        + SHorizontalBox::Slot().AutoWidth() [ BuildExposureDigit(1) ]
+        + SHorizontalBox::Slot().AutoWidth() [ BuildExposureDigit(2) ];
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildExposureDigit(int32 Place)
+{
+    return SNew(SComboButton)
+        .ButtonContent()
+        [
+            SNew(STextBlock).Text_Lambda([this, Place]()
+            {
+                const int32 Param = GetStatus(ActiveDeviceName).Exposure0 / 10;   // value x100
+                const int32 D = (Place == 0) ? Param / 100 : (Place == 1) ? (Param / 10) % 10 : Param % 10;
+                return FText::FromString(FString::FromInt(FMath::Clamp(D, 0, 9)));
+            })
+        ]
+        .OnGetMenuContent_Lambda([this, Place]() -> TSharedRef<SWidget>
+        {
+            FMenuBuilder MB(true, nullptr);
+            for (int32 i = 0; i <= 9; ++i)
+            {
+                MB.AddMenuEntry(FText::FromString(FString::FromInt(i)), FText::GetEmpty(), FSlateIcon(),
+                    FUIAction(FExecuteAction::CreateSP(this, &SHMCSetupPanel::OnExposureDigit, Place, i)));
+            }
+            return MB.MakeWidget();
+        });
+}
+
+void SHMCSetupPanel::OnExposureDigit(int32 Place, int32 Digit)
 {
     UPCAPToolSubsystem* Sub = GetSubsystem();
-    if (!Sub || ActiveDeviceName.IsEmpty()) return FReply::Handled();
-    // Status exposure0 is value x1000 (5550 = 5.55). The command param is value x100,
-    // i.e. exposure0/10. Confirmed: GET /control?cmd=exposure&param=<x100>.
-    const int32 NewRaw = FMath::Clamp(GetStatus(ActiveDeviceName).Exposure0 + Dir * 50, 0, 9990);
-    Sub->SendDeviceCommand(ActiveDeviceName, TEXT("exposure"), FString::FromInt(NewRaw / 10), FString(), FString());
-    return FReply::Handled();
+    if (!Sub || ActiveDeviceName.IsEmpty()) return;
+    const int32 Param = GetStatus(ActiveDeviceName).Exposure0 / 10;   // current value x100
+    int32 Ones = Param / 100, Tenths = (Param / 10) % 10, Hund = Param % 10;
+    if (Place == 0)      Ones   = Digit;
+    else if (Place == 1) Tenths = Digit;
+    else                 Hund   = Digit;
+    const int32 NewParam = FMath::Clamp(Ones * 100 + Tenths * 10 + Hund, 0, 999);
+    // Confirmed: GET /control?cmd=exposure&param=<value x100>.
+    Sub->SendDeviceCommand(ActiveDeviceName, TEXT("exposure"), FString::FromInt(NewParam), FString(), FString());
 }
 
 FReply SHMCSetupPanel::OnGainStep(int32 Dir)
@@ -770,11 +810,12 @@ FReply SHMCSetupPanel::OnLightStep(bool bTop, int32 Dir)
 {
     UPCAPToolSubsystem* Sub = GetSubsystem();
     if (!Sub || ActiveDeviceName.IsEmpty()) return FReply::Handled();
-    // Token best-guess: toplights / bottomlights (match the topLights/bottomLights fields).
+    // Token best-guess #2: camelCase topLights / bottomLights (exact field names);
+    // lowercase didn't work. Capture the real one to confirm.
     const FHMCDeviceStatus S = GetStatus(ActiveDeviceName);
     const int32 Cur = bTop ? S.TopLights : S.BottomLights;
     const int32 New = FMath::Clamp(Cur + Dir * 5, 0, 100);
-    Sub->SendDeviceCommand(ActiveDeviceName, bTop ? TEXT("toplights") : TEXT("bottomlights"),
+    Sub->SendDeviceCommand(ActiveDeviceName, bTop ? TEXT("topLights") : TEXT("bottomLights"),
         FString::FromInt(New), FString(), FString());
     return FReply::Handled();
 }

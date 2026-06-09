@@ -62,7 +62,10 @@ private:
     static FString RoleName(EHMCCameraRole Role);
 
     // Controls operate on ActiveDeviceName via SendDeviceCommand (ganged = both cams).
-    FReply OnExposureStep(int32 Dir);   // ±0.05 (50 raw)
+    // Exposure is three single-digit dropdowns: ones . tenths hundredths (e.g. 4.55).
+    TSharedRef<SWidget> BuildExposureControl();
+    TSharedRef<SWidget> BuildExposureDigit(int32 Place);   // 0=ones, 1=tenths, 2=hundredths
+    void   OnExposureDigit(int32 Place, int32 Digit);
     FReply OnGainStep(int32 Dir);       // ±1 dB
     FReply OnLightStep(bool bTop, int32 Dir);  // ±5
     void   OnCameraRoleChosen(int32 CameraIndex, int32 RoleValue);  // SetCameraRole
