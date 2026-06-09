@@ -1,30 +1,68 @@
-Build started at 12:33 PM...
-1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
-1>Using bundled DotNet SDK version: 8.0.412 win-x64
-1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
-1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
-1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
-1>Building PCAPPipelineEditor...
-1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
-1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
-1>  Executing up to 32 processes, one per physical core
-1>Using Unreal Build Accelerator local executor to run 4 action(s)
-1>  Storage capacity 40Gb
-1>---- Starting trace: 260609_123331_vs59296 ----
-1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
-1>[1/4] Compile [x64] Module.PCAPTool.3.cpp
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SHMCSetupPanel.cpp(261,14): error C2039: 'AssignActor': is not a member of 'UPCAPToolSubsystem'
-1>        Sub->AssignActor(DeviceName, ActorName);
-1>             ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPToolSubsystem.h(29,20): note: see declaration of 'UPCAPToolSubsystem'
-1>class PCAPTOOL_API UPCAPToolSubsystem : public UEngineSubsystem
-1>                   ^
-1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 2.8kb
-1>Total time in Unreal Build Accelerator local executor: 2.18 seconds
-1>
-1>Result: Failed (OtherCompilationError)
-1>Total execution time: 2.89 seconds
-1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
-1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
-========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 12:33 PM and took 03.736 seconds ==========
+{
+    "actorCode": "126",
+    "appVersion": "2.12.0",
+    "availableStorageError": 0,
+    "availableStorageInMB": 658156,
+    "backwardsTC0": 0,
+    "backwardsTC1": 0,
+    "batteryThresholdIndex": 0,
+    "batteryVoltage": 14.2,
+    "boomPos": 0,
+    "bottomLights": 35,
+    "camLabel0": "Top",
+    "camLabel1": "Bot",
+    "camNumber0": "40283050",
+    "camNumber1": "21284350",
+    "clipIndex": 3,
+    "compression": 0,
+    "cpuTemp": 41,
+    "cpuUsage": 12,
+    "customEllipseCenterCrosshairX": 0,
+    "customEllipseCenterCrosshairY": 0,
+    "customEllipseCenterCrosshairs": 0,
+    "customEllipseCenterX": 0,
+    "customEllipseCenterY": 0,
+    "customEllipseH": 0,
+    "customEllipseW": 0,
+    "customGridCenterCrosshairX": 799,
+    "customGridCenterCrosshairY": 1044,
+    "customGridCenterCrosshairs": 0,
+    "customGridH1": 225,
+    "customGridH2": 1864,
+    "customGridV1": 261,
+    "customGridV2": 1352,
+    "darkMode": true,
+    "devname": "ORION",
+    "exposure0": 9550,
+    "exposure1": 9550,
+    "folderExpression": "{prj}\\{shoot}\\{scene}\\{code}\\{take}_{clip}\\{take}_{shoot}_{code}_{label}_{cam}",
+    "fontHeight": 32,
+    "frameRate": 8,
+    "gain0": 2,
+    "gain1": 2,
+    "hdmiCrosshairs": 1,
+    "height": 1536,
+    "inactiveFrameRateChange": 0,
+    "isDownloading": false,
+    "lastMovieIntegrity": 1,
+    "lastMovieIntegrityStatus": "Not Ready",
+    "latestCamNumber": "21284350",
+    "lightsEnable": 1,
+    "nRecording": 0,
+    "osdBurninEnabled": 1,
+    "project": "Precipice",
+    "quality": 85,
+    "rotation0": 90,
+    "rotation1": 90,
+    "scene": "S01",
+    "shootday": "D548",
+    "skippedFrames0": 0,
+    "skippedFrames1": 0,
+    "state": 0,
+    "streaming0": 1,
+    "streaming1": 1,
+    "takename": "ROM_CAPTURE_GEN_9",
+    "timecode": "No Wireless",
+    "topLights": 35,
+    "width": 2048
+}
