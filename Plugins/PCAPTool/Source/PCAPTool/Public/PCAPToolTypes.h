@@ -339,6 +339,7 @@ struct PCAPTOOL_API FHMCDeviceStatus
     UPROPERTY(BlueprintReadOnly) int32 FrameHeight = 0;      // height (e.g. 1536)
     UPROPERTY(BlueprintReadOnly) int32 Rotation0   = 0;      // rotation0 (degrees)
     UPROPERTY(BlueprintReadOnly) int32 Rotation1   = 0;      // rotation1 (degrees)
+    UPROPERTY(BlueprintReadOnly) int32 BoomPos     = 0;      // boomPos (0 = Left, 1 = Right)
 
     // Hardware issue bitmasks (EHMCIssueFlag), evaluated each poll. Per camera.
     UPROPERTY(BlueprintReadOnly) int32 IssueFlags0 = 0;

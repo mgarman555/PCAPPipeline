@@ -8,6 +8,7 @@ class UPCAPToolSubsystem;
 class SVerticalBox;
 class SEditableTextBox;
 class SWindow;
+struct FSlateBrush;
 
 class PCAPTOOL_API SHMCSetupPanel : public SCompoundWidget
 {
@@ -39,6 +40,24 @@ private:
     FReply OnPreppedClicked();          // Prepped for Preview → ConnectAll + SaveConfig
     FReply OnDisconnectDevice(FString DeviceName);
     void   OnActorChosen(FString DeviceName, FString ActorName);
+
+    // ── Detail panel (selected device: live feed + controls) ──────────────────
+    FString ActiveDeviceName;                                  // selected row
+    TMap<FString, TSharedPtr<FSlateBrush>> FeedBrushPersist;   // "Device_Cam"
+
+    FReply OnSelectDevice(FString DeviceName);
+    EActiveTimerReturnType OnFastRepaint(double CurrentTime, float DeltaTime);
+
+    TSharedRef<SWidget> BuildDetailPanel();
+    TSharedRef<SWidget> BuildSetupFeed(int32 CameraIndex, const FString& Label);
+    TSharedRef<SWidget> BuildStepper(const FString& Label,
+        TFunction<FText()> ValueFn, FOnClicked OnMinus, FOnClicked OnPlus);
+
+    // Controls operate on ActiveDeviceName via SendDeviceCommand (ganged = both cams).
+    FReply OnExposureStep(int32 Dir);   // ±0.05 (50 raw)
+    FReply OnGainStep(int32 Dir);       // ±1 dB
+    FReply OnLightStep(bool bTop, int32 Dir);  // ±5
+    FReply OnBoomToggle();              // Left (0) <-> Right (1)
 
     FHMCDeviceStatus GetStatus(const FString& DeviceName) const;
     static UPCAPToolSubsystem* GetSubsystem();
