@@ -1,7 +1,7 @@
 #include "PCAPToolEditorWidget.h"
 #include "PCAPToolSettings.h"
 #include "PCAPToolSubsystem.h"
-#include "PCAPDatabase.h"
+#include "MocapDatabase.h"
 #include "FileHelpers.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
@@ -41,14 +41,14 @@ void UPCAPToolEditorWidget::RegisterTestDevice(const FString& DeviceName, const 
 
 // ─── Database ─────────────────────────────────────────────────────────────────
 
-UPCAPDatabase* UPCAPToolEditorWidget::GetDatabase() const
+UMocapDatabase* UPCAPToolEditorWidget::GetDatabase() const
 {
     return UPCAPToolSettings::Get()->GetDatabase();
 }
 
 void UPCAPToolEditorWidget::SaveDatabase()
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
 
     UPackage* Package = DB->GetOutermost();
@@ -62,7 +62,7 @@ void UPCAPToolEditorWidget::SaveDatabase()
 
 void UPCAPToolEditorWidget::MarkDirtyAndNotify()
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (DB)
     {
         DB->MarkPackageDirty();
@@ -74,7 +74,7 @@ void UPCAPToolEditorWidget::MarkDirtyAndNotify()
 
 TArray<FProduction> UPCAPToolEditorWidget::GetAllProductions() const
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     return DB ? DB->Productions : TArray<FProduction>();
 }
 
@@ -90,7 +90,7 @@ TArray<FString> UPCAPToolEditorWidget::GetProductionNames() const
 
 bool UPCAPToolEditorWidget::GetProduction(const FString& ProjectCode, FProduction& OutProduction) const
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return false;
     for (const FProduction& Prod : DB->Productions)
     {
@@ -105,7 +105,7 @@ bool UPCAPToolEditorWidget::GetProduction(const FString& ProjectCode, FProductio
 
 void UPCAPToolEditorWidget::AddProduction(const FProduction& NewProduction)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     DB->Productions.Add(NewProduction);
     MarkDirtyAndNotify();
@@ -124,7 +124,7 @@ void UPCAPToolEditorWidget::SetActiveProduction(const FString& ProjectCode)
 
 TArray<FShootDay> UPCAPToolEditorWidget::GetShootDays(const FString& ProjectCode) const
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return {};
     FProduction* Prod = DB->GetProductionByCode(ProjectCode);
     return Prod ? Prod->Days : TArray<FShootDay>();
@@ -132,7 +132,7 @@ TArray<FShootDay> UPCAPToolEditorWidget::GetShootDays(const FString& ProjectCode
 
 bool UPCAPToolEditorWidget::GetShootDay(const FString& ProjectCode, const FString& DayID, FShootDay& OutDay) const
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return false;
     FShootDay* Day = DB->GetDay(ProjectCode, DayID);
     if (!Day) return false;
@@ -142,7 +142,7 @@ bool UPCAPToolEditorWidget::GetShootDay(const FString& ProjectCode, const FStrin
 
 void UPCAPToolEditorWidget::AddShootDay(const FString& ProjectCode, const FShootDay& NewDay)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FProduction* Prod = DB->GetProductionByCode(ProjectCode);
     if (!Prod) return;
@@ -162,7 +162,7 @@ void UPCAPToolEditorWidget::SetActiveDay(const FString& DayID)
 
 TArray<FSession> UPCAPToolEditorWidget::GetSessions(const FString& ProjectCode, const FString& DayID) const
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return {};
     FShootDay* Day = DB->GetDay(ProjectCode, DayID);
     return Day ? Day->Sessions : TArray<FSession>();
@@ -171,7 +171,7 @@ TArray<FSession> UPCAPToolEditorWidget::GetSessions(const FString& ProjectCode, 
 bool UPCAPToolEditorWidget::GetSession(const FString& ProjectCode, const FString& DayID,
                                         const FString& SessionID, FSession& OutSession) const
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return false;
     FSession* Session = DB->GetSession(ProjectCode, DayID, SessionID);
     if (!Session) return false;
@@ -181,7 +181,7 @@ bool UPCAPToolEditorWidget::GetSession(const FString& ProjectCode, const FString
 
 void UPCAPToolEditorWidget::AddSession(const FString& ProjectCode, const FString& DayID, const FSession& NewSession)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShootDay* Day = DB->GetDay(ProjectCode, DayID);
     if (!Day) return;
@@ -191,7 +191,7 @@ void UPCAPToolEditorWidget::AddSession(const FString& ProjectCode, const FString
 
 void UPCAPToolEditorWidget::StartSession(const FString& ProjectCode, const FString& DayID, const FString& SessionID)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FSession* Session = DB->GetSession(ProjectCode, DayID, SessionID);
     if (!Session) return;
@@ -212,7 +212,7 @@ void UPCAPToolEditorWidget::SetActiveSession(const FString& SessionID)
 TArray<FShot> UPCAPToolEditorWidget::GetShots(const FString& ProjectCode, const FString& DayID,
                                                const FString& SessionID) const
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return {};
     FSession* Session = DB->GetSession(ProjectCode, DayID, SessionID);
     return Session ? Session->Shots : TArray<FShot>();
@@ -221,7 +221,7 @@ TArray<FShot> UPCAPToolEditorWidget::GetShots(const FString& ProjectCode, const 
 bool UPCAPToolEditorWidget::GetShot(const FString& ProjectCode, const FString& DayID,
                                      const FString& SessionID, const FString& ShotID, FShot& OutShot) const
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return false;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return false;
@@ -232,7 +232,7 @@ bool UPCAPToolEditorWidget::GetShot(const FString& ProjectCode, const FString& D
 void UPCAPToolEditorWidget::AddShot(const FString& ProjectCode, const FString& DayID,
                                      const FString& SessionID, const FShot& NewShot)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FSession* Session = DB->GetSession(ProjectCode, DayID, SessionID);
     if (!Session) return;
@@ -243,7 +243,7 @@ void UPCAPToolEditorWidget::AddShot(const FString& ProjectCode, const FString& D
 void UPCAPToolEditorWidget::RemoveShot(const FString& ProjectCode, const FString& DayID,
                                         const FString& SessionID, const FString& ShotID)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FSession* Session = DB->GetSession(ProjectCode, DayID, SessionID);
     if (!Session) return;
@@ -256,7 +256,7 @@ void UPCAPToolEditorWidget::UpdateShotDescription(const FString& ProjectCode, co
                                                     const FString& SessionID, const FString& ShotID,
                                                     const FString& Description)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
@@ -268,7 +268,7 @@ void UPCAPToolEditorWidget::UpdateShotNotes(const FString& ProjectCode, const FS
                                              const FString& SessionID, const FString& ShotID,
                                              const FString& Notes)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
@@ -288,7 +288,7 @@ void UPCAPToolEditorWidget::SetSubjectActive(const FString& ProjectCode, const F
                                               const FString& SessionID, const FString& ShotID,
                                               const FString& ActorID, bool bActive)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
@@ -307,7 +307,7 @@ void UPCAPToolEditorWidget::AddSubjectToShot(const FString& ProjectCode, const F
                                               const FString& SessionID, const FString& ShotID,
                                               const FShotSubject& NewSubject)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
@@ -319,7 +319,7 @@ void UPCAPToolEditorWidget::RemoveSubjectFromShot(const FString& ProjectCode, co
                                                    const FString& SessionID, const FString& ShotID,
                                                    const FString& ActorID)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
@@ -333,7 +333,7 @@ void UPCAPToolEditorWidget::AddPropToShot(const FString& ProjectCode, const FStr
                                            const FString& SessionID, const FString& ShotID,
                                            const FPropEntry& NewProp)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
@@ -345,7 +345,7 @@ void UPCAPToolEditorWidget::RemovePropFromShot(const FString& ProjectCode, const
                                                 const FString& SessionID, const FString& ShotID,
                                                 const FString& PropID)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
@@ -358,7 +358,7 @@ void UPCAPToolEditorWidget::RemovePropFromShot(const FString& ProjectCode, const
 TArray<FTake> UPCAPToolEditorWidget::GetTakesForShot(const FString& ProjectCode, const FString& DayID,
                                                        const FString& SessionID, const FString& ShotID) const
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return {};
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     return Shot ? Shot->Takes : TArray<FTake>();
@@ -368,7 +368,7 @@ void UPCAPToolEditorWidget::SetTakeLabel(const FString& ProjectCode, const FStri
                                           const FString& SessionID, const FString& ShotID,
                                           const FString& TakeID, ETakeLabel NewLabel)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
@@ -387,7 +387,7 @@ void UPCAPToolEditorWidget::UpdateTakeNotes(const FString& ProjectCode, const FS
                                              const FString& SessionID, const FString& ShotID,
                                              const FString& TakeID, const FString& Notes)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;
@@ -406,7 +406,7 @@ void UPCAPToolEditorWidget::UpdateTakeDirectorNotes(const FString& ProjectCode, 
                                                      const FString& SessionID, const FString& ShotID,
                                                      const FString& TakeID, const FString& DirectorNotes)
 {
-    UPCAPDatabase* DB = GetDatabase();
+    UMocapDatabase* DB = GetDatabase();
     if (!DB) return;
     FShot* Shot = DB->GetShot(ProjectCode, DayID, SessionID, ShotID);
     if (!Shot) return;

@@ -3,10 +3,10 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "PCAPToolTypes.h"
-#include "PCAPDatabase.generated.h"
+#include "MocapDatabase.generated.h"
 
 UCLASS(BlueprintType)
-class PCAPTOOL_API UPCAPDatabase : public UDataAsset
+class PCAPTOOL_API UMocapDatabase : public UDataAsset
 {
     GENERATED_BODY()
 

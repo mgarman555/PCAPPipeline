@@ -1,4 +1,4 @@
-#include "PCAPDatabase.h"
+#include "MocapDatabase.h"
 
 namespace
 {
@@ -12,7 +12,7 @@ namespace
     }
 }
 
-FProduction* UPCAPDatabase::GetProductionByCode(const FString& ProjectCode)
+FProduction* UMocapDatabase::GetProductionByCode(const FString& ProjectCode)
 {
     for (FProduction& Prod : Productions)
         if (Prod.ProjectCode == ProjectCode)
@@ -20,7 +20,7 @@ FProduction* UPCAPDatabase::GetProductionByCode(const FString& ProjectCode)
     return nullptr;
 }
 
-FShootDay* UPCAPDatabase::GetDay(const FString& ProjectCode, const FString& DayID)
+FShootDay* UMocapDatabase::GetDay(const FString& ProjectCode, const FString& DayID)
 {
     FProduction* Prod = GetProductionByCode(ProjectCode);
     if (!Prod) return nullptr;
@@ -30,7 +30,7 @@ FShootDay* UPCAPDatabase::GetDay(const FString& ProjectCode, const FString& DayI
     return nullptr;
 }
 
-FSession* UPCAPDatabase::GetSession(const FString& ProjectCode, const FString& DayID, const FString& SessionID)
+FSession* UMocapDatabase::GetSession(const FString& ProjectCode, const FString& DayID, const FString& SessionID)
 {
     FShootDay* Day = GetDay(ProjectCode, DayID);
     if (!Day) return nullptr;
@@ -40,7 +40,7 @@ FSession* UPCAPDatabase::GetSession(const FString& ProjectCode, const FString& D
     return nullptr;
 }
 
-FShot* UPCAPDatabase::GetShot(const FString& ProjectCode, const FString& DayID, const FString& SessionID, const FString& ShotID)
+FShot* UMocapDatabase::GetShot(const FString& ProjectCode, const FString& DayID, const FString& SessionID, const FString& ShotID)
 {
     FSession* Session = GetSession(ProjectCode, DayID, SessionID);
     if (!Session) return nullptr;
@@ -50,7 +50,7 @@ FShot* UPCAPDatabase::GetShot(const FString& ProjectCode, const FString& DayID, 
     return nullptr;
 }
 
-FTake* UPCAPDatabase::GetTake(const FString& ProjectCode, const FString& DayID, const FString& ShotID, const FString& TakeID)
+FTake* UMocapDatabase::GetTake(const FString& ProjectCode, const FString& DayID, const FString& ShotID, const FString& TakeID)
 {
     FProduction* Prod = GetProductionByCode(ProjectCode);
     if (!Prod) return nullptr;
@@ -69,7 +69,7 @@ FTake* UPCAPDatabase::GetTake(const FString& ProjectCode, const FString& DayID, 
     return nullptr;
 }
 
-TArray<FTake*> UPCAPDatabase::GetTakesByLabel(ETakeLabel Label)
+TArray<FTake*> UMocapDatabase::GetTakesByLabel(ETakeLabel Label)
 {
     TArray<FTake*> Result;
     for (FProduction& Prod : Productions)
@@ -81,7 +81,7 @@ TArray<FTake*> UPCAPDatabase::GetTakesByLabel(ETakeLabel Label)
     return Result;
 }
 
-TArray<FTake*> UPCAPDatabase::GetUnprocessedQueuedTakes()
+TArray<FTake*> UMocapDatabase::GetUnprocessedQueuedTakes()
 {
     TArray<FTake*> Result;
     for (FProduction& Prod : Productions)

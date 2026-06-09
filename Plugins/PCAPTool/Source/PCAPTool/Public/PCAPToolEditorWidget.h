@@ -8,7 +8,7 @@
 #include "PCAPToolSubsystem.h"
 #include "PCAPToolEditorWidget.generated.h"
 
-class UPCAPDatabase;
+class UMocapDatabase;
 
 /**
  * C++ base class for all PCAP Tool editor panels.
@@ -55,7 +55,7 @@ public:
     // ─── Database ────────────────────────────────────────────────────────────
 
     UFUNCTION(BlueprintCallable, Category = "PCAP|Database")
-    UPCAPDatabase* GetDatabase() const;
+    UMocapDatabase* GetDatabase() const;
 
     // Saves the database asset to disk.
     UFUNCTION(BlueprintCallable, Category = "PCAP|Database")

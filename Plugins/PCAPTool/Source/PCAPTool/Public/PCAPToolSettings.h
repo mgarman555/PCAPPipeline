@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
-#include "PCAPDatabase.h"
+#include "MocapDatabase.h"
 #include "PCAPToolSettings.generated.h"
 
 UCLASS(Config=Game, DefaultConfig, meta=(DisplayName="PCAP Tool"))
@@ -13,10 +13,10 @@ class PCAPTOOL_API UPCAPToolSettings : public UDeveloperSettings
 public:
 
     UPROPERTY(Config, EditAnywhere, Category="PCAP Tool")
-    TSoftObjectPtr<UPCAPDatabase> DatabaseAsset;
+    TSoftObjectPtr<UMocapDatabase> DatabaseAsset;
 
     static UPCAPToolSettings* Get();
-    UPCAPDatabase* GetDatabase() const;
+    UMocapDatabase* GetDatabase() const;
 
     virtual FName GetCategoryName() const override { return FName("PCAP"); }
     virtual FName GetSectionName()  const override { return FName("PCAP Tool"); }
