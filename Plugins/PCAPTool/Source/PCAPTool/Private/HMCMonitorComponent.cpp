@@ -532,7 +532,12 @@ UTexture2D* UHMCMonitorComponent::GetLastFrame(const FString& DeviceName, int32 
 void UHMCMonitorComponent::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
                                                   bool bWasSuccessful, FString DeviceName, int32 CameraIndex)
 {
-    FrameInFlight.Remove(FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex));
+    const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+    FrameInFlight.Remove(CamKey);
+
+    // Re-arm the next request BEFORE decoding so its network round-trip overlaps
+    // this frame's decode (pipelines network with decode).
+    PumpFrameCam(DeviceName, CameraIndex);
 
     UTexture2D* Texture = nullptr;
     bool bSubject = false;
@@ -548,8 +553,7 @@ void UHMCMonitorComponent::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpRe
         if (IW.IsValid() && IW->SetCompressed(RawBytes.GetData(), RawBytes.Num())
             && IW->GetRaw(ERGBFormat::BGRA, 8, Uncompressed))
         {
-            const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
-            Texture = UpdateFrameTexture(Key, Uncompressed, IW->GetWidth(), IW->GetHeight());
+            Texture = UpdateFrameTexture(CamKey, Uncompressed, IW->GetWidth(), IW->GetHeight());
             bSubject = UPCAPToolStatics::FrameHasSubject(Uncompressed, IW->GetWidth(), IW->GetHeight());
         }
     }
@@ -560,13 +564,9 @@ void UHMCMonitorComponent::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpRe
     }
 
     // No subject in frame (or no signal at all) → mark so the feed border goes red.
-    const FString FaceKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
-    if (bSubject) FrameNoFace.Remove(FaceKey); else FrameNoFace.Add(FaceKey);
+    if (bSubject) FrameNoFace.Remove(CamKey); else FrameNoFace.Add(CamKey);
 
     OnFrameReceived.Broadcast(DeviceName, CameraIndex, Texture);
-
-    // Immediately request this camera's next frame — continuous per-camera stream.
-    PumpFrameCam(DeviceName, CameraIndex);
 }
 
 void UHMCMonitorComponent::PumpFrameCam(const FString& DeviceName, int32 CameraIndex)
