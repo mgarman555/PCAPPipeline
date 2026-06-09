@@ -474,32 +474,32 @@ FLinearColor SHMCPreviewPanel::CardStatusColor(const FHMCDeviceStatus& Status)
 
 FLinearColor SHMCPreviewPanel::VoltageColor(float V)
 {
-    if (V <= 0.f) return FLinearColor(0.4f, 0.4f, 0.4f);
-    if (V > 14.f) return FLinearColor(0.137f, 0.467f, 0.220f);
-    if (V > 12.f) return FLinearColor(0.800f, 0.600f, 0.0f);
-    return FLinearColor(0.800f, 0.133f, 0.133f);
+    if (V <= 0.f)   return FLinearColor(0.4f, 0.4f, 0.4f);        // no reading
+    if (V > 14.0f)  return FLinearColor(0.137f, 0.467f, 0.220f);  // green  > 14.0V
+    if (V > 13.6f)  return FLinearColor(0.800f, 0.600f, 0.0f);    // yellow 13.6–14.0V
+    return FLinearColor(0.800f, 0.133f, 0.133f);                  // red    <= 13.6V
 }
 
 FLinearColor SHMCPreviewPanel::StorageColor(float MB)
 {
     const float GB = MB / 1024.f;
-    if (GB > 50.f) return FLinearColor(0.137f, 0.467f, 0.220f);
-    if (GB > 10.f) return FLinearColor(0.800f, 0.600f, 0.0f);
-    return FLinearColor(0.800f, 0.133f, 0.133f);
+    if (GB > 100.f) return FLinearColor(0.137f, 0.467f, 0.220f); // green  > 100 GB
+    if (GB >= 50.f) return FLinearColor(0.800f, 0.600f, 0.0f);   // yellow 50–100 GB
+    return FLinearColor(0.800f, 0.133f, 0.133f);                 // red    < 50 GB
 }
 
 FLinearColor SHMCPreviewPanel::CPUColor(float Pct)
 {
-    if (Pct < 60.f) return FLinearColor(0.137f, 0.467f, 0.220f);
-    if (Pct < 80.f) return FLinearColor(0.800f, 0.600f, 0.0f);
-    return FLinearColor(0.800f, 0.133f, 0.133f);
+    if (Pct < 60.f) return FLinearColor(0.137f, 0.467f, 0.220f); // green  < 60%
+    if (Pct < 85.f) return FLinearColor(0.800f, 0.600f, 0.0f);   // yellow 60–85%
+    return FLinearColor(0.800f, 0.133f, 0.133f);                 // red    >= 85%
 }
 
 FLinearColor SHMCPreviewPanel::TempColor(float C)
 {
-    if (C < 40.f) return FLinearColor(0.137f, 0.467f, 0.220f);
-    if (C < 50.f) return FLinearColor(0.800f, 0.600f, 0.0f);
-    return FLinearColor(0.800f, 0.133f, 0.133f);
+    if (C < 70.f) return FLinearColor(0.137f, 0.467f, 0.220f); // green  0–69°C
+    if (C < 85.f) return FLinearColor(0.800f, 0.600f, 0.0f);   // yellow 70–84°C
+    return FLinearColor(0.800f, 0.133f, 0.133f);               // red    >= 85°C
 }
 
 FString SHMCPreviewPanel::FormatStorage(float MB)

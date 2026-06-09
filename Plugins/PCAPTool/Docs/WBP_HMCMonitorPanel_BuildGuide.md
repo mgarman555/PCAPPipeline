@@ -199,10 +199,10 @@ Per actor block:
   banner (`GetIssueBannerText`), view label (TOP/BOT) top-right, timecode
   bottom-left, "No Feed" when null.
 - **Vitals bar (6 cells):**
-  - Battery — `BatteryVoltage` V — green >14 / amber 12–14 / red <12
-  - Storage — `AvailableStorageMB`/1024 GB — green >50 / amber 10–50 / red <10
-  - CPU — `CPUUsagePercent` % — green <60 / amber 60–80 / red >80
-  - Temp — `TemperatureCelsius` °C — green <40 / amber 40–50 / red >50
+  - Battery — `BatteryVoltage` V — green >14 / amber 13.6–14 / red ≤13.6
+  - Storage — `AvailableStorageMB`/1024 GB — green >100 / amber 50–100 / red <50
+  - CPU — `CPUUsagePercent` % — green <60 / amber 60–85 / red ≥85
+  - Temp — `TemperatureCelsius` °C — green <70 / amber 70–84 / red ≥85
   - Last Clip — `LastClipStatus` — green "Ready" / amber otherwise
   - Dropped — `DroppedFrames0 + DroppedFrames1` — green 0 / amber >0
 - **Quip row:** `Status.StatusMessage` (italic, muted).

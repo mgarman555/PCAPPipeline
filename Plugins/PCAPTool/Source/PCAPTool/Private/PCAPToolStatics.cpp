@@ -98,10 +98,11 @@ int32 UPCAPToolStatics::EvaluateCameraIssues(const FHMCDeviceStatus& S, int32 Ca
     // normal idle state before/between takes, so flagging it turned every feed
     // amber at rest. Clip state is surfaced in the CLIP vital cell instead; this
     // mask drives only live-feed health.
-    if (S.BatteryVoltage > 0.f      && S.BatteryVoltage < 13.0f)        Flags |= HMC_Issue_LowBattery;
-    if (S.AvailableStorageMB > 0.f  && S.AvailableStorageMB < 10240.f)  Flags |= HMC_Issue_LowStorage;
-    if (S.CPUUsagePercent > 80.f)                                      Flags |= HMC_Issue_HighCPU;
-    if (S.TemperatureCelsius > 50.f)                                   Flags |= HMC_Issue_HighTemp;
+    // Thresholds match the vital-cell RED levels so border and vitals never disagree.
+    if (S.BatteryVoltage > 0.f      && S.BatteryVoltage <= 13.6f)       Flags |= HMC_Issue_LowBattery;
+    if (S.AvailableStorageMB > 0.f  && S.AvailableStorageMB < 51200.f)  Flags |= HMC_Issue_LowStorage;  // < 50 GB
+    if (S.CPUUsagePercent >= 85.f)                                     Flags |= HMC_Issue_HighCPU;
+    if (S.TemperatureCelsius >= 85.f)                                  Flags |= HMC_Issue_HighTemp;
 
     return Flags;
 }
