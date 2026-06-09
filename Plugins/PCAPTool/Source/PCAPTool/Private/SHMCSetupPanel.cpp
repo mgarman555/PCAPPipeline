@@ -264,8 +264,12 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDeviceRow(const FString& DeviceName)
                 ]
                 + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
                 [
+                    // Remove the device entirely (from the database + Preview), not just disconnect.
+                    // ✕ (U+2715) matches this file's existing UTF-8 glyph convention (→ … ·);
+                    // UnrealBuildTool compiles sources as /utf-8 so the raw codepoint renders fine.
                     SNew(SButton)
-                    .Text(FText::FromString(TEXT("Disconnect")))
+                    .Text(FText::FromString(TEXT("✕")))
+                    .ToolTipText(FText::FromString(TEXT("Remove this device from the database and Preview")))
                     .OnClicked(this, &SHMCSetupPanel::OnDisconnectDevice, DeviceName)
                 ]
             ]
@@ -425,8 +429,14 @@ FReply SHMCSetupPanel::OnPreppedClicked()
 
 FReply SHMCSetupPanel::OnDisconnectDevice(FString DeviceName)
 {
+    // The ✕ button REMOVES the device: UnregisterDevice drops it from RegisteredConfigs,
+    // DeviceStatuses and the feed groups and SaveConfig()s — so it's gone from the
+    // database (HMCConfig.json) and from Preview (which iterates GetAllDeviceStatuses).
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
-        Sub->DisconnectDevice(DeviceName);
+        Sub->UnregisterDevice(DeviceName);
+    if (ActiveDeviceName == DeviceName)
+        ActiveDeviceName.Reset();
+    RefreshDeviceList();   // device set changed → rebuild the list now
     return FReply::Handled();
 }
 
