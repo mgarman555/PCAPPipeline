@@ -30,9 +30,11 @@ private:
     // Cards are built ONCE per device and bind every dynamic value to a lambda that
     // reads live status. The 30fps repaint updates them in place — no teardown /
     // rebuild (the full rebuild every 0.5s was the visible blink).
-    TSharedRef<SWidget> BuildDeviceCard(const FString& DeviceName);
+    TSharedRef<SWidget> BuildDeviceCard(const FString& DeviceName, float CardW);
     TSharedRef<SWidget> BuildVitalBar(const FString& DeviceName);
-    TSharedRef<SWidget> BuildFeed(const FString& DeviceName, int32 CameraIndex, const FString& Label);
+    // FeedW = the feed's render width; the feed height is derived from it and the
+    // camera's display aspect so the frame matches the video (no letterbox/blank).
+    TSharedRef<SWidget> BuildFeed(const FString& DeviceName, int32 CameraIndex, const FString& Label, float FeedW);
 
     // Live status snapshot for a device (empty if unknown). Called by the binding lambdas.
     FHMCDeviceStatus GetStatus(const FString& DeviceName) const;

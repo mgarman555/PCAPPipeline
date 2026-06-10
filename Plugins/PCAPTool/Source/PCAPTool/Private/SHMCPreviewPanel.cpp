@@ -95,11 +95,13 @@ void SHMCPreviewPanel::RefreshCards()
     if (!CardContainer.IsValid()) return;
     UPCAPToolSubsystem* Sub = GetSubsystem();
 
-    // Current device set (sorted for a stable comparison).
+    // Current device set (sorted for a stable comparison). Only devices marked
+    // "Prepped for Preview" in Setup appear in the Preview monitor.
     TArray<FString> Names;
     if (Sub)
         for (const FHMCDeviceStatus& S : Sub->GetAllDeviceStatuses())
-            Names.Add(S.DeviceName);
+            if (Sub->IsPreppedForPreview(S.DeviceName))
+                Names.Add(S.DeviceName);
     Names.Sort();
 
     // Rebuild ONLY when the set changes. Otherwise the cards update themselves via
@@ -116,7 +118,7 @@ void SHMCPreviewPanel::RefreshCards()
         .Padding(24.f)
         [
             SNew(STextBlock)
-            .Text(FText::FromString(TEXT("No devices registered. Go to HMC SETUP to add devices.")))
+            .Text(FText::FromString(TEXT("No devices prepped for preview. Set up your HMCs and hit \"Prepped for Preview\" in HMC SETUP.")))
             .ColorAndOpacity(FSlateColor(ColMuted))
         ];
         return;
@@ -145,7 +147,7 @@ void SHMCPreviewPanel::RefreshCards()
             SNew(SBox)
             .WidthOverride(CardW)
             [
-                BuildDeviceCard(Name)
+                BuildDeviceCard(Name, CardW)
             ]
         ];
     }
@@ -158,9 +160,11 @@ void SHMCPreviewPanel::RefreshCards()
     ];
 }
 
-TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName)
+TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName, float CardW)
 {
     const FHMCDeviceStatus Snapshot = GetStatus(DeviceName);   // for static-only values
+    // Each feed renders at ~half the card (minus paddings); its height follows in BuildFeed.
+    const float FeedW = FMath::Max(60.f, (CardW - 20.f) * 0.5f);
 
     return SNew(SBorder)
         .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
@@ -174,18 +178,6 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName)
             SNew(SVerticalBox)
 
             // ── Status strip ──────────────────────────────────────────
-            + SVerticalBox::Slot()
-            .AutoHeight()
-            [
-                SNew(SBorder)
-                .Padding(FMargin(0.f, 4.f))
-                .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
-                .BorderBackgroundColor_Lambda([this, DeviceName]()
-                {
-                    return FSlateColor(CardStatusColor(GetStatus(DeviceName)));
-                })
-            ]
-
             // ── Device header ─────────────────────────────────────────
             + SVerticalBox::Slot()
             .AutoHeight()
@@ -230,9 +222,9 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName)
             [
                 SNew(SHorizontalBox)
                 + SHorizontalBox::Slot().FillWidth(1.f).Padding(0,0,4,0)
-                [ BuildFeed(DeviceName, 0, TEXT("TOP")) ]
+                [ BuildFeed(DeviceName, 0, TEXT("TOP"), FeedW) ]
                 + SHorizontalBox::Slot().FillWidth(1.f)
-                [ BuildFeed(DeviceName, 1, TEXT("BOT")) ]
+                [ BuildFeed(DeviceName, 1, TEXT("BOT"), FeedW) ]
             ]
 
             // ── Vitals bar ────────────────────────────────────────────
@@ -416,7 +408,7 @@ bool SHMCPreviewPanel::FramingRefMissing(const FString& DeviceName) const
     return !Sub->GetFramingRef(DeviceName, 0).bSet && !Sub->GetFramingRef(DeviceName, 1).bSet;
 }
 
-TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FString& DeviceName, int32 CameraIndex, const FString& Label)
+TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FString& DeviceName, int32 CameraIndex, const FString& Label, float FeedW)
 {
     const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
 
@@ -432,7 +424,9 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FString& DeviceName, int32
         const float DH = bSwap ? (float)Snap.FrameWidth  : (float)Snap.FrameHeight;
         if (DH > 0.f) AspectWH = DW / DH;
     }
-    const float FeedH = FMath::Clamp(212.f / FMath::Max(0.2f, AspectWH), 110.f, 380.f);
+    // Height from the feed's actual width and the video aspect → the frame matches the
+    // video so ScaleToFit fills it with no letterbox / blank space.
+    const float FeedH = FMath::Clamp(FeedW / FMath::Max(0.2f, AspectWH), 120.f, 600.f);
 
     // Persistent image: a brush (held in FeedBrushPersist) repointed to the latest
     // stable texture each paint. The texture is reused in place, so this never blinks.
