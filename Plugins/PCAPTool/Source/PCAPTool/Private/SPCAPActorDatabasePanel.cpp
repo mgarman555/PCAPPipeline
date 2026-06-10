@@ -9,7 +9,9 @@
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Input/SSearchBox.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Widgets/SBoxPanel.h"
+#include "PropertyCustomizationHelpers.h"
 #include "Widgets/Views/STableRow.h"
 #include "Styling/AppStyle.h"
 
@@ -246,6 +248,22 @@ TSharedRef<SWidget> SPCAPActorDatabasePanel::BuildFormFor(UActorRosterEntry* Ent
             ];
     };
 
+    // Labelled asset-picker slot (soft object ref).
+    auto AssetSlot = [](const FString& Label, TFunction<FString()> Get, TFunction<void(const FAssetData&)> Set) -> TSharedRef<SWidget>
+    {
+        return SNew(SVerticalBox)
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 2.f)
+            [ SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColLabel)) ]
+            + SVerticalBox::Slot().AutoHeight()
+            [
+                SNew(SObjectPropertyEntryBox)
+                .AllowedClass(UObject::StaticClass())
+                .DisplayThumbnail(false)
+                .ObjectPath_Lambda(Get)
+                .OnObjectChanged_Lambda(Set)
+            ];
+    };
+
     return SNew(SScrollBox)
     + SScrollBox::Slot()
     [
@@ -281,6 +299,23 @@ TSharedRef<SWidget> SPCAPActorDatabasePanel::BuildFormFor(UActorRosterEntry* Ent
         + SVerticalBox::Slot().AutoHeight()
         [ Field(TEXT("Default face — Device ID"), Entry->DefaultFaceStream.DeviceID,
                 [Weak](const FString& V){ if (Weak.IsValid()) Weak->DefaultFaceStream.DeviceID = V; }) ]
+
+        // ── Digital double ──
+        + SVerticalBox::Slot().AutoHeight()
+        [ AssetSlot(TEXT("MetaHuman (driven character)"),
+                    [Weak]() { return Weak.IsValid() ? Weak->MetaHuman.ToString() : FString(); },
+                    [Weak](const FAssetData& AD) { if (Weak.IsValid()) Weak->MetaHuman = TSoftObjectPtr<UObject>(AD.GetSoftObjectPath()); }) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [ AssetSlot(TEXT("Face scan / identity"),
+                    [Weak]() { return Weak.IsValid() ? Weak->FaceScan.ToString() : FString(); },
+                    [Weak](const FAssetData& AD) { if (Weak.IsValid()) Weak->FaceScan = TSoftObjectPtr<UObject>(AD.GetSoftObjectPath()); }) ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)
+        [
+            SNew(SCheckBox)
+            .IsChecked_Lambda([Weak]() { return (Weak.IsValid() && Weak->bUseFaceScanOnMetaHuman) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
+            .OnCheckStateChanged_Lambda([Weak](ECheckBoxState S) { if (Weak.IsValid()) Weak->bUseFaceScanOnMetaHuman = (S == ECheckBoxState::Checked); })
+            [ SNew(STextBlock).Text(LOCTEXT("UseFaceScan", "Use face scan on the MetaHuman")) ]
+        ]
 
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 2.f)
         [ SNew(STextBlock).Text(LOCTEXT("AudioNote", "Audio channels — edit in the full asset")).ColorAndOpacity(FSlateColor(ColLabel)) ]

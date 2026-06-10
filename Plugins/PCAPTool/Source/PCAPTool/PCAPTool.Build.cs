@@ -34,6 +34,7 @@ public class PCAPTool : ModuleRules
             "TakesCore",            // UTakeRecorderSources, UTakeMetaData
             "MovieScene",           // FFrameNumber / movie-scene types used by Take Recorder params
             "AssetRegistry",        // list roster DataAssets (Actor/Prop/Stage databases)
+            "PropertyEditor",       // SObjectPropertyEntryBox — asset-picker slots in DB forms
         });
     }
 }

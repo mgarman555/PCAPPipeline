@@ -32,6 +32,20 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Defaults")
     TArray<FAudioStreamEntry> DefaultAudioStreams;
 
+    // ── Digital double — the assets that turn this performer into a character ──
+
+    // The MetaHuman / character this actor drives (their digital double).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Digital Double")
+    TSoftObjectPtr<UObject> MetaHuman;
+
+    // The actor's face scan / MetaHuman Identity (facial capture).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Digital Double")
+    TSoftObjectPtr<UObject> FaceScan;
+
+    // When set, the face scan is used to drive the MetaHuman's face.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Digital Double")
+    bool bUseFaceScanOnMetaHuman = false;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="History")
     TArray<FString> ProductionHistory;  // ["DA", "TLOU"]
 
