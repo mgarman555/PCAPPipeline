@@ -46,9 +46,10 @@ private:
 
     static UPCAPToolSubsystem* GetSubsystem();
 
-    // Live issue-driven feed border colour / banner text for one camera.
+    // Per-camera issue-driven feed border colour, plus the aggregated red error text
+    // shown in the card's status line (empty when the device has no active issue).
     FLinearColor FeedBorderColor(const FString& DeviceName, int32 CameraIndex) const;
-    FString      FeedBannerText(const FString& DeviceName, int32 CameraIndex) const;
+    FString      DeviceErrorText(const FString& DeviceName) const;
 
     static FLinearColor CardStatusColor(const FHMCDeviceStatus& Status);
     static FLinearColor VoltageColor(float V);

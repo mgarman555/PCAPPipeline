@@ -288,17 +288,20 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName)
             .Padding(12.f, 4.f, 12.f, 10.f)
             [
                 SNew(STextBlock)
+                .AutoWrapText(true)
+                // The error moved out of the camera frame to here: red while any issue is
+                // active (matching the red feed border), muted status message otherwise.
                 .Text_Lambda([this, DeviceName]()
                 {
+                    const FString Err = DeviceErrorText(DeviceName);
+                    if (!Err.IsEmpty())
+                        return FText::FromString(Err);
                     const FHMCDeviceStatus S = GetStatus(DeviceName);
-                    if (S.ConnectionState != EHMCConnectionState::Connected)
-                        return FText::FromString(TEXT("OFFLINE"));
                     return FText::FromString(S.StatusMessage.IsEmpty() ? TEXT("Waiting for data...") : S.StatusMessage);
                 })
                 .ColorAndOpacity_Lambda([this, DeviceName]()
                 {
-                    const bool bOff = GetStatus(DeviceName).ConnectionState != EHMCConnectionState::Connected;
-                    return FSlateColor(bOff ? ColRed : ColMuted);
+                    return FSlateColor(DeviceErrorText(DeviceName).IsEmpty() ? ColMuted : ColRed);
                 })
             ]
         ];
@@ -369,13 +372,37 @@ FLinearColor SHMCPreviewPanel::FeedBorderColor(const FString& DeviceName, int32 
         ? ColGreen : ColRed;
 }
 
-FString SHMCPreviewPanel::FeedBannerText(const FString& DeviceName, int32 CameraIndex) const
+FString SHMCPreviewPanel::DeviceErrorText(const FString& DeviceName) const
 {
+    // Aggregated, human-readable error for the card's status line. Empty => all clear.
+    // Rendered in red (see the status-line lambdas) so it matches the red feed border,
+    // and it persists until the underlying issue clears because it reads live status.
     if (GetStatus(DeviceName).ConnectionState != EHMCConnectionState::Connected)
         return TEXT("OFFLINE");
+
     UPCAPToolSubsystem* Sub = GetSubsystem();
-    const int32 Flags = Sub ? Sub->GetEffectiveIssueFlags(DeviceName, CameraIndex) : 0;
-    return UPCAPToolStatics::GetIssueBannerText(Flags);
+    if (!Sub) return FString();
+
+    // Per-camera issue text, but only when that camera's severity is actually an issue
+    // (GetIssueBannerText is total — it returns "All clear" for 0 flags — so gate on severity).
+    auto CamErr = [Sub, &DeviceName](int32 Cam) -> FString
+    {
+        const int32 Flags = Sub->GetEffectiveIssueFlags(DeviceName, Cam);
+        return UPCAPToolStatics::GetIssueSeverity(Flags) == EHMCIssueSeverity::None
+            ? FString()
+            : UPCAPToolStatics::GetIssueBannerText(Flags);
+    };
+
+    const FString Top = CamErr(0);
+    const FString Bot = CamErr(1);
+    FString Out;
+    if (!Top.IsEmpty()) Out = FString::Printf(TEXT("TOP: %s"), *Top);
+    if (!Bot.IsEmpty())
+    {
+        if (!Out.IsEmpty()) Out += TEXT("     ");
+        Out += FString::Printf(TEXT("BOT: %s"), *Bot);
+    }
+    return Out;
 }
 
 TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FString& DeviceName, int32 CameraIndex, const FString& Label)
@@ -458,27 +485,8 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FString& DeviceName, int32
                         })
                     ]
 
-                    // Issue banner across the top (live)
-                    + SOverlay::Slot()
-                    .VAlign(VAlign_Top)
-                    [
-                        SNew(SBorder)
-                        .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
-                        .Padding(FMargin(4.f, 2.f))
-                        .BorderBackgroundColor_Lambda([this, DeviceName, CameraIndex]()
-                        {
-                            const FLinearColor C = FeedBorderColor(DeviceName, CameraIndex);
-                            return FSlateColor(FLinearColor(C.R, C.G, C.B, 0.65f));
-                        })
-                        [
-                            SNew(STextBlock)
-                            .ColorAndOpacity(FSlateColor(ColWhite))
-                            .Text_Lambda([this, DeviceName, CameraIndex]()
-                            {
-                                return FText::FromString(FeedBannerText(DeviceName, CameraIndex));
-                            })
-                        ]
-                    ]
+                    // (Issue banner removed — error text now lives in the card's status
+                    //  line below the vitals, in red, matching this feed's red border.)
 
                     // View label, bottom-right (static)
                     + SOverlay::Slot()
