@@ -41,33 +41,7 @@ void SHMCPreviewPanel::Construct(const FArguments& InArgs)
                 .Text(FText::FromString(TEXT("HMC PREVIEW")))
                 .ColorAndOpacity(FSlateColor(ColMuted))
             ]
-
-            // Legend
-            + SHorizontalBox::Slot()
-            .AutoWidth()
-            .VAlign(VAlign_Center)
-            .Padding(8.f, 0.f)
-            [
-                SNew(SHorizontalBox)
-                + SHorizontalBox::Slot().AutoWidth().Padding(0,0,4,0)
-                [
-                    SNew(SBorder)
-                    .Padding(FMargin(10.f, 10.f))
-                    .BorderBackgroundColor(FLinearColor(0.137f, 0.467f, 0.220f))
-                    .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
-                ]
-                + SHorizontalBox::Slot().AutoWidth().Padding(0,0,12,0)
-                [ SNew(STextBlock).Text(FText::FromString(TEXT("Clear"))).ColorAndOpacity(FSlateColor(ColMuted)) ]
-                + SHorizontalBox::Slot().AutoWidth().Padding(0,0,4,0)
-                [
-                    SNew(SBorder)
-                    .Padding(FMargin(10.f, 10.f))
-                    .BorderBackgroundColor(FLinearColor(0.800f, 0.133f, 0.133f))
-                    .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
-                ]
-                + SHorizontalBox::Slot().AutoWidth().Padding(0,0,12,0)
-                [ SNew(STextBlock).Text(FText::FromString(TEXT("Issue / Disconnected"))).ColorAndOpacity(FSlateColor(ColMuted)) ]
-            ]
+            // Legend removed — the green/red feed bar is self-explanatory.
         ]
 
         // ── Cards ─────────────────────────────────────────────────────────
@@ -148,6 +122,17 @@ void SHMCPreviewPanel::RefreshCards()
         return;
     }
 
+    // Card width scales with headcount so the grid densifies as the stage fills up:
+    // a couple of HMCs get large, detailed cards; a full shoot gets a compact grid
+    // that fits everyone with minimal scrolling. SWrapBox still wraps to the panel
+    // width, so narrower cards simply mean more columns per row.
+    const int32 DeviceCount = Names.Num();
+    const float CardW =
+        DeviceCount >= 9 ? 300.f :   // full stage → dense grid
+        DeviceCount >= 5 ? 350.f :
+        DeviceCount >= 3 ? 400.f :
+                           440.f;    // 1–2 performers → large cards
+
     TSharedRef<SWrapBox> WrapBox = SNew(SWrapBox)
         .UseAllottedSize(true)
         .InnerSlotPadding(FVector2D(8.f, 8.f));
@@ -158,7 +143,7 @@ void SHMCPreviewPanel::RefreshCards()
         .ForceNewLine(false)
         [
             SNew(SBox)
-            .WidthOverride(440.f)
+            .WidthOverride(CardW)
             [
                 BuildDeviceCard(Name)
             ]
@@ -373,16 +358,15 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildVitalBar(const FString& DeviceName)
 
 FLinearColor SHMCPreviewPanel::FeedBorderColor(const FString& DeviceName, int32 CameraIndex) const
 {
+    // Binary by design: GREEN = good to shoot, RED = look here (any issue, amber
+    // severity included, or disconnected). No amber/grey bar — the bar is meant to
+    // read at a glance with no legend.
     if (GetStatus(DeviceName).ConnectionState != EHMCConnectionState::Connected)
-        return ColGray;
+        return ColRed;
     UPCAPToolSubsystem* Sub = GetSubsystem();
     const int32 Flags = Sub ? Sub->GetEffectiveIssueFlags(DeviceName, CameraIndex) : 0;
-    switch (UPCAPToolStatics::GetIssueSeverity(Flags))
-    {
-        case EHMCIssueSeverity::Red:   return ColRed;
-        case EHMCIssueSeverity::Amber: return ColYellow;
-        default:                       return ColGreen;
-    }
+    return UPCAPToolStatics::GetIssueSeverity(Flags) == EHMCIssueSeverity::None
+        ? ColGreen : ColRed;
 }
 
 FString SHMCPreviewPanel::FeedBannerText(const FString& DeviceName, int32 CameraIndex) const
