@@ -9,6 +9,8 @@ class STableViewBase;
 class ITableRow;
 class SBox;
 class SSearchBox;
+class FAssetThumbnail;
+class FAssetThumbnailPool;
 
 /**
  * Actor Database — the permanent talent library (Tool 1 of the operator suite).
@@ -34,6 +36,8 @@ private:
 
     TSharedPtr<SListView<TWeakObjectPtr<UActorRosterEntry>>> ListView;
     TSharedPtr<SBox> FormContainer;
+    TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
+    TSharedPtr<FAssetThumbnail> CurrentThumbnail;   // headshot ?? MetaHuman ?? face scan
 
     // ── Data ────────────────────────────────────────────────────────────────
     void ReloadActors();                 // pull all UActorRosterEntry via the asset registry

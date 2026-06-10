@@ -22,6 +22,7 @@
 #include "UObject/Package.h"
 #include "Editor.h"
 #include "Subsystems/AssetEditorSubsystem.h"
+#include "AssetThumbnail.h"
 
 #define LOCTEXT_NAMESPACE "PCAPActorDatabase"
 
@@ -32,6 +33,8 @@ namespace
 
 void SPCAPActorDatabasePanel::Construct(const FArguments& InArgs)
 {
+    ThumbnailPool = MakeShared<FAssetThumbnailPool>(24);
+
     ChildSlot
     [
         SNew(SBorder)
@@ -264,17 +267,38 @@ TSharedRef<SWidget> SPCAPActorDatabasePanel::BuildFormFor(UActorRosterEntry* Ent
             ];
     };
 
+    // Visual preview — headshot first, else the assigned digital double.
+    UObject* PreviewAsset = Entry->Headshot.LoadSynchronous();
+    if (!PreviewAsset) PreviewAsset = Entry->MetaHuman.LoadSynchronous();
+    if (!PreviewAsset) PreviewAsset = Entry->FaceScan.LoadSynchronous();
+
+    TSharedRef<SWidget> ThumbWidget =
+        SNew(SBox).WidthOverride(96.f).HeightOverride(96.f)
+        [ SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).HAlign(HAlign_Center).VAlign(VAlign_Center)
+          [ SNew(STextBlock).Text(LOCTEXT("NoImg", "no image")).ColorAndOpacity(FSlateColor(ColLabel)) ] ];
+    if (PreviewAsset && ThumbnailPool.IsValid())
+    {
+        CurrentThumbnail = MakeShared<FAssetThumbnail>(PreviewAsset, 96, 96, ThumbnailPool);
+        ThumbWidget = SNew(SBox).WidthOverride(96.f).HeightOverride(96.f)[ CurrentThumbnail->MakeThumbnailWidget() ];
+    }
+
     return SNew(SScrollBox)
     + SScrollBox::Slot()
     [
         SNew(SVerticalBox)
 
-        // ActorID — locked
-        + SVerticalBox::Slot().AutoHeight()
+        // Headshot / digital-double preview + ActorID (locked)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)
         [
-            SNew(STextBlock)
-            .Text(FText::FromString(FString::Printf(TEXT("%s   (id locked)"), *Entry->ActorID)))
-            .ColorAndOpacity(FSlateColor(ColGreen))
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 12.f, 0.f)
+            [ ThumbWidget ]
+            + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+            [
+                SNew(STextBlock)
+                .Text(FText::FromString(FString::Printf(TEXT("%s   (id locked)"), *Entry->ActorID)))
+                .ColorAndOpacity(FSlateColor(ColGreen))
+            ]
         ]
 
         + SVerticalBox::Slot().AutoHeight()
@@ -316,6 +340,10 @@ TSharedRef<SWidget> SPCAPActorDatabasePanel::BuildFormFor(UActorRosterEntry* Ent
             .OnCheckStateChanged_Lambda([Weak](ECheckBoxState S) { if (Weak.IsValid()) Weak->bUseFaceScanOnMetaHuman = (S == ECheckBoxState::Checked); })
             [ SNew(STextBlock).Text(LOCTEXT("UseFaceScan", "Use face scan on the MetaHuman")) ]
         ]
+        + SVerticalBox::Slot().AutoHeight()
+        [ AssetSlot(TEXT("Headshot (optional — overrides the preview)"),
+                    [Weak]() { return Weak.IsValid() ? Weak->Headshot.ToString() : FString(); },
+                    [this, Weak](const FAssetData& AD) { if (Weak.IsValid()) { Weak->Headshot = TSoftObjectPtr<UTexture2D>(AD.GetSoftObjectPath()); RebuildForm(); } }) ]
 
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 2.f)
         [ SNew(STextBlock).Text(LOCTEXT("AudioNote", "Audio channels — edit in the full asset")).ColorAndOpacity(FSlateColor(ColLabel)) ]
