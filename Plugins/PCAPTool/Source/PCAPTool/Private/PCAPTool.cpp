@@ -3,6 +3,7 @@
 #include "SPCAPDatabasePanel.h"
 #include "SPCAPActorDatabasePanel.h"
 #include "SPCAPPropDatabasePanel.h"
+#include "SPCAPStageDatabasePanel.h"
 #include "Modules/ModuleManager.h"
 #include "Framework/Docking/TabManager.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -17,6 +18,7 @@ const FName FPCAPToolModule::HMCTabName      = TEXT("PCAPTool_HMCMonitor");
 const FName FPCAPToolModule::DatabaseTabName = TEXT("PCAPTool_Database");
 const FName FPCAPToolModule::ActorDBTabName  = TEXT("PCAPTool_ActorDB");
 const FName FPCAPToolModule::PropDBTabName   = TEXT("PCAPTool_PropDB");
+const FName FPCAPToolModule::StageDBTabName  = TEXT("PCAPTool_StageDB");
 
 void FPCAPToolModule::StartupModule()
 {
@@ -47,6 +49,13 @@ void FPCAPToolModule::StartupModule()
         .SetDisplayName(LOCTEXT("PropDBTabTitle", "Prop Database"))
         .SetTooltipText(LOCTEXT("PropDBTabTooltip", "PCAP Tool — the prop library (with mesh previews)"))
         .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+
+    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
+        StageDBTabName,
+        FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnStageDBTab))
+        .SetDisplayName(LOCTEXT("StageDBTabTitle", "Stage Database"))
+        .SetTooltipText(LOCTEXT("StageDBTabTooltip", "PCAP Tool — stages (location + what to record)"))
+        .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
 }
 
 void FPCAPToolModule::ShutdownModule()
@@ -55,6 +64,7 @@ void FPCAPToolModule::ShutdownModule()
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(DatabaseTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ActorDBTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(PropDBTabName);
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(StageDBTabName);
 }
 
 TSharedRef<SDockTab> FPCAPToolModule::SpawnHMCTab(const FSpawnTabArgs& Args)
@@ -90,6 +100,15 @@ TSharedRef<SDockTab> FPCAPToolModule::SpawnPropDBTab(const FSpawnTabArgs& Args)
         .TabRole(ETabRole::NomadTab)
         [
             SNew(SPCAPPropDatabasePanel)
+        ];
+}
+
+TSharedRef<SDockTab> FPCAPToolModule::SpawnStageDBTab(const FSpawnTabArgs& Args)
+{
+    return SNew(SDockTab)
+        .TabRole(ETabRole::NomadTab)
+        [
+            SNew(SPCAPStageDatabasePanel)
         ];
 }
 
