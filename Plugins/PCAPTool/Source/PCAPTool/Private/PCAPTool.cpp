@@ -5,6 +5,7 @@
 #include "SPCAPPropDatabasePanel.h"
 #include "SPCAPStageDatabasePanel.h"
 #include "SPCAPOperatorConsole.h"
+#include "SPCAPCallSheetPanel.h"
 #include "Modules/ModuleManager.h"
 #include "Framework/Docking/TabManager.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -21,6 +22,7 @@ const FName FPCAPToolModule::ActorDBTabName  = TEXT("PCAPTool_ActorDB");
 const FName FPCAPToolModule::PropDBTabName   = TEXT("PCAPTool_PropDB");
 const FName FPCAPToolModule::StageDBTabName  = TEXT("PCAPTool_StageDB");
 const FName FPCAPToolModule::ConsoleTabName  = TEXT("PCAPTool_Console");
+const FName FPCAPToolModule::CallSheetTabName = TEXT("PCAPTool_CallSheet");
 
 void FPCAPToolModule::StartupModule()
 {
@@ -65,6 +67,13 @@ void FPCAPToolModule::StartupModule()
         .SetDisplayName(LOCTEXT("ConsoleTabTitle", "Operator Console"))
         .SetTooltipText(LOCTEXT("ConsoleTabTooltip", "PCAP Tool — navigate shots + run takes (solo operator)"))
         .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+
+    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
+        CallSheetTabName,
+        FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnCallSheetTab))
+        .SetDisplayName(LOCTEXT("CallSheetTabTitle", "Call Sheet"))
+        .SetTooltipText(LOCTEXT("CallSheetTabTooltip", "PCAP Tool — shoot-day prep (project, stage, day, actors, props)"))
+        .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
 }
 
 void FPCAPToolModule::ShutdownModule()
@@ -75,6 +84,7 @@ void FPCAPToolModule::ShutdownModule()
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(PropDBTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(StageDBTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ConsoleTabName);
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(CallSheetTabName);
 }
 
 TSharedRef<SDockTab> FPCAPToolModule::SpawnHMCTab(const FSpawnTabArgs& Args)
@@ -128,6 +138,15 @@ TSharedRef<SDockTab> FPCAPToolModule::SpawnConsoleTab(const FSpawnTabArgs& Args)
         .TabRole(ETabRole::NomadTab)
         [
             SNew(SPCAPOperatorConsole)
+        ];
+}
+
+TSharedRef<SDockTab> FPCAPToolModule::SpawnCallSheetTab(const FSpawnTabArgs& Args)
+{
+    return SNew(SDockTab)
+        .TabRole(ETabRole::NomadTab)
+        [
+            SNew(SPCAPCallSheetPanel)
         ];
 }
 

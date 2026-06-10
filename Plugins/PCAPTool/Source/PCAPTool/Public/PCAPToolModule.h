@@ -13,6 +13,7 @@ public:
     static const FName PropDBTabName;
     static const FName StageDBTabName;
     static const FName ConsoleTabName;
+    static const FName CallSheetTabName;
 
     virtual void StartupModule() override;
     virtual void ShutdownModule() override;
@@ -24,5 +25,6 @@ private:
     TSharedRef<SDockTab> SpawnPropDBTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnStageDBTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnConsoleTab(const FSpawnTabArgs& Args);
+    TSharedRef<SDockTab> SpawnCallSheetTab(const FSpawnTabArgs& Args);
     void RegisterMenus();
 };
