@@ -222,7 +222,8 @@ enum class EHMCFeedState : uint8
 UENUM(BlueprintType)
 enum class ECapturePipeline : uint8
 {
-    MetaHumanHMC UMETA(DisplayName = "MetaHuman HMC")
+    MetaHumanHMC UMETA(DisplayName = "MetaHuman HMC"),
+    FaceWareHMC  UMETA(DisplayName = "Faceware HMC")   // checks TBD — uses MetaHuman profile for now
     // Future: ViconBody, OptiTrackBody, ... -- each a new check bundle.
 };
 
@@ -271,6 +272,11 @@ struct PCAPTOOL_API FHMCDeviceConfig
     FHMCFramingRef FramingRef0;   // Top
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FHMCFramingRef FramingRef1;   // Bottom
+
+    // Marked ready by the "Prepped for Preview" action. Only prepped devices appear
+    // in HMC Preview. Persisted.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool bPreppedForPreview = false;
 };
 
 // ---------------------------------------------------------------------------

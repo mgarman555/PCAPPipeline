@@ -422,7 +422,7 @@ FReply SHMCSetupPanel::OnPreppedClicked()
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
     {
         Sub->ConnectAll();
-        Sub->SaveConfig();
+        Sub->MarkAllPreppedForPreview();   // these devices now appear in HMC Preview
     }
     return FReply::Handled();
 }

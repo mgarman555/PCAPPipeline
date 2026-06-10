@@ -157,6 +157,19 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     FHMCImageMetrics GetImageMetrics(const FString& DeviceName, int32 CameraIndex) const;
 
+    // ─── Prepped for Preview ────────────────────────────────────────────────────
+    // Only prepped devices appear in HMC Preview. Set by the "Prepped for Preview"
+    // action in Setup; persisted on the device config.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    bool IsPreppedForPreview(const FString& DeviceName) const;
+
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void SetPreppedForPreview(const FString& DeviceName, bool bPrepped);
+
+    // Marks every registered device prepped (the bottom "Prepped for Preview" button).
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void MarkAllPreppedForPreview();
+
     // ─── Persistence ──────────────────────────────────────────────────────────
 
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")

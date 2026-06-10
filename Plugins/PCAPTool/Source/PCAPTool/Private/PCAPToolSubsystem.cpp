@@ -734,6 +734,7 @@ void UPCAPToolSubsystem::SaveConfig() const
         Obj->SetStringField(TEXT("actorID"),         C.ActorID);
         Obj->SetStringField(TEXT("webSocketEndpoint"), C.WebSocketEndpoint);
         Obj->SetNumberField(TEXT("pipeline"), (double)(uint8)C.Pipeline);
+        Obj->SetBoolField(TEXT("preppedForPreview"), C.bPreppedForPreview);
 
         auto WriteRef = [](const FHMCFramingRef& R) -> TSharedPtr<FJsonObject>
         {
@@ -787,6 +788,7 @@ void UPCAPToolSubsystem::LoadConfig()
         int32 Pipe = 0;
         if (Obj->TryGetNumberField(TEXT("pipeline"), Pipe))
             Config.Pipeline = (ECapturePipeline)(uint8)Pipe;
+        Obj->TryGetBoolField(TEXT("preppedForPreview"), Config.bPreppedForPreview);
 
         auto ReadRef = [](const TSharedPtr<FJsonObject>& Parent, const TCHAR* Key, FHMCFramingRef& R)
         {
@@ -870,6 +872,28 @@ FHMCImageMetrics UPCAPToolSubsystem::GetImageMetrics(const FString& DeviceName, 
     const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
     const FHMCImageMetrics* M = ImageMetrics.Find(CamKey);
     return M ? *M : FHMCImageMetrics();
+}
+
+bool UPCAPToolSubsystem::IsPreppedForPreview(const FString& DeviceName) const
+{
+    const FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
+    return C && C->bPreppedForPreview;
+}
+
+void UPCAPToolSubsystem::SetPreppedForPreview(const FString& DeviceName, bool bPrepped)
+{
+    if (FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName))
+    {
+        C->bPreppedForPreview = bPrepped;
+        SaveConfig();
+    }
+}
+
+void UPCAPToolSubsystem::MarkAllPreppedForPreview()
+{
+    for (auto& Pair : RegisteredConfigs)
+        Pair.Value.bPreppedForPreview = true;
+    SaveConfig();
 }
 
 int32 UPCAPToolSubsystem::UpdateAutoFlagHysteresis(const FString& CamKey, int32 RawFlags)
