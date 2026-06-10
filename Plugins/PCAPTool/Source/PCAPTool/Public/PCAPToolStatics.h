@@ -64,4 +64,20 @@ public:
     // detection — IR head-cams light the face brightly when it's in the box.
     // Not BlueprintCallable (raw pixel buffer); called from the monitor classes.
     static bool FrameHasSubject(const TArray<uint8>& BGRA, int32 Width, int32 Height);
+
+    // ── Automatic image analysis (Capture Monitor) ──────────────────────────
+    // Per-frame metrics from a decoded BGRA buffer: focus (variance-of-Laplacian),
+    // luma stats (mean / blown / crushed), regional luma spread, and a coarse
+    // brightness-weighted subject centroid/size. Pure; runs on a downsampled grid.
+    static FHMCImageMetrics AnalyzeFrameBGRA(const TArray<uint8>& BGRA, int32 Width, int32 Height);
+
+    // Active-pipeline check bundle (active checks + thresholds + framing target).
+    static FPipelineCheckProfile GetPipelineProfile(ECapturePipeline Pipeline);
+
+    // Maps one frame's metrics to auto EHMCIssueFlag bits, honoring the pipeline's
+    // active checks/thresholds and the captured framing reference (framing drift is
+    // only evaluated when Ref.bSet). Pure — hysteresis is applied by the caller.
+    static int32 MapMetricsToAutoFlags(const FHMCImageMetrics& Metrics,
+                                       const FPipelineCheckProfile& Profile,
+                                       const FHMCFramingRef& Ref);
 };

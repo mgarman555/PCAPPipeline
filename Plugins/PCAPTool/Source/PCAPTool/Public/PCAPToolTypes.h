@@ -215,6 +215,29 @@ enum class EHMCFeedState : uint8
     Disconnected UMETA(DisplayName = "Disconnected")
 };
 
+// Capture pipeline a device's monitor checks run for. Set per device during
+// shoot-day setup (an HMC assigned to an actor -> the asset they're shooting).
+// Each pipeline defines its own active checks + thresholds + framing target
+// (see UPCAPToolStatics::GetPipelineProfile).
+UENUM(BlueprintType)
+enum class ECapturePipeline : uint8
+{
+    MetaHumanHMC UMETA(DisplayName = "MetaHuman HMC")
+    // Future: ViconBody, OptiTrackBody, ... -- each a new check bundle.
+};
+
+// Per-camera framing reference captured at setup: where the actor's face should
+// be. The monitor flags live drift from this. Normalized 0..1 frame coords.
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FHMCFramingRef
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bSet = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FVector2D Center = FVector2D(0.5, 0.5);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) float Size = 0.f;   // subject extent, frame fraction
+};
+
 // ---------------------------------------------------------------------------
 // HMC Device Config — registration data (persisted to HMCConfig.json)
 // ---------------------------------------------------------------------------
@@ -238,6 +261,16 @@ struct PCAPTOOL_API FHMCDeviceConfig
     // migration). Leave empty when registering devices. Do not remove this field.
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString WebSocketEndpoint;
+
+    // Capture pipeline this device's monitor checks run for (default MetaHuman HMC).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    ECapturePipeline Pipeline = ECapturePipeline::MetaHumanHMC;
+
+    // Per-camera "where the face should be" reference, captured at setup.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FHMCFramingRef FramingRef0;   // Top
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FHMCFramingRef FramingRef1;   // Bottom
 };
 
 // ---------------------------------------------------------------------------
@@ -338,7 +371,14 @@ enum EHMCIssueFlag : int32
     HMC_Issue_NoFace        = 1 << 9,   // no subject in frame — derived from the
                                         // video pixels, NOT control.json (red)
 
-    // Operator-reported (manual) — device cannot detect these. Setup-mode toggles.
+    // Auto image-analysis flags — derived from the decoded frame, per camera
+    // (see UPCAPToolStatics::AnalyzeFrameBGRA / MapMetricsToAutoFlags).
+    HMC_Issue_OutOfFocus    = 1 << 10,  // variance-of-Laplacian below pipeline floor (red)
+    HMC_Issue_UnevenLight   = 1 << 11,  // half/quadrant luma spread too high (amber)
+    HMC_Issue_FramingDrift  = 1 << 12,  // subject drifted from the captured reference (red)
+
+    // Operator-reported (manual) bits — RETIRED (no UI; superseded by the automatic
+    // framing check above). Kept for save-format / bit-stability compatibility only.
     HMC_Manual_FaceOffAxis  = 1 << 16,
     HMC_Manual_HeadsetShift = 1 << 17,
     HMC_Manual_OutOfFocus   = 1 << 18,
@@ -365,6 +405,47 @@ enum class EHMCManualIssue : uint8
     OutOfFocus   UMETA(DisplayName = "Out of focus"),
     LipSeal      UMETA(DisplayName = "Lip seal not visible"),
     Eyelid       UMETA(DisplayName = "Eyelid not visible")
+};
+
+// Per-pipeline check bundle: which checks are active + their thresholds + the
+// framing target. Returned by UPCAPToolStatics::GetPipelineProfile(ECapturePipeline).
+// Plain struct (engine-internal; not Blueprint-exposed).
+struct FPipelineCheckProfile
+{
+    bool  bCheckSubject   = true;
+    bool  bCheckFraming   = true;
+    bool  bCheckFocus     = true;
+    bool  bCheckExposure  = true;
+    bool  bCheckLighting  = true;
+
+    float FocusMin        = 0.0f;          // var-of-Laplacian floor; 0 = off until tuned on rig
+    float BlownFracMax    = 0.05f;         // blown fraction above this -> overexposed
+    float MeanLumaMin     = 40.f / 255.f;  // mean luma (0..1) below this -> underexposed
+    float RegionSpreadMax = 0.25f;         // (max-min)/mean above this -> uneven lighting
+
+    FVector2D FramingTargetCenter = FVector2D(0.5, 0.5);  // pipeline-ideal center
+    float FramingSizeMin   = 0.45f;        // acceptable subject size, frame fraction
+    float FramingSizeMax   = 0.85f;
+    float FramingCenterTol = 0.10f;        // captured ref must land within this of target
+    float FramingDriftTol  = 0.08f;        // live subject may drift this far from the ref
+};
+
+// Output of one frame's image analysis (per camera). Stored per "Device_Cam" in
+// the subsystem; the Setup read-outs and MapMetricsToAutoFlags consume it.
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FHMCImageMetrics
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly) bool  bValid       = false;  // false until first analysis
+    UPROPERTY(BlueprintReadOnly) bool  bHasSubject  = false;
+    UPROPERTY(BlueprintReadOnly) float FocusScore   = 0.f;    // normalized var-of-Laplacian
+    UPROPERTY(BlueprintReadOnly) float MeanLuma     = 0.f;    // 0..1
+    UPROPERTY(BlueprintReadOnly) float BlownFrac    = 0.f;    // 0..1 (pixels >= 250)
+    UPROPERTY(BlueprintReadOnly) float CrushedFrac  = 0.f;    // 0..1 (pixels <= 5)
+    UPROPERTY(BlueprintReadOnly) float RegionSpread = 0.f;    // (max-min)/mean across regions
+    UPROPERTY(BlueprintReadOnly) FVector2D SubjectCenter = FVector2D(0.5, 0.5);  // normalized
+    UPROPERTY(BlueprintReadOnly) float SubjectSize  = 0.f;    // normalized extent
 };
 
 // ---------------------------------------------------------------------------
