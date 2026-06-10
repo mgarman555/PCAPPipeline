@@ -33,6 +33,7 @@ public class PCAPTool : ModuleRules
             "TakeRecorder",         // UTakeRecorderBlueprintLibrary, FTakeRecorderParameters, UTakeRecorderSubsystem
             "TakesCore",            // UTakeRecorderSources, UTakeMetaData
             "MovieScene",           // FFrameNumber / movie-scene types used by Take Recorder params
+            "AssetRegistry",        // list roster DataAssets (Actor/Prop/Stage databases)
         });
     }
 }
