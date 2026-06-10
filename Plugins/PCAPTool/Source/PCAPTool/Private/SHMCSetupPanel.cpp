@@ -569,6 +569,28 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildSetupFeed(int32 CameraIndex, const FStr
                             ]
                         ]
 
+                        // Framing target guide — faint crosshair at the pipeline target
+                        // centre (0.5,0.5 for MetaHuman HMC). Align the face to it, then
+                        // hit "Set reference". HitTestInvisible so it never blocks input.
+                        + SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Fill)
+                        [
+                            SNew(SBox).WidthOverride(2.f).Visibility(EVisibility::HitTestInvisible)
+                            [
+                                SNew(SBorder)
+                                .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                                .BorderBackgroundColor(FLinearColor(1.f, 1.f, 1.f, 0.22f))
+                            ]
+                        ]
+                        + SOverlay::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center)
+                        [
+                            SNew(SBox).HeightOverride(2.f).Visibility(EVisibility::HitTestInvisible)
+                            [
+                                SNew(SBorder)
+                                .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                                .BorderBackgroundColor(FLinearColor(1.f, 1.f, 1.f, 0.22f))
+                            ]
+                        ]
+
                         // Issue banner across the top
                         + SOverlay::Slot().VAlign(VAlign_Top)
                         [
