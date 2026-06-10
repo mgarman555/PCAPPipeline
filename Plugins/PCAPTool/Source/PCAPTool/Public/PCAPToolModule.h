@@ -10,6 +10,7 @@ public:
     static const FName HMCTabName;
     static const FName DatabaseTabName;
     static const FName ActorDBTabName;
+    static const FName PropDBTabName;
 
     virtual void StartupModule() override;
     virtual void ShutdownModule() override;
@@ -18,5 +19,6 @@ private:
     TSharedRef<SDockTab> SpawnHMCTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnDatabaseTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnActorDBTab(const FSpawnTabArgs& Args);
+    TSharedRef<SDockTab> SpawnPropDBTab(const FSpawnTabArgs& Args);
     void RegisterMenus();
 };

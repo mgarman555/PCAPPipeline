@@ -46,6 +46,11 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Digital Double")
     bool bUseFaceScanOnMetaHuman = false;
 
+    // Optional headshot (photo / render) for visual verification in the Actor Database.
+    // When unset, the UI falls back to the MetaHuman / FaceScan thumbnail.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Digital Double")
+    TSoftObjectPtr<UTexture2D> Headshot;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="History")
     TArray<FString> ProductionHistory;  // ["DA", "TLOU"]
 

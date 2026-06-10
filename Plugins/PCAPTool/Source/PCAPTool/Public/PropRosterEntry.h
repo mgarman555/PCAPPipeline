@@ -18,6 +18,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString DisplayName;   // "Lightsaber Hilt A"
 
+    // The prop's mesh / asset — shown as a thumbnail in the Prop Database to verify it's correct.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TSoftObjectPtr<UObject> PropAsset;
+
+    // Tracking is a per-shot decision (FPropEntry), not a roster property — kept here only
+    // for back-compat; the Prop Database UI does not surface it.
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool bIsTracked = false;
 
