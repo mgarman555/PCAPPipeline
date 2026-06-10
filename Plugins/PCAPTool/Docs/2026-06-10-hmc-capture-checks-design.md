@@ -1,6 +1,6 @@
 # Capture Monitor — Pipeline-Aware Automatic Camera Checks (Design Spec)
 
-**Date:** 2026-06-10 · **Status:** Approved scope, pending spec review · **Component:** `Plugins/PCAPTool`
+**Date:** 2026-06-10 · **Status:** Implemented (main `c8af444..ebbab39`) — thresholds pending rig tuning · **Component:** `Plugins/PCAPTool`
 
 ## Goal
 
@@ -35,7 +35,7 @@ FPipelineCheckProfile {
 GetPipelineProfile(ECapturePipeline) -> FPipelineCheckProfile   // constants for now
 ```
 
-Active pipeline is a persisted tool-level setting on the subsystem (default `MetaHumanHMC`). *(Open for spec review: tool-level vs. per-device. Tool-level is proposed — one shoot runs one pipeline.)*
+Active pipeline is **per-device** (resolved with Madi): set in Setup during shoot-day setup and persisted on `FHMCDeviceConfig.Pipeline` (default `MetaHumanHMC`). Conceptually it is the pipeline of the asset that device's actor is shooting; per-device generalizes cleanly when one stage mixes pipelines.
 
 ## Setup reference (hybrid: pipeline target + capture-current)
 
@@ -95,7 +95,7 @@ Bar is binary (`None`→green, else→red); `DeviceErrorText` shows red whenever
 
 ## UI
 
-- **Pipeline selector** — a tool-level dropdown (header/settings) → sets `ActivePipeline`. Default MetaHuman HMC.
+- **Pipeline selector** — a per-device dropdown in the Setup detail pane → `SetDevicePipeline`. Default MetaHuman HMC.
 - **Setup detail pane** — per device: the pipeline **framing-target guide overlay** on each feed, a **Set reference** button (with state: not set / set / current-framing-out-of-tolerance warning), and live read-outs of the auto checks (focus/exposure/lighting/framing) for diagnosis. *No checklist, no manual toggles.*
 - **Preview** — bar + red status line already reflect `GetEffectiveIssueFlags` (auto flags flow through). Add a subtle *"framing reference not set"* hint when a connected device has no reference yet (framing check inactive until then).
 
