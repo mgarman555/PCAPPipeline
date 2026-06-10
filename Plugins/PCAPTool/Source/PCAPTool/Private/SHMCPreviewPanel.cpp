@@ -296,6 +296,8 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName)
                     const FString Err = DeviceErrorText(DeviceName);
                     if (!Err.IsEmpty())
                         return FText::FromString(Err);
+                    if (FramingRefMissing(DeviceName))
+                        return FText::FromString(TEXT("Framing reference not set — set it in Setup"));
                     const FHMCDeviceStatus S = GetStatus(DeviceName);
                     return FText::FromString(S.StatusMessage.IsEmpty() ? TEXT("Waiting for data...") : S.StatusMessage);
                 })
@@ -403,6 +405,15 @@ FString SHMCPreviewPanel::DeviceErrorText(const FString& DeviceName) const
         Out += FString::Printf(TEXT("BOT: %s"), *Bot);
     }
     return Out;
+}
+
+bool SHMCPreviewPanel::FramingRefMissing(const FString& DeviceName) const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (!Sub) return false;
+    if (GetStatus(DeviceName).ConnectionState != EHMCConnectionState::Connected) return false;
+    // Inactive only while NEITHER camera has a reference — once one is set, drift is checked.
+    return !Sub->GetFramingRef(DeviceName, 0).bSet && !Sub->GetFramingRef(DeviceName, 1).bSet;
 }
 
 TSharedRef<SWidget> SHMCPreviewPanel::BuildFeed(const FString& DeviceName, int32 CameraIndex, const FString& Label)

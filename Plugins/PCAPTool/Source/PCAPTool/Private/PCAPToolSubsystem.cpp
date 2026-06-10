@@ -584,8 +584,15 @@ void UPCAPToolSubsystem::LogFrameRate(const FString& Key, double DecodeMs, int32
     {
         const double Elapsed = Now - WindowStart;
         const double Fps = Elapsed > 0.0 ? Count / Elapsed : 0.0;
-        UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s: %.1f fps | avg decode %.1f ms | %d KB/frame"),
-            *Key, Fps, DecodeAccum / FMath::Max(1, Count), FrameBytes / 1024);
+        // Append the latest auto-analysis metrics so thresholds can be tuned from the
+        // Output Log against the real feed (focus has no default threshold until tuned).
+        const FHMCImageMetrics* M = ImageMetrics.Find(Key);
+        UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s: %.1f fps | avg decode %.1f ms | %d KB/frame%s"),
+            *Key, Fps, DecodeAccum / FMath::Max(1, Count), FrameBytes / 1024,
+            (M && M->bValid)
+                ? *FString::Printf(TEXT(" | focus %.3f luma %.2f blown %.0f%% spread %.2f size %.2f"),
+                      M->FocusScore, M->MeanLuma, M->BlownFrac * 100.f, M->RegionSpread, M->SubjectSize)
+                : TEXT(""));
         Count = 0;
         DecodeAccum = 0.0;
     }

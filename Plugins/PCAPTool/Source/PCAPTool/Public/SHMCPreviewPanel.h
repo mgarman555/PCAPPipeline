@@ -50,6 +50,9 @@ private:
     // shown in the card's status line (empty when the device has no active issue).
     FLinearColor FeedBorderColor(const FString& DeviceName, int32 CameraIndex) const;
     FString      DeviceErrorText(const FString& DeviceName) const;
+    // True when a connected device has no framing reference on either camera yet —
+    // the automatic framing-drift check stays inactive until one is set in Setup.
+    bool         FramingRefMissing(const FString& DeviceName) const;
 
     static FLinearColor CardStatusColor(const FHMCDeviceStatus& Status);
     static FLinearColor VoltageColor(float V);
