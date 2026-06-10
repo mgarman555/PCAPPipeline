@@ -130,6 +130,33 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     UTexture2D* GetLastFrame(const FString& DeviceName, int32 CameraIndex) const;
 
+    // ─── Capture Monitor (pipeline + framing reference + auto image metrics) ───
+
+    // Active capture pipeline for a device (default MetaHumanHMC). Drives which
+    // checks/thresholds the monitor applies. Set during shoot-day setup; persisted.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    ECapturePipeline GetDevicePipeline(const FString& DeviceName) const;
+
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void SetDevicePipeline(const FString& DeviceName, ECapturePipeline Pipeline);
+
+    // Per-camera framing reference ("where the face should be"), captured at setup.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    FHMCFramingRef GetFramingRef(const FString& DeviceName, int32 CameraIndex) const;
+
+    // Snapshots the camera's current subject centroid/size as the framing reference
+    // and persists it. Returns true if the captured framing is within the pipeline's
+    // target tolerance (false = saved, but the operator should reframe).
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    bool SetFramingReferenceFromCurrent(const FString& DeviceName, int32 CameraIndex);
+
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void ClearFramingReference(const FString& DeviceName, int32 CameraIndex);
+
+    // Latest automatic image-analysis metrics for a camera (for the Setup read-outs).
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    FHMCImageMetrics GetImageMetrics(const FString& DeviceName, int32 CameraIndex) const;
+
     // ─── Persistence ──────────────────────────────────────────────────────────
 
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
@@ -155,6 +182,13 @@ private:
     TMap<FString, TArray<FHMCCameraFeed>> CameraFeeds;   // keyed by ActorID
     TMap<FString, FTimerHandle>           PollTimers;     // keyed by DeviceName
     TMap<FString, int32>                  ManualIssueFlags; // keyed by DeviceName
+
+    // Capture Monitor: latest per-camera image metrics + debounced auto flags
+    // (keyed "DeviceName_Cam"). Analysis is throttled (~5Hz) off the decode path.
+    TMap<FString, FHMCImageMetrics> ImageMetrics;
+    TMap<FString, double>           LastAnalyzeTime;   // last analysis timestamp per cam
+    TMap<FString, int32>            StableAutoFlags;   // hysteresis-stable auto flags per cam
+    TMap<FString, int32>            AutoFlagHold;      // per "Cam|bit" integrator counter
 
     // Continuous video pump state. Frames are NOT tied to the 2s status poll —
     // each device runs a self-sustaining chain that alternates cameras as fast as
@@ -194,6 +228,11 @@ private:
     // Reuses one persistent texture per "DeviceName_Cam", updating its pixels in
     // place via UpdateTextureRegions — no per-frame allocation or UpdateResource.
     UTexture2D* UpdateFrameTexture(const FString& Key, const TArray<uint8>& BGRA, int32 Width, int32 Height);
+
+    // Integrator hysteresis: folds this frame's raw auto-flags into the per-camera
+    // StableAutoFlags so a flag must persist ~1s before it sets/clears (no blinking).
+    int32 UpdateAutoFlagHysteresis(const FString& CamKey, int32 RawFlags);
+
     void SetConnectionState(const FString& DeviceName, EHMCConnectionState NewState);
     void MarkFeedsDisconnected(const FString& DeviceName);
 

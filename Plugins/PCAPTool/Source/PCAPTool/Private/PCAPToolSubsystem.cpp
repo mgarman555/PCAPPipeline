@@ -480,7 +480,10 @@ int32 UPCAPToolSubsystem::GetEffectiveIssueFlags(const FString& DeviceName, int3
     const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
     const int32 FrameFlags = FrameNoFace.Contains(Key) ? HMC_Issue_NoFace : 0;
 
-    return Hardware | GetManualIssueFlags(DeviceName) | FrameFlags;
+    // Debounced automatic image-analysis flags (focus / exposure / lighting / framing).
+    const int32 AutoFlags = StableAutoFlags.Contains(Key) ? StableAutoFlags[Key] : 0;
+
+    return Hardware | GetManualIssueFlags(DeviceName) | FrameFlags | AutoFlags;
 }
 
 // ─── Video Frames ─────────────────────────────────────────────────────────────
@@ -535,6 +538,22 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
         {
             Texture = UpdateFrameTexture(CamKey, Uncompressed, IW->GetWidth(), IW->GetHeight());
             bSubject = UPCAPToolStatics::FrameHasSubject(Uncompressed, IW->GetWidth(), IW->GetHeight());
+
+            // Throttled automatic image analysis (~5Hz) for this device's pipeline.
+            const double NowT = FPlatformTime::Seconds();
+            double& LastA = LastAnalyzeTime.FindOrAdd(CamKey);
+            if (NowT - LastA >= 0.2)
+            {
+                LastA = NowT;
+                const FHMCImageMetrics M = UPCAPToolStatics::AnalyzeFrameBGRA(
+                    Uncompressed, IW->GetWidth(), IW->GetHeight());
+                ImageMetrics.Add(CamKey, M);
+                const FPipelineCheckProfile Profile =
+                    UPCAPToolStatics::GetPipelineProfile(GetDevicePipeline(DeviceName));
+                const int32 RawAuto = UPCAPToolStatics::MapMetricsToAutoFlags(
+                    M, Profile, GetFramingRef(DeviceName, CameraIndex));
+                UpdateAutoFlagHysteresis(CamKey, RawAuto);
+            }
         }
         LogFrameRate(CamKey, (FPlatformTime::Seconds() - DecodeT0) * 1000.0, RawBytes.Num());
     }
@@ -693,6 +712,20 @@ void UPCAPToolSubsystem::SaveConfig() const
         Obj->SetStringField(TEXT("ipAddress"),         C.IPAddress);
         Obj->SetStringField(TEXT("actorID"),         C.ActorID);
         Obj->SetStringField(TEXT("webSocketEndpoint"), C.WebSocketEndpoint);
+        Obj->SetNumberField(TEXT("pipeline"), (double)(uint8)C.Pipeline);
+
+        auto WriteRef = [](const FHMCFramingRef& R) -> TSharedPtr<FJsonObject>
+        {
+            TSharedPtr<FJsonObject> RO = MakeShared<FJsonObject>();
+            RO->SetBoolField  (TEXT("set"),  R.bSet);
+            RO->SetNumberField(TEXT("x"),    R.Center.X);
+            RO->SetNumberField(TEXT("y"),    R.Center.Y);
+            RO->SetNumberField(TEXT("size"), R.Size);
+            return RO;
+        };
+        Obj->SetObjectField(TEXT("framingRef0"), WriteRef(C.FramingRef0));
+        Obj->SetObjectField(TEXT("framingRef1"), WriteRef(C.FramingRef1));
+
         DeviceArray.Add(MakeShared<FJsonValueObject>(Obj));
     }
 
@@ -730,7 +763,110 @@ void UPCAPToolSubsystem::LoadConfig()
         Obj->TryGetStringField(TEXT("actorID"),         Config.ActorID);
         Obj->TryGetStringField(TEXT("webSocketEndpoint"), Config.WebSocketEndpoint);
 
+        int32 Pipe = 0;
+        if (Obj->TryGetNumberField(TEXT("pipeline"), Pipe))
+            Config.Pipeline = (ECapturePipeline)(uint8)Pipe;
+
+        auto ReadRef = [](const TSharedPtr<FJsonObject>& Parent, const TCHAR* Key, FHMCFramingRef& R)
+        {
+            const TSharedPtr<FJsonObject>* RO = nullptr;
+            if (Parent->TryGetObjectField(Key, RO) && RO && RO->IsValid())
+            {
+                (*RO)->TryGetBoolField(TEXT("set"), R.bSet);
+                double X = 0.5, Y = 0.5, S = 0.0;
+                (*RO)->TryGetNumberField(TEXT("x"),    X);
+                (*RO)->TryGetNumberField(TEXT("y"),    Y);
+                (*RO)->TryGetNumberField(TEXT("size"), S);
+                R.Center = FVector2D(X, Y);
+                R.Size   = (float)S;
+            }
+        };
+        ReadRef(Obj, TEXT("framingRef0"), Config.FramingRef0);
+        ReadRef(Obj, TEXT("framingRef1"), Config.FramingRef1);
+
         if (!Config.DeviceName.IsEmpty())
             RegisterDevice(Config);
     }
+}
+
+// ─── Capture Monitor ──────────────────────────────────────────────────────────
+
+ECapturePipeline UPCAPToolSubsystem::GetDevicePipeline(const FString& DeviceName) const
+{
+    const FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
+    return C ? C->Pipeline : ECapturePipeline::MetaHumanHMC;
+}
+
+void UPCAPToolSubsystem::SetDevicePipeline(const FString& DeviceName, ECapturePipeline Pipeline)
+{
+    if (FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName))
+    {
+        C->Pipeline = Pipeline;
+        SaveConfig();
+    }
+}
+
+FHMCFramingRef UPCAPToolSubsystem::GetFramingRef(const FString& DeviceName, int32 CameraIndex) const
+{
+    if (const FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName))
+        return (CameraIndex == 0) ? C->FramingRef0 : C->FramingRef1;
+    return FHMCFramingRef();
+}
+
+bool UPCAPToolSubsystem::SetFramingReferenceFromCurrent(const FString& DeviceName, int32 CameraIndex)
+{
+    FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
+    if (!C) return false;
+
+    const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+    const FHMCImageMetrics* M = ImageMetrics.Find(CamKey);
+    if (!M || !M->bValid || !M->bHasSubject) return false;   // need a live subject to lock onto
+
+    FHMCFramingRef Ref;
+    Ref.bSet   = true;
+    Ref.Center = M->SubjectCenter;
+    Ref.Size   = M->SubjectSize;
+    (CameraIndex == 0 ? C->FramingRef0 : C->FramingRef1) = Ref;
+    SaveConfig();
+
+    // Within the pipeline's ideal target tolerance?
+    const FPipelineCheckProfile P = UPCAPToolStatics::GetPipelineProfile(C->Pipeline);
+    return FVector2D::Distance(Ref.Center, P.FramingTargetCenter) <= P.FramingCenterTol
+        && Ref.Size >= P.FramingSizeMin && Ref.Size <= P.FramingSizeMax;
+}
+
+void UPCAPToolSubsystem::ClearFramingReference(const FString& DeviceName, int32 CameraIndex)
+{
+    if (FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName))
+    {
+        (CameraIndex == 0 ? C->FramingRef0 : C->FramingRef1) = FHMCFramingRef();
+        SaveConfig();
+    }
+}
+
+FHMCImageMetrics UPCAPToolSubsystem::GetImageMetrics(const FString& DeviceName, int32 CameraIndex) const
+{
+    const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+    const FHMCImageMetrics* M = ImageMetrics.Find(CamKey);
+    return M ? *M : FHMCImageMetrics();
+}
+
+int32 UPCAPToolSubsystem::UpdateAutoFlagHysteresis(const FString& CamKey, int32 RawFlags)
+{
+    static const int32 Bits[] = {
+        HMC_Issue_Overexposed, HMC_Issue_Underexposed,
+        HMC_Issue_OutOfFocus,  HMC_Issue_UnevenLight, HMC_Issue_FramingDrift
+    };
+    const int32 HOLD = 5;   // ~1s at the ~5Hz analysis rate
+
+    int32& Stable = StableAutoFlags.FindOrAdd(CamKey);
+    for (int32 Bit : Bits)
+    {
+        int32& Hold = AutoFlagHold.FindOrAdd(FString::Printf(TEXT("%s|%d"), *CamKey, Bit));
+        if (RawFlags & Bit) Hold = FMath::Min(HOLD, Hold + 1);
+        else                Hold = FMath::Max(0, Hold - 1);
+        if      (Hold >= HOLD) Stable |= Bit;
+        else if (Hold <= 0)    Stable &= ~Bit;
+    }
+    return Stable;
 }
