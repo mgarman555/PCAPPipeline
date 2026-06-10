@@ -26,10 +26,7 @@
 
 #define LOCTEXT_NAMESPACE "PCAPActorDatabase"
 
-namespace
-{
-    const FLinearColor ColLabel = FLinearColor(0.478f, 0.541f, 0.502f);
-}
+#include "SPCAPPanelStyle.h"
 
 void SPCAPActorDatabasePanel::Construct(const FArguments& InArgs)
 {
@@ -262,8 +259,8 @@ TSharedRef<SWidget> SPCAPActorDatabasePanel::BuildFormFor(UActorRosterEntry* Ent
                 SNew(SObjectPropertyEntryBox)
                 .AllowedClass(UObject::StaticClass())
                 .DisplayThumbnail(false)
-                .ObjectPath_Lambda(Get)
-                .OnObjectChanged_Lambda(Set)
+                .ObjectPath_Lambda(MoveTemp(Get))
+                .OnObjectChanged_Lambda(MoveTemp(Set))
             ];
     };
 

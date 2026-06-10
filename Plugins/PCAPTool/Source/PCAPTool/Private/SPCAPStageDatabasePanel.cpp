@@ -26,9 +26,10 @@
 
 #define LOCTEXT_NAMESPACE "PCAPStageDatabase"
 
+#include "SPCAPPanelStyle.h"
+
 namespace
 {
-    const FLinearColor ColLabel = FLinearColor(0.478f, 0.541f, 0.502f);
 
     // Short "what's recording" summary — non-None systems joined with · .
     FString StageSummary(UStageConfigAsset* S)

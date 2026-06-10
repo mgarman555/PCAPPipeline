@@ -19,9 +19,10 @@
 
 #define LOCTEXT_NAMESPACE "PCAPOperatorConsole"
 
+#include "SPCAPPanelStyle.h"
+
 namespace
 {
-    const FLinearColor ColLabel = FLinearColor(0.478f, 0.541f, 0.502f);
 
     FLinearColor StreamColor(EStreamStatus S)
     {

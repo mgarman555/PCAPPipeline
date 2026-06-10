@@ -703,6 +703,9 @@ struct PCAPTOOL_API FTake
     TArray<TSoftObjectPtr<USoundWave>> AudioAssets;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Assets")
+    TSoftObjectPtr<ULevelSequence> MasterSequence;   // assembled take — entry-point sequence
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Assets")
     TSoftObjectPtr<ULevelSequence> VCamAsset;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Assets")

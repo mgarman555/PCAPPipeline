@@ -25,7 +25,7 @@
 
 #define LOCTEXT_NAMESPACE "PCAPPropDatabase"
 
-namespace { const FLinearColor ColLabel = FLinearColor(0.478f, 0.541f, 0.502f); }
+#include "SPCAPPanelStyle.h"
 
 void SPCAPPropDatabasePanel::Construct(const FArguments& InArgs)
 {
