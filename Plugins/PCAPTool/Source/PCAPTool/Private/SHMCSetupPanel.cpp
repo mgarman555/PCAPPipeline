@@ -470,9 +470,12 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDetailPanel()
             + SHorizontalBox::Slot().FillWidth(1.f)                  [ BuildSetupFeed(1, TEXT("BOT")) ]
         ]
 
-        // Controls
+        // Controls (left)  +  Capture Monitor (right)
         + SVerticalBox::Slot().AutoHeight().Padding(12.f, 12.f)
         [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 16.f, 0.f)
+            [
             SNew(SVerticalBox)
             + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,8)
             [ BuildExposureControl() ]
@@ -509,21 +512,37 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDetailPanel()
                     BuildBoomDropdown()
                 ]
             ]
-        ]
+            ]   // close left column
 
-        // ── Capture Monitor (pipeline + automatic checks + framing reference) ──
-        + SVerticalBox::Slot().AutoHeight().Padding(12.f, 0.f, 12.f, 12.f)
-        [
-            BuildCaptureMonitor()
+            // Capture Monitor (right column): pipeline + framing reference per camera
+            + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Top)
+            [
+                BuildCaptureMonitor()
+            ]
         ];
 }
 
 TSharedRef<SWidget> SHMCSetupPanel::BuildSetupFeed(int32 CameraIndex, const FString& Label)
 {
+    // Portrait feed sized to the camera's display aspect (rotation-aware) so the frame
+    // matches the video - no letterbox. Fixed size keeps a stable box before frames arrive.
+    const FHMCDeviceStatus Snap = GetStatus(ActiveDeviceName);
+    float AspectWH = 0.75f;
+    if (Snap.FrameWidth > 0 && Snap.FrameHeight > 0)
+    {
+        const int32 Rot   = (CameraIndex == 0) ? Snap.Rotation0 : Snap.Rotation1;
+        const bool  bSwap = (((Rot % 180) + 180) % 180) == 90;
+        const float DW = bSwap ? (float)Snap.FrameHeight : (float)Snap.FrameWidth;
+        const float DH = bSwap ? (float)Snap.FrameWidth  : (float)Snap.FrameHeight;
+        if (DH > 0.f) AspectWH = DW / DH;
+    }
+    const float FeedH = 320.f;
+    const float FeedW = FeedH * FMath::Max(0.2f, AspectWH);
+
     return SNew(SVerticalBox)
 
         // Feed cell — issue-coloured border + banner, matching Preview.
-        + SVerticalBox::Slot().AutoHeight()
+        + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
         [
             SNew(SBorder)
             .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
@@ -533,7 +552,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildSetupFeed(int32 CameraIndex, const FStr
                 return FSlateColor(FeedBorderColor(ActiveDeviceName, CameraIndex));
             })
             [
-                SNew(SBox).HeightOverride(220.f)
+                SNew(SBox).HeightOverride(FeedH).WidthOverride(FeedW)
                 [
                     SNew(SBorder)
                     .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
@@ -644,6 +663,16 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildSetupFeed(int32 CameraIndex, const FStr
             [ SNew(STextBlock).Text(FText::FromString(TEXT("Position:"))).ColorAndOpacity(FSlateColor(ColMuted)) ]
             + SHorizontalBox::Slot().AutoWidth()
             [ BuildRoleDropdown(CameraIndex) ]
+        ]
+
+        // Per-camera pipeline checks (coloured boxes; a red box's tooltip explains why).
+        + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0.f, 6.f, 0.f, 0.f)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth() [ BuildCheckBox(TEXT("Focus"), HMC_Issue_OutOfFocus, CameraIndex) ]
+            + SHorizontalBox::Slot().AutoWidth() [ BuildCheckBox(TEXT("Exp"),   HMC_Issue_Overexposed | HMC_Issue_Underexposed, CameraIndex) ]
+            + SHorizontalBox::Slot().AutoWidth() [ BuildCheckBox(TEXT("Light"), HMC_Issue_UnevenLight, CameraIndex) ]
+            + SHorizontalBox::Slot().AutoWidth() [ BuildCheckBox(TEXT("Frame"), HMC_Issue_FramingDrift | HMC_Issue_NoFace, CameraIndex) ]
         ];
 }
 
@@ -760,6 +789,7 @@ FString SHMCSetupPanel::PipelineName(ECapturePipeline Pipeline)
     switch (Pipeline)
     {
         case ECapturePipeline::MetaHumanHMC: return TEXT("MetaHuman HMC");
+        case ECapturePipeline::FaceWareHMC:  return TEXT("Faceware HMC");
         default:                             return TEXT("MetaHuman HMC");
     }
 }
@@ -803,7 +833,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildPipelineDropdown()
         .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
         {
             FMenuBuilder MB(true, nullptr);
-            const ECapturePipeline Pipelines[] = { ECapturePipeline::MetaHumanHMC };
+            const ECapturePipeline Pipelines[] = { ECapturePipeline::MetaHumanHMC, ECapturePipeline::FaceWareHMC };
             for (ECapturePipeline P : Pipelines)
             {
                 MB.AddMenuEntry(FText::FromString(PipelineName(P)), FText::GetEmpty(), FSlateIcon(),
@@ -835,6 +865,56 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCheckDot(const FString& Label, int32 Fl
         [ SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColMuted)) ];
 }
 
+TSharedRef<SWidget> SHMCSetupPanel::BuildCheckBox(const FString& Label, int32 FlagBit, int32 CameraIndex)
+{
+    return SNew(SBox).Padding(FMargin(2.f, 0.f)).MinDesiredWidth(52.f)
+    [
+        SNew(SBorder)
+        .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+        .Padding(FMargin(6.f, 4.f))
+        .HAlign(HAlign_Center)
+        .BorderBackgroundColor_Lambda([this, FlagBit, CameraIndex]()
+        {
+            UPCAPToolSubsystem* Sub = GetSubsystem();
+            const int32 F = (Sub && !ActiveDeviceName.IsEmpty())
+                ? Sub->GetEffectiveIssueFlags(ActiveDeviceName, CameraIndex) : 0;
+            return FSlateColor((F & FlagBit) ? ColRed : ColGreen);
+        })
+        .ToolTipText_Lambda([this, Label, FlagBit, CameraIndex]()
+        {
+            return FText::FromString(CheckExplanation(Label, FlagBit, CameraIndex));
+        })
+        [
+            SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColWhite))
+        ]
+    ];
+}
+
+FString SHMCSetupPanel::CheckExplanation(const FString& Label, int32 FlagBit, int32 CameraIndex) const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    const int32 F = (Sub && !ActiveDeviceName.IsEmpty())
+        ? Sub->GetEffectiveIssueFlags(ActiveDeviceName, CameraIndex) : 0;
+    const int32 Active = F & FlagBit;
+    if (!Active)
+        return FString::Printf(TEXT("%s: OK"), *Label);
+
+    // Red — explain what the monitor sees, grounded in the MetaHuman HMC docs.
+    if (Active & HMC_Issue_OutOfFocus)
+        return TEXT("Out of focus. MetaHuman HMC: keep the lens focused on the nasolabial area (the cheek beside the nostrils) — soft footage degrades the solve.");
+    if (Active & HMC_Issue_Overexposed)
+        return TEXT("Overexposed - blown highlights. MetaHuman HMC: avoid over-exposure; slight under-exposure is preferable. Reduce exposure or lights.");
+    if (Active & HMC_Issue_Underexposed)
+        return TEXT("Underexposed - too dark. MetaHuman HMC: light the face evenly and sufficiently from the front. Raise exposure/gain or add light.");
+    if (Active & HMC_Issue_UnevenLight)
+        return TEXT("Uneven lighting / shadows. MetaHuman HMC: light the face evenly and frontally - no harsh shadows, side-light, or visible room lights.");
+    if (Active & HMC_Issue_FramingDrift)
+        return TEXT("Framing drifted from the reference. MetaHuman HMC: the camera must stay stable relative to the face; keep it centred (philtrum at centre). Re-seat the rig or re-set the reference.");
+    if (Active & HMC_Issue_NoFace)
+        return TEXT("No face detected in frame. Reframe so the face fills the centre of the image.");
+    return UPCAPToolStatics::GetIssueBannerText(Active);
+}
+
 TSharedRef<SWidget> SHMCSetupPanel::BuildCheckReadout(int32 CameraIndex)
 {
     const FString CamLabel = (CameraIndex == 0) ? TEXT("TOP") : TEXT("BOT");
@@ -844,19 +924,10 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCheckReadout(int32 CameraIndex)
         [
             SNew(SVerticalBox)
 
-            // Camera label + the four pipeline check indicators
+            // Camera label (the per-check coloured boxes now live under each feed).
             + SVerticalBox::Slot().AutoHeight()
             [
-                SNew(SHorizontalBox)
-                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 12, 0)
-                [
-                    SNew(SBox).WidthOverride(40.f)
-                    [ SNew(STextBlock).Text(FText::FromString(CamLabel)).ColorAndOpacity(FSlateColor(ColWhite)) ]
-                ]
-                + SHorizontalBox::Slot().AutoWidth() [ BuildCheckDot(TEXT("Focus"), HMC_Issue_OutOfFocus, CameraIndex) ]
-                + SHorizontalBox::Slot().AutoWidth() [ BuildCheckDot(TEXT("Exp"),   HMC_Issue_Overexposed | HMC_Issue_Underexposed, CameraIndex) ]
-                + SHorizontalBox::Slot().AutoWidth() [ BuildCheckDot(TEXT("Light"), HMC_Issue_UnevenLight, CameraIndex) ]
-                + SHorizontalBox::Slot().AutoWidth() [ BuildCheckDot(TEXT("Frame"), HMC_Issue_FramingDrift, CameraIndex) ]
+                SNew(STextBlock).Text(FText::FromString(CamLabel)).ColorAndOpacity(FSlateColor(ColWhite))
             ]
 
             // Raw metrics — for tuning thresholds against the real feed

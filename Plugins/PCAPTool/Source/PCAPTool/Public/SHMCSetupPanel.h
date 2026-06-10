@@ -58,8 +58,12 @@ private:
     // ── Capture Monitor: pipeline + automatic checks + framing reference ──────
     TSharedRef<SWidget> BuildCaptureMonitor();
     TSharedRef<SWidget> BuildPipelineDropdown();                 // ECapturePipeline picker
-    TSharedRef<SWidget> BuildCheckReadout(int32 CameraIndex);    // dots + metrics + ref controls
+    TSharedRef<SWidget> BuildCheckReadout(int32 CameraIndex);    // camera label + metrics + ref controls
     TSharedRef<SWidget> BuildCheckDot(const FString& Label, int32 FlagBit, int32 CameraIndex);
+    // Coloured per-camera check box (green ok / red issue), shown below each feed's
+    // position dropdown; its tooltip explains a red box from the pipeline docs.
+    TSharedRef<SWidget> BuildCheckBox(const FString& Label, int32 FlagBit, int32 CameraIndex);
+    FString CheckExplanation(const FString& Label, int32 FlagBit, int32 CameraIndex) const;
     static FString PipelineName(ECapturePipeline Pipeline);
 
     // Issue-driven feed border + banner (mirrors Preview's look).
