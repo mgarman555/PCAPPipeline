@@ -509,6 +509,12 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDetailPanel()
                     BuildBoomDropdown()
                 ]
             ]
+        ]
+
+        // ── Capture Monitor (pipeline + automatic checks + framing reference) ──
+        + SVerticalBox::Slot().AutoHeight().Padding(12.f, 0.f, 12.f, 12.f)
+        [
+            BuildCaptureMonitor()
         ];
 }
 
@@ -723,6 +729,193 @@ void SHMCSetupPanel::OnBoomChosen(int32 Side)
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
         if (!ActiveDeviceName.IsEmpty())
             Sub->SendDeviceCommand(ActiveDeviceName, TEXT("boom"), FString::FromInt(Side), FString(), FString());
+}
+
+// ── Capture Monitor UI ──────────────────────────────────────────────────────
+
+FString SHMCSetupPanel::PipelineName(ECapturePipeline Pipeline)
+{
+    switch (Pipeline)
+    {
+        case ECapturePipeline::MetaHumanHMC: return TEXT("MetaHuman HMC");
+        default:                             return TEXT("MetaHuman HMC");
+    }
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildCaptureMonitor()
+{
+    return SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 6, 0, 6)
+        [
+            SNew(STextBlock)
+            .Text(FText::FromString(TEXT("CAPTURE MONITOR")))
+            .ColorAndOpacity(FSlateColor(ColMuted))
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 8)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 12, 0)
+            [
+                SNew(SBox).WidthOverride(90.f)
+                [ SNew(STextBlock).Text(FText::FromString(TEXT("PIPELINE"))).ColorAndOpacity(FSlateColor(ColMuted)) ]
+            ]
+            + SHorizontalBox::Slot().AutoWidth() [ BuildPipelineDropdown() ]
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCheckReadout(0) ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCheckReadout(1) ];
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildPipelineDropdown()
+{
+    return SNew(SComboButton)
+        .ButtonContent()
+        [
+            SNew(STextBlock).Text_Lambda([this]()
+            {
+                UPCAPToolSubsystem* Sub = GetSubsystem();
+                const ECapturePipeline P = (Sub && !ActiveDeviceName.IsEmpty())
+                    ? Sub->GetDevicePipeline(ActiveDeviceName) : ECapturePipeline::MetaHumanHMC;
+                return FText::FromString(PipelineName(P));
+            })
+        ]
+        .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
+        {
+            FMenuBuilder MB(true, nullptr);
+            const ECapturePipeline Pipelines[] = { ECapturePipeline::MetaHumanHMC };
+            for (ECapturePipeline P : Pipelines)
+            {
+                MB.AddMenuEntry(FText::FromString(PipelineName(P)), FText::GetEmpty(), FSlateIcon(),
+                    FUIAction(FExecuteAction::CreateSP(this, &SHMCSetupPanel::OnPipelineChosen, (int32)P)));
+            }
+            return MB.MakeWidget();
+        });
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildCheckDot(const FString& Label, int32 FlagBit, int32 CameraIndex)
+{
+    return SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 4, 0)
+        [
+            SNew(SBox).WidthOverride(10.f).HeightOverride(10.f)
+            [
+                SNew(SBorder)
+                .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                .BorderBackgroundColor_Lambda([this, FlagBit, CameraIndex]()
+                {
+                    UPCAPToolSubsystem* Sub = GetSubsystem();
+                    const int32 F = (Sub && !ActiveDeviceName.IsEmpty())
+                        ? Sub->GetEffectiveIssueFlags(ActiveDeviceName, CameraIndex) : 0;
+                    return FSlateColor((F & FlagBit) ? ColRed : ColGreen);
+                })
+            ]
+        ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 12, 0)
+        [ SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColMuted)) ];
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildCheckReadout(int32 CameraIndex)
+{
+    const FString CamLabel = (CameraIndex == 0) ? TEXT("TOP") : TEXT("BOT");
+    return SNew(SBorder)
+        .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+        .Padding(FMargin(8.f, 6.f))
+        [
+            SNew(SVerticalBox)
+
+            // Camera label + the four pipeline check indicators
+            + SVerticalBox::Slot().AutoHeight()
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 12, 0)
+                [
+                    SNew(SBox).WidthOverride(40.f)
+                    [ SNew(STextBlock).Text(FText::FromString(CamLabel)).ColorAndOpacity(FSlateColor(ColWhite)) ]
+                ]
+                + SHorizontalBox::Slot().AutoWidth() [ BuildCheckDot(TEXT("Focus"), HMC_Issue_OutOfFocus, CameraIndex) ]
+                + SHorizontalBox::Slot().AutoWidth() [ BuildCheckDot(TEXT("Exp"),   HMC_Issue_Overexposed | HMC_Issue_Underexposed, CameraIndex) ]
+                + SHorizontalBox::Slot().AutoWidth() [ BuildCheckDot(TEXT("Light"), HMC_Issue_UnevenLight, CameraIndex) ]
+                + SHorizontalBox::Slot().AutoWidth() [ BuildCheckDot(TEXT("Frame"), HMC_Issue_FramingDrift, CameraIndex) ]
+            ]
+
+            // Raw metrics — for tuning thresholds against the real feed
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 4, 0, 4)
+            [
+                SNew(STextBlock)
+                .ColorAndOpacity(FSlateColor(ColMuted))
+                .Text_Lambda([this, CameraIndex]() -> FText
+                {
+                    UPCAPToolSubsystem* Sub = GetSubsystem();
+                    if (!Sub || ActiveDeviceName.IsEmpty()) return FText::GetEmpty();
+                    const FHMCImageMetrics M = Sub->GetImageMetrics(ActiveDeviceName, CameraIndex);
+                    if (!M.bValid) return FText::FromString(TEXT("(no analysis yet)"));
+                    return FText::FromString(FString::Printf(
+                        TEXT("focus %.3f · luma %.2f · blown %.0f%% · spread %.2f · pos %.2f,%.2f · size %.2f"),
+                        M.FocusScore, M.MeanLuma, M.BlownFrac * 100.f, M.RegionSpread,
+                        M.SubjectCenter.X, M.SubjectCenter.Y, M.SubjectSize));
+                })
+            ]
+
+            // Framing reference: capture / state / clear
+            + SVerticalBox::Slot().AutoHeight()
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth()
+                [
+                    SNew(SButton)
+                    .Text(FText::FromString(TEXT("Set reference")))
+                    .ToolTipText(FText::FromString(TEXT("Lock where the face should be (capture current position).")))
+                    .OnClicked(this, &SHMCSetupPanel::OnSetFramingRef, CameraIndex)
+                ]
+                + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center).Padding(10, 0)
+                [
+                    SNew(STextBlock)
+                    .ColorAndOpacity(FSlateColor(ColMuted))
+                    .Text_Lambda([this, CameraIndex]() -> FText
+                    {
+                        UPCAPToolSubsystem* Sub = GetSubsystem();
+                        if (!Sub || ActiveDeviceName.IsEmpty()) return FText::FromString(TEXT("-"));
+                        const FHMCFramingRef R = Sub->GetFramingRef(ActiveDeviceName, CameraIndex);
+                        if (!R.bSet) return FText::FromString(TEXT("Reference: not set"));
+                        return FText::FromString(FString::Printf(TEXT("Reference: set  (%.2f,%.2f · %.2f)"),
+                            R.Center.X, R.Center.Y, R.Size));
+                    })
+                ]
+                + SHorizontalBox::Slot().AutoWidth()
+                [
+                    SNew(SButton)
+                    .Text(FText::FromString(TEXT("Clear")))
+                    .OnClicked(this, &SHMCSetupPanel::OnClearFramingRef, CameraIndex)
+                ]
+            ]
+        ];
+}
+
+void SHMCSetupPanel::OnPipelineChosen(int32 PipelineValue)
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+            Sub->SetDevicePipeline(ActiveDeviceName, (ECapturePipeline)PipelineValue);
+}
+
+FReply SHMCSetupPanel::OnSetFramingRef(int32 CameraIndex)
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+        {
+            const bool bInTol = Sub->SetFramingReferenceFromCurrent(ActiveDeviceName, CameraIndex);
+            UE_LOG(LogTemp, Log, TEXT("[PCAPTool] %s cam%d framing reference %s"),
+                *ActiveDeviceName, CameraIndex,
+                bInTol ? TEXT("set (within target)") : TEXT("set - reframe: off target or no subject"));
+        }
+    return FReply::Handled();
+}
+
+FReply SHMCSetupPanel::OnClearFramingRef(int32 CameraIndex)
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+            Sub->ClearFramingReference(ActiveDeviceName, CameraIndex);
+    return FReply::Handled();
 }
 
 TSharedRef<SWidget> SHMCSetupPanel::BuildStepper(const FString& Label,

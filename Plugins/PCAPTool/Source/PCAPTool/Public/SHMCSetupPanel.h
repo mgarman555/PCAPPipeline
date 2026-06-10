@@ -55,6 +55,13 @@ private:
     TSharedRef<SWidget> BuildStepper(const FString& Label,
         TFunction<FText()> ValueFn, FOnClicked OnMinus, FOnClicked OnPlus);
 
+    // ── Capture Monitor: pipeline + automatic checks + framing reference ──────
+    TSharedRef<SWidget> BuildCaptureMonitor();
+    TSharedRef<SWidget> BuildPipelineDropdown();                 // ECapturePipeline picker
+    TSharedRef<SWidget> BuildCheckReadout(int32 CameraIndex);    // dots + metrics + ref controls
+    TSharedRef<SWidget> BuildCheckDot(const FString& Label, int32 FlagBit, int32 CameraIndex);
+    static FString PipelineName(ECapturePipeline Pipeline);
+
     // Issue-driven feed border + banner (mirrors Preview's look).
     FLinearColor FeedBorderColor(const FString& DeviceName, int32 CameraIndex) const;
     FString      FeedBannerText(const FString& DeviceName, int32 CameraIndex) const;
@@ -70,6 +77,9 @@ private:
     FReply OnLightStep(bool bTop, int32 Dir);  // ±5
     void   OnCameraRoleChosen(int32 CameraIndex, int32 RoleValue);  // SetCameraRole
     void   OnBoomChosen(int32 Side);    // 0 = Left, 1 = Right
+    void   OnPipelineChosen(int32 PipelineValue);   // SetDevicePipeline
+    FReply OnSetFramingRef(int32 CameraIndex);      // capture "where the face should be"
+    FReply OnClearFramingRef(int32 CameraIndex);
 
     FHMCDeviceStatus GetStatus(const FString& DeviceName) const;
     static UPCAPToolSubsystem* GetSubsystem();
