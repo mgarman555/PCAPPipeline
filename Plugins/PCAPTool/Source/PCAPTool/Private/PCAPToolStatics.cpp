@@ -294,7 +294,10 @@ FHMCImageMetrics UPCAPToolStatics::AnalyzeFrameBGRA(const TArray<uint8>& BGRA, i
     {
         const double LapMean = LapSum / LapN;
         const double LapVar  = FMath::Max(0.0, LapSq / LapN - LapMean * LapMean);
-        M.FocusScore = (float)(LapVar / (Mean * Mean + 1.0));   // exposure-robust sharpness
+        // Normalize by mean luma so the score is roughly exposure-independent. NOTE: the
+        // +1.0 epsilon dominates at very low luma, so calibrate FocusMin against frames at
+        // the real operating brightness (read the live value from the Setup read-out / log).
+        M.FocusScore = (float)(LapVar / (Mean * Mean + 1.0));
     }
 
     M.bHasSubject = (Mean > 40.0);   // matches FrameHasSubject's luma threshold

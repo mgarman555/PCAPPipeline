@@ -84,6 +84,20 @@ void UPCAPToolSubsystem::UnregisterDevice(const FString& DeviceName)
         });
     }
 
+    // Prune per-camera Capture Monitor state so it doesn't accumulate across
+    // register/unregister cycles (keyed "DeviceName_Cam"; AutoFlagHold "..._Cam|bit").
+    for (int32 Cam = 0; Cam < 2; ++Cam)
+    {
+        const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, Cam);
+        ImageMetrics.Remove(CamKey);
+        LastAnalyzeTime.Remove(CamKey);
+        StableAutoFlags.Remove(CamKey);
+        FrameNoFace.Remove(CamKey);
+    }
+    const FString Prefix = DeviceName + TEXT("_");
+    for (auto It = AutoFlagHold.CreateIterator(); It; ++It)
+        if (It.Key().StartsWith(Prefix)) It.RemoveCurrent();
+
     SaveConfig();
 }
 
