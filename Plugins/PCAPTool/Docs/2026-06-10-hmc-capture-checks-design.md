@@ -1,102 +1,118 @@
-# HMC Capture Checks — Design Spec
+# Capture Monitor — Pipeline-Aware Automatic Camera Checks (Design Spec)
 
-**Date:** 2026-06-10 · **Status:** Approved (pending spec review) · **Component:** `Plugins/PCAPTool`
+**Date:** 2026-06-10 · **Status:** Approved scope, pending spec review · **Component:** `Plugins/PCAPTool`
 
 ## Goal
 
-Translate Epic's MetaHuman facial-capture documentation into the concrete set of conditions the HMC monitoring tool detects and surfaces. The tool should **auto-detect** image-quality issues from the live video (focus, exposure, lighting) and provide an **operator checklist** for the conditions a camera can't sense on its own (framing/coverage, performer prep). Everything feeds the green/red feed bar + red status line already built; performer prep instead drives a separate amber readiness chip.
+A **fully automatic, always-on monitor** that watches each HMC camera feed and flags the issues that matter for the **active capture pipeline**. No human checklist — the tool checks the video itself, continuously. The MetaHuman HMC pipeline is the first check bundle; other pipelines (body mocap, etc.) are added later as new bundles without touching the monitor.
 
-This is the showcase-starting increment. Error *codes* and per-rig threshold tuning come later; landmark-based auto-framing and stereo-calibration scoring are explicitly deferred.
+The operator's only setup action for the checks is defining **where the actor's face should be** (a framing reference, captured once after calibration). Everything else the tool detects on its own.
 
-## Source requirements (from the docs)
+## What changed from the first draft
 
-- **A · Performer prep** (`performer-requirements`): facial hair ≤ 1–2 days stubble; no glasses/sunglasses; minimal makeup, no face paint; no facial piercings; no obstructions (hats, loose long hair, masks, hands); adult faces only.
-- **B · Framing & coverage** (`using-a-head-mount`, `using-a-stereo-head-mount`, `realtime-animation-guidelines`): face centered & parallel, rotation ≤ ~30° (fails once outer eyebrow or mouth corner is hidden); stereo centers on the upper philtrum (base of nostrils); lip seal **and** inner upper eyelid visible; not too high / low / off-axis / close; camera stable vs. face (no drift); nothing occluding the head.
-- **C · Image quality** (same sources): even, frontal, shadow-free light; slight underexposure preferred over over; no blown highlights, side-light, or visible room lights; in focus on the nasolabial/cheek area.
-- **D · Stereo calibration quality** (`generate-calibration`): checkerboard sharp & fully in frame, varied poses, good coverage, enough frames; RMS reprojection error bands (Excellent ≤0.3px … Bad ≥1.5px). **DEFERRED.**
+- **Removed:** the performer-prep checklist (hair, glasses, makeup, piercings) and all manual framing toggles. Things the camera can't see automatically are simply out of scope — no manual lists.
+- **Added:** a **pipeline selector** (active pipeline → active checks + thresholds + framing rules), and a **captured framing reference** per device so the framing check is automatic.
+- **Framing became automatic** (subject position/drift vs. the reference) instead of operator-tapped flags.
 
-## Scope decisions (confirmed with Madi)
+## Architecture: pluggable checker per pipeline
 
-| Bucket | Mechanism | In this increment? |
-|---|---|---|
-| C — focus, exposure, lighting evenness | **Auto** (per-frame image analysis) | ✅ |
-| B — framing/coverage, drift, occlusion | **Manual** operator flags | ✅ |
-| A — performer prep (6 items) | **Manual** confirm checklist | ✅ |
-| D — stereo calibration RMS | — | ⛔ deferred |
-| Landmark auto-framing (replaces B manual) | CV/ML | ⛔ deferred |
+The monitor is a thin loop — *for each connected camera, run the active pipeline's checks against the latest frame's metrics, OR the resulting flags into the device's issue state.* A **pipeline** is just a bundle of `(active checks, thresholds, framing target/tolerances)`.
 
-- **Performer prep failures drive an amber `NOT READY` chip, NOT the red feed bar** — a beard/glasses is a known persistent limitation you shoot anyway, not a live error to fix, so it must not sit red all shoot.
-- **Operator sets the manual framing flags in the Setup detail pane** (beside that HMC's big feed), not on the live Preview cards. Preview stays an at-a-glance monitor; Preview quick-flags can come later.
+```
+ECapturePipeline { MetaHumanHMC, /* future: ViconBody, OptiTrackBody, ... */ }
+
+FPipelineCheckProfile {
+    bool  bCheckSubject, bCheckFraming, bCheckFocus, bCheckExposure, bCheckLighting;
+    float FocusMin;                 // var-of-Laplacian floor
+    float BlownFracMax;             // overexposed when blown fraction exceeds this
+    float MeanLumaMin;              // underexposed when mean luma below this
+    float RegionSpreadMax;          // uneven lighting when region spread exceeds this
+    FVector2D FramingTargetCenter;  // pipeline-ideal center, normalized 0..1
+    float FramingSizeMin, FramingSizeMax;  // acceptable subject size fraction
+    float FramingCenterTol;         // captured ref must land within this of target
+    float FramingDriftTol;          // live subject may drift this far from the ref
+}
+GetPipelineProfile(ECapturePipeline) -> FPipelineCheckProfile   // constants for now
+```
+
+Active pipeline is a persisted tool-level setting on the subsystem (default `MetaHumanHMC`). *(Open for spec review: tool-level vs. per-device. Tool-level is proposed — one shoot runs one pipeline.)*
+
+## Setup reference (hybrid: pipeline target + capture-current)
+
+For each device, after calibration, with the actor framed correctly:
+1. Setup shows the pipeline's **ideal framing target** as a guide overlay on each camera feed (from `FramingTargetCenter` / size range).
+2. Operator hits **Set reference** → the analyzer's current subject centroid + size is snapshotted per camera into `FHMCFramingRef`. It is **validated against the pipeline target** (`FramingCenterTol`); if the captured framing is outside tolerance, Setup warns rather than locking a bad reference.
+3. The reference is **persisted per device** (`FHMCDeviceConfig`). The monitor flags live drift from it.
+
+```
+FHMCFramingRef { bool bSet=false; FVector2D Center; float Size; }   // per camera, normalized
+```
+
+## The monitor checks (MetaHuman HMC pipeline)
+
+Per camera, always-on, automatic — all feed the existing green/red bar + red status line via `GetEffectiveIssueFlags`:
+
+1. **Subject present** — face in frame (existing brightness/skin heuristic, `FrameHasSubject`).
+2. **Framing / drift** — live subject centroid + size vs. the captured `FHMCFramingRef`, within `FramingDriftTol` / size tolerance. Catches headset drift, face too high/low/off-axis, too close/far. *Active only once the reference is set.*
+3. **Focus** — variance-of-Laplacian below `FocusMin`.
+4. **Exposure** — luma histogram: blown fraction > `BlownFracMax` (over), or mean luma < `MeanLumaMin` (under).
+5. **Lighting evenness** — half/quadrant luma spread > `RegionSpreadMax`.
+
+**Boundary (deferred to a future pipeline-check addition):** fine landmark checks — lip-seal visible, inner eyelid visible, ≤30° rotation — genuinely need facial landmarks (MetaHuman Animator / ARKit), so they are *not* in this increment. The framing check catches *"the face moved out of where it should be,"* not *"the lip seal is occluded."*
 
 ## Data model
 
-**Auto image flags** — new `EHMCIssueFlag` bits (append-only; bits 10–11 are free, 9 = NoFace):
+**Auto `EHMCIssueFlag` bits** (append-only; 9 = NoFace, 10–12 free):
 - `HMC_Issue_OutOfFocus  = 1 << 10`
 - `HMC_Issue_UnevenLight = 1 << 11`
-- Reuse existing `HMC_Issue_Overexposed` / `HMC_Issue_Underexposed`, now *also* driven by the histogram (OR'd with the existing device-exposure-value logic).
+- `HMC_Issue_FramingDrift = 1 << 12`
+- Reuse existing `Overexposed` / `Underexposed` (now histogram-driven, OR'd with the existing device-exposure logic).
 
-**Manual framing flags** — extend `EHMCManualIssue` (bit = `1 << (16 + index)`; **append only**, do not reorder existing 0–4 or saved state shifts):
-- keep: `FaceOffAxis`(16), `HeadsetShift`(17), `OutOfFocus`(18, retired from UI — auto covers focus; bit kept for save-compat), `LipSeal`(19), `Eyelid`(20)
-- add: `FramingTooHigh`(21), `FramingTooLow`(22), `TooClose`(23), `HeadOccluded`(24)
+**Retired (no UI built):** the manual-checklist plan — `EHMCManualIssue` framing bits and the performer-prep mask are not used by this design. Existing `EHMCManualIssue` values stay in the type for save-compat but get no UI; they are superseded by the automatic framing check.
 
-**Performer prep** — new, persisted per device. A 6-bit confirmed-mask on `FHMCDeviceConfig` (saved via `SaveConfig`), e.g. `int32 PrepConfirmedMask` with item enum `EHMCPerformerPrepItem { FacialHairOK, NoEyewear, MakeupOK, NoPiercings, FaceUnobstructed, AdultSubject }`. Readiness = all 6 confirmed.
+**Framing reference:** `FHMCFramingRef` per camera (2 per device), persisted on `FHMCDeviceConfig`.
 
-**Analyzer output** — stored in the subsystem per `"Device_Cam"` key: latest `FHMCImageMetrics { float FocusScore; float MeanLuma; float BlownFrac; float CrushedFrac; float RegionSpread; }` plus the derived auto-flag mask (after hysteresis).
+**Active pipeline:** `ECapturePipeline ActivePipeline` on the subsystem, persisted.
+
+**Analyzer output** per `"Device_Cam"`: `FHMCImageMetrics { float FocusScore, MeanLuma, BlownFrac, CrushedFrac, RegionSpread; bool bHasSubject; FVector2D SubjectCenter; float SubjectSize; }` + the derived auto-flag mask (post-hysteresis).
 
 ## The analyzer
 
-- **Pure helpers in `UPCAPToolStatics`** (testable, no engine state): `FHMCImageMetrics AnalyzeFrameBGRA(const uint8* BGRA, int32 W, int32 H)` and `int32 MapMetricsToAutoFlags(const FHMCImageMetrics&)`.
-- **Hook** in `UPCAPToolSubsystem::OnVideoFrameResponse`, right where the decoded BGRA already exists (before/after `UpdateFrameTexture`).
-- **Downsample** by stride to ~96×72 grayscale (luma = 0.114B+0.587G+0.299R) — a few thousand samples, microseconds.
-- **Throttle** to ~5 Hz per camera (skip frames by timestamp/counter); store the latest result.
-- **Metrics:** variance-of-Laplacian on the small grayscale (focus); luma histogram → blown frac (≥250), crushed frac (≤5), mean; half (L/R) and quadrant means → `RegionSpread` (max−min)/mean (evenness / side-light / shadow).
-- **Hysteresis:** each auto flag must hold for ~1 s (≈5 samples) before it sets, and clear for ~1 s before it clears — so a motion-blurred head-turn doesn't blink the bar.
-- **Gating:** only evaluate when there is a current frame AND `FrameHasSubject` is true, so a black "No Feed" frame is never mislabeled underexposed.
+- **Pure helpers in `UPCAPToolStatics`:** `FHMCImageMetrics AnalyzeFrameBGRA(const uint8* BGRA, int32 W, int32 H)` and `int32 MapMetricsToAutoFlags(const FHMCImageMetrics&, const FPipelineCheckProfile&, const FHMCFramingRef&)`.
+- **Hook** in `UPCAPToolSubsystem::OnVideoFrameResponse` where the decoded BGRA already exists.
+- **Downsample** by stride to ~96×72 grayscale; **throttle** to ~5 Hz per camera.
+- **Metrics:** variance-of-Laplacian (focus); luma histogram (blown ≥250, crushed ≤5, mean); half/quadrant means → `RegionSpread = (max−min)/mean`; **subject centroid + size** = brightness/skin-weighted centroid and extent of the in-subject region, normalized 0..1.
+- **Hysteresis:** each flag must hold ~1 s (≈5 samples) before setting and ~1 s before clearing — no blinking on a motion-blurred head-turn.
+- **Gating:** image checks only when `bHasSubject`; framing check only when the reference `bSet`.
 
 ## Starting thresholds (conservative; tuned on the rig)
 
-- **Focus:** `FocusScore` below `FOCUS_MIN` for ~1 s → `OutOfFocus`. (`FOCUS_MIN` calibrated against a known-sharp feed; normalized by mean luma so a dark frame isn't read as soft.)
-- **Overexposed:** `BlownFrac > 0.05` → `Overexposed` (blown highlights are unrecoverable — the docs' #1 enemy).
-- **Underexposed:** `MeanLuma < 40/255` → `Underexposed` (lenient; docs say slight under is fine).
-- **Uneven light:** `RegionSpread > 0.25` → `UnevenLight`.
-
-Constants live in `PCAPToolStatics.cpp` for now; exposing them in Project Settings is a later step.
+MetaHuman HMC `FPipelineCheckProfile`: `FocusMin` calibrated against a known-sharp feed (normalized by mean luma) · `BlownFracMax = 0.05` · `MeanLumaMin = 40/255` (lenient — slight under is fine) · `RegionSpreadMax = 0.25` · `FramingTargetCenter = (0.5, 0.5)` · `FramingSizeMin/Max` ≈ 0.45–0.85 of frame · `FramingCenterTol ≈ 0.10` · `FramingDriftTol ≈ 0.08`. Constants in `PCAPToolStatics.cpp`; Project-Settings exposure is a later step.
 
 ## Severity mapping
 
-The feed bar is binary (`None` → green, else → red), and `DeviceErrorText` shows in red whenever severity ≠ `None`. Auto + manual framing flags slot into `GetIssueSeverity`: `OutOfFocus` and `Overexposed` are **Red**; `UnevenLight`, `Underexposed`, and the manual framing flags are **Amber** (still render red on the binary bar + red status text — acceptable, and ready if a tri-state bar returns later).
-
-Performer-prep state is **not** part of `EHMCIssueFlag`, so it never affects the bar — it only computes the readiness chip.
+Bar is binary (`None`→green, else→red); `DeviceErrorText` shows red whenever severity ≠ `None`. `OutOfFocus`, `Overexposed`, `FramingDrift` = **Red**; `UnevenLight`, `Underexposed` = **Amber** (still read red on today's binary bar — fine, and ready if a tri-state bar returns).
 
 ## UI
 
-**Setup detail pane** — new "Capture Checks" area under the existing feed/controls for the selected device:
-1. **Performer prep** — 6 confirm rows + a `READY` / `N of 6 confirmed` summary. Writes `PrepConfirmedMask` (persisted).
-2. **Live checks — auto** — read-only Focus / Exposure / Lighting indicators bound to the analyzer's latest metrics (`dot + label + state`), tagged `AUTO`.
-3. **Live checks — manual framing** — toggle chips (off-axis, too-high, too-low, too-close, lip-seal-hidden, eyelid-hidden, head-occluded, headset-drift) → `SetManualIssue`. *(No manual-flag UI exists today; this builds it.)*
+- **Pipeline selector** — a tool-level dropdown (header/settings) → sets `ActivePipeline`. Default MetaHuman HMC.
+- **Setup detail pane** — per device: the pipeline **framing-target guide overlay** on each feed, a **Set reference** button (with state: not set / set / current-framing-out-of-tolerance warning), and live read-outs of the auto checks (focus/exposure/lighting/framing) for diagnosis. *No checklist, no manual toggles.*
+- **Preview** — bar + red status line already reflect `GetEffectiveIssueFlags` (auto flags flow through). Add a subtle *"framing reference not set"* hint when a connected device has no reference yet (framing check inactive until then).
 
-**Preview card** — bar + red status line already reflect `GetEffectiveIssueFlags` (auto + manual flow through automatically). Add a small **readiness chip** (`READY` / `NOT READY · N`) bound to `PrepConfirmedMask`.
+## Error handling & states
 
-## Components & boundaries
-
-- `UPCAPToolStatics` — `AnalyzeFrameBGRA`, `MapMetricsToAutoFlags` (pure). Owns thresholds.
-- `UPCAPToolSubsystem` — run analyzer on decode (throttled), store metrics + hysteresis state, expose `GetImageMetrics(Device,Cam)` / `GetAutoIssueFlags(Device,Cam)`, OR auto flags into `GetEffectiveIssueFlags`; prep get/set + persistence; mirror prep on `UHMCMonitorComponent` only if needed (Slate uses the subsystem).
-- `SHMCSetupPanel` — Capture Checks UI (prep checklist, auto read-outs, manual toggles).
-- `SHMCPreviewPanel` — readiness chip.
-
-## Error handling
-
-- Guard null/empty frame and zero W/H; skip analysis.
-- Gate on `FrameHasSubject` to avoid black-frame false positives.
-- Hysteresis prevents flag flicker; clamp all fractions to [0,1].
-- All work on the game thread (cheap after downsample + throttle); no new threads.
+- Guard null/empty frame, zero W/H; clamp fractions to [0,1].
+- Image checks gated on subject; framing gated on reference set.
+- Hysteresis prevents flag flicker.
+- All on the game thread (cheap after downsample + throttle); no new threads.
 
 ## Testing
 
-- `AnalyzeFrameBGRA` / `MapMetricsToAutoFlags` are pure functions — logically reviewable on synthetic pixel buffers (uniform gray → no flags; half-bright → uneven; all-255 → blown; checker pattern → high focus).
-- Real validation on Windows (Mac can't compile UE 5.7): defocus a lens → focus flag; raise exposure → blown; side-light the rig → uneven; confirm prep chip + manual toggles drive the right indicators.
+- `AnalyzeFrameBGRA` / `MapMetricsToAutoFlags` are pure — reviewable on synthetic buffers (uniform gray → no flags; all-255 → blown; half-bright → uneven; offset bright blob → framing drift vs. a centered ref).
+- Real validation on Windows (Mac can't compile UE 5.7): defocus → focus flag; raise exposure → blown; side-light → uneven; slip the headset → framing drift.
 
-## Deferred (structured to slot in later)
+## Deferred (slot in later, no rework)
 
-- **D — stereo calibration RMS readout:** a separate calibration workflow surface; the RMS bands map cleanly to green/amber/red.
-- **Landmark auto-framing:** replace the manual framing flags with MetaHuman-Animator/ARKit-derived landmark checks (lip-seal/eyelid visibility, ≤30° rotation, philtrum centering) once that data is in the loop.
+- **Landmark checks** (lip-seal, eyelid, ≤30° rotation) as additions to the MetaHuman HMC pipeline profile once MHA landmarks are in the loop.
+- **Stereo calibration RMS** scoring (bucket D).
+- **Additional pipeline profiles** (body mocap, etc.) — the whole point of `ECapturePipeline`.
