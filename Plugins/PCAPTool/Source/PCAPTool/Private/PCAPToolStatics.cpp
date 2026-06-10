@@ -307,12 +307,26 @@ FHMCImageMetrics UPCAPToolStatics::AnalyzeFrameBGRA(const TArray<uint8>& BGRA, i
 
 FPipelineCheckProfile UPCAPToolStatics::GetPipelineProfile(ECapturePipeline Pipeline)
 {
-    // The struct defaults ARE the MetaHuman HMC profile. Future pipelines branch here.
+    // The struct defaults ARE the MetaHuman HMC profile. Each pipeline owns its checks.
     switch (Pipeline)
     {
+        case ECapturePipeline::FaceWareHMC:
+        {
+            // Faceware is its OWN pipeline — it must not inherit MetaHuman's checks.
+            // Its checks are undocumented for now, so it runs none (all checks off)
+            // until its pose/quality docs land. Fill in real thresholds then.
+            FPipelineCheckProfile P;
+            P.bCheckSubject  = false;
+            P.bCheckFraming  = false;
+            P.bCheckFocus    = false;
+            P.bCheckExposure = false;
+            P.bCheckLighting = false;
+            return P;
+        }
+
         case ECapturePipeline::MetaHumanHMC:
         default:
-            return FPipelineCheckProfile();
+            return FPipelineCheckProfile();   // full MetaHuman HMC profile
     }
 }
 

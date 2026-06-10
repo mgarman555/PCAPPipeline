@@ -223,7 +223,7 @@ UENUM(BlueprintType)
 enum class ECapturePipeline : uint8
 {
     MetaHumanHMC UMETA(DisplayName = "MetaHuman HMC"),
-    FaceWareHMC  UMETA(DisplayName = "Faceware HMC")   // checks TBD — uses MetaHuman profile for now
+    FaceWareHMC  UMETA(DisplayName = "Faceware HMC")   // checks TBD — its own pipeline (not MetaHuman); runs no checks until its docs land
     // Future: ViconBody, OptiTrackBody, ... -- each a new check bundle.
 };
 
