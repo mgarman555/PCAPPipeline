@@ -1,6 +1,6 @@
 # Capture Monitor — Pipeline-Aware Automatic Camera Checks (Design Spec)
 
-**Date:** 2026-06-10 · **Status:** Implemented (main `c8af444..ebbab39`) — thresholds pending rig tuning · **Component:** `Plugins/PCAPTool`
+**Date:** 2026-06-10 · **Status:** Implemented + extended (see "Additions since the original design" below) — thresholds pending rig tuning · **Component:** `Plugins/PCAPTool`
 
 ## Goal
 
@@ -117,10 +117,25 @@ Bar is binary (`None`→green, else→red); `DeviceErrorText` shows red whenever
 - **Stereo calibration RMS** scoring (bucket D).
 - **Additional pipeline profiles** (body mocap, etc.) — the whole point of `ECapturePipeline`.
 
+## Additions since the original design (current state)
+
+Built on top of the original auto-monitor, all in the same MetaHuman HMC pipeline + HMC operator UI:
+
+- **Mount stability** — `Bumped` (sudden subject-centroid jump → latched ~1.2 s, red) and `Unstable` (centroid std-dev over a ~2 s window → red), both gated on the pipeline's framing check; feed the **Frame** box. Computed in the subsystem from the centroid the analyzer already produces.
+- **Low frame rate** — `LowFPS` when device `frameRate < 55` (margin under the docs' 60 fps); device-wide, surfaces via the feed border + status line (no dedicated box). VERIFY `frameRate` is the capture rate on the rig.
+- **Directional framing** — `FramingDrift` appends the direction the face moved from the reference ("low / high / off-axis left …") via `UPCAPToolSubsystem::GetFramingHint`, in both panels' status text.
+- **Setup status line** — a persistent red line under the Setup feeds writing out every active reason for the selected HMC (matches Preview). Strictly green/red, no "ready" state.
+- **Two-column Setup detail** — exposure/gain/lights/boom on the left; Capture Monitor (pipeline picker + per-camera framing reference) on the right; the four check boxes sit under each camera's feed.
+- **Prepped for Preview** — `FHMCDeviceConfig.bPreppedForPreview`; Preview shows only prepped devices; the bottom button marks all registered devices.
+- **Pipelines** — `ECapturePipeline { MetaHumanHMC, FaceWareHMC }`. Faceware is its OWN pipeline that runs NO checks (all `bCheck* = false`) until its docs land; its check boxes render **grey** and read "not checked by this pipeline".
+- **Actor sourcing** — the Setup actor dropdown lists only the active day's call sheet (`MocapDatabase` active day → `FShootDay.CalledActorIDs`), resolved to "First Last" via the Actor roster.
+
+All image trip-points now live in `FPipelineCheckProfile` (`PCAPToolTypes.h`); `LowFPS` is in `EvaluateCameraIssues`. Severity is strictly binary on the bar (any flag → red); the *reason* is always written in the status area.
+
 ## Operating it (build & tune) — for the next on-rig session
 
 1. **Build:** on Windows, `git reset --hard origin/main`, close the editor, **Rebuild Solution** (Development Editor | Win64). The new types are header changes, so this needs a full rebuild, not Live Coding.
 2. **Live immediately:** auto **exposure** (blown / under) and **uneven-lighting** detection — they drive the green/red bar + red status line with no setup.
 3. **Tune focus:** `FocusMin` defaults to `0` (focus check off) so it can't nuisance-flag before tuning. Select a device in HMC **Setup** and read the live `focus` value in the camera read-out (also logged ~1×/sec as `[PCAPTool] HMC … | focus …`). Note it sharp vs. defocused, pick a `FocusMin` between, set it in `FPipelineCheckProfile` (`PCAPToolTypes.h`), rebuild. Calibrate against frames at the **real operating brightness** (the score weakens at very low luma).
 4. **Arm framing:** with the actor correctly framed (face on the faint centre crosshair), hit **Set reference** per camera in Setup. The Output Log reports whether the capture was within the pipeline target. From then on, drift from that reference raises a red **Frame** flag; Preview shows "Framing reference not set" until you do this.
-5. **Thresholds** (all in `FPipelineCheckProfile`, `PCAPToolTypes.h`): `FocusMin`, `BlownFracMax` (0.05), `MeanLumaMin` (40/255), `RegionSpreadMax` (0.25), `FramingDriftTol` (0.08), `FramingSizeMin/Max` (0.45–0.85). The read-out's raw numbers are the tuning reference.
+5. **Thresholds** (image ones all in `FPipelineCheckProfile`, `PCAPToolTypes.h`): `FocusMin`, `BlownFracMax` (0.05), `MeanLumaMin` (40/255), `RegionSpreadMax` (0.25), `FramingDriftTol` (0.08), `FramingSizeMin/Max` (0.45–0.85), `BumpJumpMin` (0.06), `InstabilityStdMax` (0.03), `BumpHoldSeconds` (1.2); plus `LowFPS` `< 55` in `EvaluateCameraIssues` (`PCAPToolStatics.cpp`). The read-out's raw numbers are the tuning reference.

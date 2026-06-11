@@ -437,6 +437,10 @@ struct FPipelineCheckProfile
     float FramingSizeMax   = 0.85f;
     float FramingCenterTol = 0.10f;        // captured ref must land within this of target
     float FramingDriftTol  = 0.08f;        // live subject may drift this far from the ref
+
+    float BumpJumpMin       = 0.06f;       // sudden one-sample centroid jump -> bump
+    float InstabilityStdMax = 0.03f;       // centroid std-dev over the window -> unstable mount
+    float BumpHoldSeconds   = 1.2f;        // how long a detected bump stays latched red
 };
 
 // Output of one frame's image analysis (per camera). Stored per "Device_Cam" in

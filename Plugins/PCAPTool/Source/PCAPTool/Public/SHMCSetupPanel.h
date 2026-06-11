@@ -23,6 +23,8 @@ private:
     TArray<FString> BuiltDeviceNames;
     // Actor dropdown is sourced live from the active day's call sheet (CalledActorIDs).
     TArray<FString> CalledActorIDsForActiveDay() const;
+    // Resolve an ActorID to "First Last" via the Actor roster (falls back to the ID).
+    FString ResolveActorName(const FString& ActorID) const;
 
     // ── Add Device modal ──────────────────────────────────────────────────────
     TSharedPtr<SWindow> ModalWindow;

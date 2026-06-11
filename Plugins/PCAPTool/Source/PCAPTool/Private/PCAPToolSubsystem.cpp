@@ -574,14 +574,17 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
                 // Mount stability from the subject centroid: a sudden jump = a bump
                 // (latched ~1.2s so a one-frame knock stays visible), and high variance
                 // over the window = an unstable / wobbling mount. Only with a subject.
+                const FPipelineCheckProfile Profile =
+                    UPCAPToolStatics::GetPipelineProfile(GetDevicePipeline(DeviceName));
+
                 int32 StabilityFlags = 0;
-                if (M.bHasSubject)
+                if (M.bHasSubject && Profile.bCheckFraming)   // skip if the pipeline doesn't frame-check
                 {
                     TArray<FVector2D>& Hist = CentroidHistory.FindOrAdd(CamKey);
                     if (Hist.Num() > 0 &&
-                        FVector2D::Distance(M.SubjectCenter, Hist.Last()) > 0.06)
+                        FVector2D::Distance(M.SubjectCenter, Hist.Last()) > Profile.BumpJumpMin)
                     {
-                        BumpUntil.FindOrAdd(CamKey) = NowT + 1.2;   // latch the bump
+                        BumpUntil.FindOrAdd(CamKey) = NowT + Profile.BumpHoldSeconds;   // latch the bump
                     }
                     Hist.Add(M.SubjectCenter);
                     while (Hist.Num() > 10) Hist.RemoveAt(0);       // ~2s window @ ~5Hz
@@ -592,12 +595,11 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
                         Mean /= (double)Hist.Num();
                         double Var = 0.0;
                         for (const FVector2D& P : Hist) Var += FVector2D::DistSquared(P, Mean);
-                        if (FMath::Sqrt(Var / Hist.Num()) > 0.03) StabilityFlags |= HMC_Issue_Unstable;
+                        if (FMath::Sqrt(Var / Hist.Num()) > Profile.InstabilityStdMax)
+                            StabilityFlags |= HMC_Issue_Unstable;
                     }
                 }
 
-                const FPipelineCheckProfile Profile =
-                    UPCAPToolStatics::GetPipelineProfile(GetDevicePipeline(DeviceName));
                 const int32 RawAuto = UPCAPToolStatics::MapMetricsToAutoFlags(
                     M, Profile, GetFramingRef(DeviceName, CameraIndex)) | StabilityFlags;
                 UpdateAutoFlagHysteresis(CamKey, RawAuto);

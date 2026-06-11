@@ -3,6 +3,7 @@
 #include "PCAPToolStatics.h"
 #include "PCAPToolSettings.h"
 #include "MocapDatabase.h"
+#include "ActorRosterEntry.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/SWindow.h"
@@ -294,6 +295,22 @@ TArray<FString> SHMCSetupPanel::CalledActorIDsForActiveDay() const
     return TArray<FString>();
 }
 
+FString SHMCSetupPanel::ResolveActorName(const FString& ActorID) const
+{
+    if (ActorID.IsEmpty()) return ActorID;
+    if (UPCAPToolSettings* Settings = UPCAPToolSettings::Get())
+        if (UMocapDatabase* DB = Settings->GetDatabase())
+            for (const TSoftObjectPtr<UActorRosterEntry>& Ptr : DB->ActorRoster)
+                if (UActorRosterEntry* E = Ptr.LoadSynchronous())
+                    if (E->ActorID == ActorID)
+                    {
+                        const FString Name =
+                            FString::Printf(TEXT("%s %s"), *E->FirstName, *E->LastName).TrimStartAndEnd();
+                        return Name.IsEmpty() ? ActorID : Name;
+                    }
+    return ActorID;   // not in roster → show the ID
+}
+
 TSharedRef<SWidget> SHMCSetupPanel::BuildActorDropdown(const FString& DeviceName)
 {
     return SNew(SComboButton)
@@ -303,7 +320,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildActorDropdown(const FString& DeviceName
             .Text_Lambda([this, DeviceName]()
             {
                 const FString A = GetStatus(DeviceName).ActorID;
-                return FText::FromString(A.IsEmpty() ? TEXT("Assign actor…") : A);
+                return FText::FromString(A.IsEmpty() ? TEXT("Assign actor…") : ResolveActorName(A));
             })
         ]
         .OnGetMenuContent_Lambda([this, DeviceName]() -> TSharedRef<SWidget>
@@ -321,7 +338,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildActorDropdown(const FString& DeviceName
             for (const FString& ActorID : Called)
             {
                 MB.AddMenuEntry(
-                    FText::FromString(ActorID),
+                    FText::FromString(ResolveActorName(ActorID)),
                     FText::GetEmpty(),
                     FSlateIcon(),
                     FUIAction(FExecuteAction::CreateSP(
@@ -900,8 +917,13 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCheckBox(const FString& Label, int32 Fl
         .BorderBackgroundColor_Lambda([this, FlagBit, CameraIndex]()
         {
             UPCAPToolSubsystem* Sub = GetSubsystem();
-            const int32 F = (Sub && !ActiveDeviceName.IsEmpty())
-                ? Sub->GetEffectiveIssueFlags(ActiveDeviceName, CameraIndex) : 0;
+            if (!Sub || ActiveDeviceName.IsEmpty()) return FSlateColor(ColGray);
+            // Grey when the device's pipeline runs no checks (e.g. Faceware until its docs).
+            const FPipelineCheckProfile P =
+                UPCAPToolStatics::GetPipelineProfile(Sub->GetDevicePipeline(ActiveDeviceName));
+            if (!(P.bCheckSubject || P.bCheckFraming || P.bCheckFocus || P.bCheckExposure || P.bCheckLighting))
+                return FSlateColor(ColGray);
+            const int32 F = Sub->GetEffectiveIssueFlags(ActiveDeviceName, CameraIndex);
             return FSlateColor((F & FlagBit) ? ColRed : ColGreen);
         })
         .ToolTipText_Lambda([this, Label, FlagBit, CameraIndex]()
@@ -917,6 +939,13 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCheckBox(const FString& Label, int32 Fl
 FString SHMCSetupPanel::CheckExplanation(const FString& Label, int32 FlagBit, int32 CameraIndex) const
 {
     UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (Sub && !ActiveDeviceName.IsEmpty())
+    {
+        const FPipelineCheckProfile P =
+            UPCAPToolStatics::GetPipelineProfile(Sub->GetDevicePipeline(ActiveDeviceName));
+        if (!(P.bCheckSubject || P.bCheckFraming || P.bCheckFocus || P.bCheckExposure || P.bCheckLighting))
+            return FString::Printf(TEXT("%s: not checked by this pipeline."), *Label);
+    }
     const int32 F = (Sub && !ActiveDeviceName.IsEmpty())
         ? Sub->GetEffectiveIssueFlags(ActiveDeviceName, CameraIndex) : 0;
     const int32 Active = F & FlagBit;
