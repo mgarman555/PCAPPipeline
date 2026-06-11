@@ -1,6 +1,8 @@
 #include "SHMCSetupPanel.h"
 #include "PCAPToolSubsystem.h"
 #include "PCAPToolStatics.h"
+#include "PCAPToolSettings.h"
+#include "MocapDatabase.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/SWindow.h"
@@ -35,11 +37,6 @@ FHMCDeviceStatus SHMCSetupPanel::GetStatus(const FString& DeviceName) const
 
 void SHMCSetupPanel::Construct(const FArguments& InArgs)
 {
-    // Starter actor list — these come from the production database later.
-    ActorOptions.Add(MakeShared<FString>(TEXT("kevinDorman")));
-    ActorOptions.Add(MakeShared<FString>(TEXT("madiGarman")));
-    ActorOptions.Add(MakeShared<FString>(TEXT("mannyTester")));
-
     ChildSlot
     [
         SNew(SBorder)
@@ -286,6 +283,17 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDeviceRow(const FString& DeviceName)
         ];
 }
 
+TArray<FString> SHMCSetupPanel::CalledActorIDsForActiveDay() const
+{
+    // The HMC assigns only actors on the active day's call sheet. Active day =
+    // MocapDatabase ActiveProductionCode + ActiveDayID (set in the Operator Console).
+    if (UPCAPToolSettings* Settings = UPCAPToolSettings::Get())
+        if (UMocapDatabase* DB = Settings->GetDatabase())
+            if (FShootDay* Day = DB->GetActiveDay())
+                return Day->CalledActorIDs;
+    return TArray<FString>();
+}
+
 TSharedRef<SWidget> SHMCSetupPanel::BuildActorDropdown(const FString& DeviceName)
 {
     return SNew(SComboButton)
@@ -301,10 +309,17 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildActorDropdown(const FString& DeviceName
         .OnGetMenuContent_Lambda([this, DeviceName]() -> TSharedRef<SWidget>
         {
             FMenuBuilder MB(/*bShouldCloseWindowAfterMenuSelection*/ true, nullptr);
-            for (const TSharedPtr<FString>& Opt : ActorOptions)
+            const TArray<FString> Called = CalledActorIDsForActiveDay();
+            if (Called.Num() == 0)
             {
-                if (!Opt.IsValid()) continue;
-                const FString ActorID = *Opt;
+                MB.AddMenuEntry(
+                    FText::FromString(TEXT("(no actors called on the active day)")),
+                    FText::GetEmpty(), FSlateIcon(),
+                    FUIAction(FExecuteAction::CreateLambda([](){}),
+                              FCanExecuteAction::CreateLambda([](){ return false; })));
+            }
+            for (const FString& ActorID : Called)
+            {
                 MB.AddMenuEntry(
                     FText::FromString(ActorID),
                     FText::GetEmpty(),

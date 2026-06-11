@@ -21,7 +21,8 @@ public:
 private:
     TSharedPtr<SVerticalBox> DeviceListBox;        // rebuilt only on device-set change
     TArray<FString> BuiltDeviceNames;
-    TArray<TSharedPtr<FString>> ActorOptions;      // dropdown source (from database later)
+    // Actor dropdown is sourced live from the active day's call sheet (CalledActorIDs).
+    TArray<FString> CalledActorIDsForActiveDay() const;
 
     // ── Add Device modal ──────────────────────────────────────────────────────
     TSharedPtr<SWindow> ModalWindow;
