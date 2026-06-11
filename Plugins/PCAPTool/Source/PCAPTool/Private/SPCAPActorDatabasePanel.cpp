@@ -23,6 +23,8 @@
 #include "Editor.h"
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "AssetThumbnail.h"
+#include "PCAPToolSettings.h"
+#include "MocapDatabase.h"
 
 #define LOCTEXT_NAMESPACE "PCAPActorDatabase"
 
@@ -197,6 +199,26 @@ TSharedRef<ITableRow> SPCAPActorDatabasePanel::OnGenerateRow(TWeakObjectPtr<UAct
             [ SNew(STextBlock).Text(FText::FromString(IDText)) ]
             + SVerticalBox::Slot().AutoHeight()
             [ SNew(STextBlock).Text(FText::FromString(NameText)).ColorAndOpacity(FSlateColor(ColText2)) ]
+        ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(6.f, 0.f, 2.f, 0.f)
+        [
+            SNew(SCheckBox)
+            .IsChecked_Lambda([Item]()
+            {
+                UPCAPToolSettings* S = UPCAPToolSettings::Get();
+                UMocapDatabase* DB = S ? S->GetDatabase() : nullptr;
+                const FString ID = Item.IsValid() ? Item->ActorID : FString();
+                return (DB && DB->IsActorCalled(ID)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+            })
+            .OnCheckStateChanged_Lambda([Item](ECheckBoxState NewState)
+            {
+                UPCAPToolSettings* S = UPCAPToolSettings::Get();
+                if (UMocapDatabase* DB = (S ? S->GetDatabase() : nullptr))
+                {
+                    if (Item.IsValid()) DB->SetActorCalled(Item->ActorID, NewState == ECheckBoxState::Checked);
+                }
+            })
+            [ SNew(STextBlock).Text(LOCTEXT("Call", "Call")) ]
         ]
     ];
 }

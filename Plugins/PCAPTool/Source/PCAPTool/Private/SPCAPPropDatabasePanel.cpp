@@ -22,6 +22,9 @@
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "PropertyCustomizationHelpers.h"
 #include "AssetThumbnail.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "PCAPToolSettings.h"
+#include "MocapDatabase.h"
 
 #define LOCTEXT_NAMESPACE "PCAPPropDatabase"
 
@@ -158,11 +161,35 @@ TSharedRef<ITableRow> SPCAPPropDatabasePanel::OnGenerateRow(TWeakObjectPtr<UProp
     const FString NameText = E ? E->DisplayName : FString();
     return SNew(STableRow<TWeakObjectPtr<UPropRosterEntry>>, Owner)
     [
-        SNew(SVerticalBox)
-        + SVerticalBox::Slot().AutoHeight().Padding(2.f, 4.f, 2.f, 0.f)
-        [ SNew(STextBlock).Text(FText::FromString(IDText)) ]
-        + SVerticalBox::Slot().AutoHeight().Padding(2.f, 0.f, 2.f, 4.f)
-        [ SNew(STextBlock).Text(FText::FromString(NameText)).ColorAndOpacity(FSlateColor(ColText2)) ]
+        SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().FillWidth(1.f)
+        [
+            SNew(SVerticalBox)
+            + SVerticalBox::Slot().AutoHeight().Padding(2.f, 4.f, 2.f, 0.f)
+            [ SNew(STextBlock).Text(FText::FromString(IDText)) ]
+            + SVerticalBox::Slot().AutoHeight().Padding(2.f, 0.f, 2.f, 4.f)
+            [ SNew(STextBlock).Text(FText::FromString(NameText)).ColorAndOpacity(FSlateColor(ColText2)) ]
+        ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(6.f, 0.f, 2.f, 0.f)
+        [
+            SNew(SCheckBox)
+            .IsChecked_Lambda([Item]()
+            {
+                UPCAPToolSettings* S = UPCAPToolSettings::Get();
+                UMocapDatabase* DB = S ? S->GetDatabase() : nullptr;
+                const FString ID = Item.IsValid() ? Item->PropID : FString();
+                return (DB && DB->IsPropCalled(ID)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+            })
+            .OnCheckStateChanged_Lambda([Item](ECheckBoxState NewState)
+            {
+                UPCAPToolSettings* S = UPCAPToolSettings::Get();
+                if (UMocapDatabase* DB = (S ? S->GetDatabase() : nullptr))
+                {
+                    if (Item.IsValid()) DB->SetPropCalled(Item->PropID, NewState == ECheckBoxState::Checked);
+                }
+            })
+            [ SNew(STextBlock).Text(LOCTEXT("Call", "Call")) ]
+        ]
     ];
 }
 
