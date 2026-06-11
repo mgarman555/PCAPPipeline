@@ -8,7 +8,13 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Styling/AppStyle.h"
+
+#include "MocapDatabase.h"
+#include "PCAPToolSettings.h"
 
 #define LOCTEXT_NAMESPACE "PCAPCallSheet"
 
@@ -91,12 +97,141 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSectionContent(ESection S)
         case ESection::Stages: return SNew(SPCAPStageDatabasePanel);
         case ESection::Actors: return SNew(SPCAPActorDatabasePanel);
         case ESection::Props:  return SNew(SPCAPPropDatabasePanel);
-        case ESection::Project:
-            return SNew(STextBlock).Text(LOCTEXT("ProjStub", "Project picker — Task 4")).ColorAndOpacity(FSlateColor(ColText2));
+        case ESection::Project:  return BuildProjectSection();
         case ESection::ShootDay:
-        default:
-            return SNew(STextBlock).Text(LOCTEXT("DayStub", "Shoot day picker — Task 4")).ColorAndOpacity(FSlateColor(ColText2));
+        default:                 return BuildShootDaySection();
     }
+}
+
+UMocapDatabase* SPCAPCallSheetPanel::GetDB() const
+{
+    UPCAPToolSettings* S = UPCAPToolSettings::Get();
+    return S ? S->GetDatabase() : nullptr;
+}
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildProjectSection()
+{
+    UMocapDatabase* DB = GetDB();
+    const FString Active = DB ? DB->ActiveProductionCode : FString();
+
+    return SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+        [ SNew(STextBlock).Text(LOCTEXT("PickProject", "Active project")).ColorAndOpacity(FSlateColor(ColText2)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [
+            SNew(SComboButton)
+            .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(Active.IsEmpty() ? TEXT("(none)") : Active)) ]
+            .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
+            {
+                FMenuBuilder MB(true, nullptr);
+                if (UMocapDatabase* D = GetDB())
+                {
+                    TArray<FProduction> Prods = D->Productions;   // sorted copy — alphabetical
+                    Prods.Sort([](const FProduction& A, const FProduction& B){ return A.ProjectCode < B.ProjectCode; });
+                    for (const FProduction& P : Prods)
+                    {
+                        const FString Code = P.ProjectCode;
+                        MB.AddMenuEntry(FText::FromString(FString::Printf(TEXT("%s — %s"), *Code, *P.ProductionName)),
+                            FText::GetEmpty(), FSlateIcon(),
+                            FUIAction(FExecuteAction::CreateLambda([this, Code]()
+                            {
+                                if (UMocapDatabase* D2 = GetDB()) { D2->ActiveProductionCode = Code; }
+                                SelectSection(ESection::Project);
+                            })));
+                    }
+                }
+                return MB.MakeWidget();
+            })
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 12.f, 0.f, 2.f)
+        [ SNew(STextBlock).Text(LOCTEXT("NewProject", "New project (code)")).ColorAndOpacity(FSlateColor(ColText2)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [
+            SNew(SEditableTextBox)
+            .HintText(LOCTEXT("NewProjHint", "+ project code  ↵"))
+            .OnTextCommitted_Lambda([this](const FText& T, ETextCommit::Type CommitType)
+            {
+                if (CommitType != ETextCommit::OnEnter) return;
+                const FString Code = T.ToString().TrimStartAndEnd();
+                if (Code.IsEmpty()) return;
+                if (UMocapDatabase* D = GetDB())
+                {
+                    if (!D->GetProductionByCode(Code))
+                    {
+                        FProduction P; P.ProjectCode = Code; P.ProductionName = Code;
+                        D->Productions.Add(P);
+                        D->MarkPackageDirty();
+                    }
+                    D->ActiveProductionCode = Code;
+                    SelectSection(ESection::Project);
+                }
+            })
+        ];
+}
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShootDaySection()
+{
+    UMocapDatabase* DB = GetDB();
+    const FString Active = DB ? DB->ActiveDayID : FString();
+
+    return SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+        [ SNew(STextBlock).Text(LOCTEXT("PickDay", "Active shoot day")).ColorAndOpacity(FSlateColor(ColText2)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [
+            SNew(SComboButton)
+            .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(Active.IsEmpty() ? TEXT("(none)") : (TEXT("Day_") + Active))) ]
+            .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
+            {
+                FMenuBuilder MB(true, nullptr);
+                if (UMocapDatabase* D = GetDB())
+                {
+                    if (FProduction* P = D->GetProductionByCode(D->ActiveProductionCode))
+                    {
+                        TArray<FShootDay> Days = P->Days;   // sorted copy — alphabetical
+                        Days.Sort([](const FShootDay& A, const FShootDay& B){ return A.DayID < B.DayID; });
+                        for (const FShootDay& Day : Days)
+                        {
+                            const FString Id = Day.DayID;
+                            MB.AddMenuEntry(FText::FromString(TEXT("Day_") + Id), FText::GetEmpty(), FSlateIcon(),
+                                FUIAction(FExecuteAction::CreateLambda([this, Id]()
+                                {
+                                    if (UMocapDatabase* D2 = GetDB()) { D2->ActiveDayID = Id; }
+                                    SelectSection(ESection::ShootDay);
+                                })));
+                        }
+                    }
+                }
+                return MB.MakeWidget();
+            })
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 12.f, 0.f, 2.f)
+        [ SNew(STextBlock).Text(LOCTEXT("NewDay", "New shoot day (id, e.g. 002)")).ColorAndOpacity(FSlateColor(ColText2)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [
+            SNew(SEditableTextBox)
+            .HintText(LOCTEXT("NewDayHint", "+ day id  ↵"))
+            .OnTextCommitted_Lambda([this](const FText& T, ETextCommit::Type CommitType)
+            {
+                if (CommitType != ETextCommit::OnEnter) return;
+                const FString Id = T.ToString().TrimStartAndEnd();
+                if (Id.IsEmpty()) return;
+                if (UMocapDatabase* D = GetDB())
+                {
+                    if (FProduction* P = D->GetProductionByCode(D->ActiveProductionCode))
+                    {
+                        if (!D->GetDay(D->ActiveProductionCode, Id))
+                        {
+                            FShootDay Day; Day.DayID = Id;
+                            P->Days.Add(Day);
+                            D->MarkPackageDirty();
+                        }
+                        D->ActiveDayID = Id;
+                    }
+                    SelectSection(ESection::ShootDay);
+                }
+            })
+        ];
 }
 
 #undef LOCTEXT_NAMESPACE

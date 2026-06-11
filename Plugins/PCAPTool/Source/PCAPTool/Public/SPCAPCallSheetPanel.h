@@ -29,6 +29,9 @@ private:
     TSharedRef<SWidget> BuildRail();
     TSharedRef<SWidget> BuildRailItem(ESection S, const FText& Label);
     TSharedRef<SWidget> BuildSectionContent(ESection S);
+    TSharedRef<SWidget> BuildProjectSection();
+    TSharedRef<SWidget> BuildShootDaySection();
+    class UMocapDatabase* GetDB() const;
 
     const FLinearColor ColGreen = FLinearColor(0.290f, 0.878f, 0.502f);
     const FLinearColor ColText2 = FLinearColor(0.478f, 0.541f, 0.502f);
