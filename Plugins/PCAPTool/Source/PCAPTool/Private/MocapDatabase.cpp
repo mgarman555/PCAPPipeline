@@ -163,3 +163,35 @@ FString UMocapDatabase::BuildTakeAssetPath(const FString& TakeID, const FString&
 
     return Base + AssetName;
 }
+
+// ─── Day call sheet ─────────────────────────────────────────────────────────
+
+bool UMocapDatabase::IsActorCalled(const FString& ActorID) const
+{
+    const FShootDay* Day = const_cast<UMocapDatabase*>(this)->GetDay(ActiveProductionCode, ActiveDayID);
+    return Day && Day->CalledActorIDs.Contains(ActorID);
+}
+
+void UMocapDatabase::SetActorCalled(const FString& ActorID, bool bCalled)
+{
+    if (FShootDay* Day = GetDay(ActiveProductionCode, ActiveDayID))
+    {
+        if (bCalled) Day->CalledActorIDs.AddUnique(ActorID);
+        else         Day->CalledActorIDs.Remove(ActorID);
+    }
+}
+
+bool UMocapDatabase::IsPropCalled(const FString& PropID) const
+{
+    const FShootDay* Day = const_cast<UMocapDatabase*>(this)->GetDay(ActiveProductionCode, ActiveDayID);
+    return Day && Day->CalledPropIDs.Contains(PropID);
+}
+
+void UMocapDatabase::SetPropCalled(const FString& PropID, bool bCalled)
+{
+    if (FShootDay* Day = GetDay(ActiveProductionCode, ActiveDayID))
+    {
+        if (bCalled) Day->CalledPropIDs.AddUnique(PropID);
+        else         Day->CalledPropIDs.Remove(PropID);
+    }
+}

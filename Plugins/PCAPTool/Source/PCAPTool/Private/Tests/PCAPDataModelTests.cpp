@@ -90,4 +90,28 @@ bool FPCAPMakeShotSubjectFromRosterTest::RunTest(const FString&)
     return true;
 }
 
+// Day call sheet — set/clear/idempotent against the active day.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPDayCalloutTest,
+    "PCAP.DataModel.DayCallout",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPDayCalloutTest::RunTest(const FString&)
+{
+    UMocapDatabase* DB = NewObject<UMocapDatabase>();
+    FProduction P; P.ProjectCode = TEXT("DA");
+    FShootDay   D; D.DayID       = TEXT("001");
+    P.Days.Add(D);
+    DB->Productions.Add(P);
+    DB->ActiveProductionCode = TEXT("DA");
+    DB->ActiveDayID          = TEXT("001");
+
+    TestFalse(TEXT("not called initially"), DB->IsActorCalled(TEXT("kevinDorman")));
+    DB->SetActorCalled(TEXT("kevinDorman"), true);
+    TestTrue(TEXT("called after set"), DB->IsActorCalled(TEXT("kevinDorman")));
+    DB->SetActorCalled(TEXT("kevinDorman"), true);
+    TestEqual(TEXT("no dupes"), DB->GetDay(TEXT("DA"), TEXT("001"))->CalledActorIDs.Num(), 1);
+    DB->SetActorCalled(TEXT("kevinDorman"), false);
+    TestFalse(TEXT("removed after clear"), DB->IsActorCalled(TEXT("kevinDorman")));
+    return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

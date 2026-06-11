@@ -57,6 +57,12 @@ public:
     FShot*       GetActiveShot();
     UStageConfigAsset* GetActiveStageConfig() const;   // day override, else production
 
+    // Day call sheet — operate on the active day (ActiveProductionCode + ActiveDayID).
+    bool IsActorCalled(const FString& ActorID) const;
+    void SetActorCalled(const FString& ActorID, bool bCalled);
+    bool IsPropCalled(const FString& PropID) const;
+    void SetPropCalled(const FString& PropID, bool bCalled);
+
     // Take-id / asset-path helpers. Slot-only 3-digit ShotID (see Phase 1 spec §4.6).
     FString BuildNextTakeID() const;
     FString BuildTakeAssetPath(const FString& TakeID, const FString& ActorID, const FString& StreamSuffix) const;

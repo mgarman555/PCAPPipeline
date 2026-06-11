@@ -382,6 +382,9 @@ enum EHMCIssueFlag : int32
     HMC_Issue_OutOfFocus    = 1 << 10,  // variance-of-Laplacian below pipeline floor (red)
     HMC_Issue_UnevenLight   = 1 << 11,  // half/quadrant luma spread too high (amber)
     HMC_Issue_FramingDrift  = 1 << 12,  // subject drifted from the captured reference (red)
+    HMC_Issue_Bumped        = 1 << 13,  // sudden position jump — mount knocked (red)
+    HMC_Issue_Unstable      = 1 << 14,  // high position variance — loose / wobbling mount (red)
+    HMC_Issue_LowFPS        = 1 << 15,  // device frameRate below the 60fps minimum (red)
 
     // Operator-reported (manual) bits — RETIRED (no UI; superseded by the automatic
     // framing check above). Kept for save-format / bit-stability compatibility only.
@@ -836,6 +839,13 @@ struct PCAPTOOL_API FShootDay
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TSoftObjectPtr<UStageConfigAsset> ActiveStageConfig;   // null = inherit production
+
+    // Day call sheet — what is called for the whole day (roster ID references).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
+    TArray<FString> CalledActorIDs;   // → UActorRosterEntry.ActorID
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
+    TArray<FString> CalledPropIDs;    // → UPropRosterEntry.PropID
 };
 
 USTRUCT(BlueprintType)
