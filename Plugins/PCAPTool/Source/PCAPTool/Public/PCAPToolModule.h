@@ -11,9 +11,6 @@ class FPCAPToolModule : public IModuleInterface
 public:
     static const FName HMCTabName;
     static const FName DatabaseTabName;
-    static const FName ActorDBTabName;
-    static const FName PropDBTabName;
-    static const FName StageDBTabName;
     static const FName ConsoleTabName;
     static const FName CallSheetTabName;
 
@@ -23,9 +20,6 @@ public:
 private:
     TSharedRef<SDockTab> SpawnHMCTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnDatabaseTab(const FSpawnTabArgs& Args);
-    TSharedRef<SDockTab> SpawnActorDBTab(const FSpawnTabArgs& Args);
-    TSharedRef<SDockTab> SpawnPropDBTab(const FSpawnTabArgs& Args);
-    TSharedRef<SDockTab> SpawnStageDBTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnConsoleTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnCallSheetTab(const FSpawnTabArgs& Args);
     void RegisterMenus();

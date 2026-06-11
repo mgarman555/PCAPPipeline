@@ -2,6 +2,7 @@
 #include "PCAPToolPaths.h"
 
 #include "UObject/Package.h"
+#include "UObject/UObjectGlobals.h"
 #include "Misc/PackageName.h"
 
 #if WITH_EDITOR
@@ -37,7 +38,7 @@ UMocapDatabase* UPCAPToolSettings::GetOrCreateDatabase()
 #if WITH_EDITOR
     // None assigned — create one in the PCAP tool area and self-assign so the
     // tool is zero-setup. Mirrors the roster panels' create pattern.
-    const FString PackageName = PCAPPaths::MasterDatabase();   // /Game/PCAPTool/Databases/MocapDatabase
+    const FString PackageName = PCAPPaths::MasterDatabase();   // /Game/PCAPTool/Databases/MasterPCAPDatabase
 
     UMocapDatabase* DB = nullptr;
     if (FPackageName::DoesPackageExist(PackageName))
