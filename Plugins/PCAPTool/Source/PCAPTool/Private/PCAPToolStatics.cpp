@@ -127,6 +127,11 @@ int32 UPCAPToolStatics::EvaluateCameraIssues(const FHMCDeviceStatus& S, int32 Ca
     if (S.CPUUsagePercent >= 85.f)                                     Flags |= HMC_Issue_HighCPU;
     if (S.TemperatureCelsius >= 85.f)                                  Flags |= HMC_Issue_HighTemp;
 
+    // MetaHuman Capture Device Requirements: >= 60 fps recommended. Device-wide.
+    // S.FPS is the device's reported frameRate; threshold has margin. VERIFY on the
+    // rig that frameRate is the capture rate (not the stream rate) before trusting.
+    if (S.FPS > 0.f && S.FPS < 55.f)                                   Flags |= HMC_Issue_LowFPS;
+
     return Flags;
 }
 
@@ -135,7 +140,8 @@ EHMCIssueSeverity UPCAPToolStatics::GetIssueSeverity(int32 Flags)
     const int32 RedMask =
         HMC_Issue_NotStreaming | HMC_Issue_Overexposed |
         HMC_Issue_LowBattery   | HMC_Issue_LowStorage   | HMC_Issue_HighTemp |
-        HMC_Issue_NoFace       | HMC_Issue_OutOfFocus   | HMC_Issue_FramingDrift;
+        HMC_Issue_NoFace       | HMC_Issue_OutOfFocus   | HMC_Issue_FramingDrift |
+        HMC_Issue_Bumped       | HMC_Issue_Unstable     | HMC_Issue_LowFPS;
 
     const int32 AmberMask =
         HMC_Issue_Underexposed | HMC_Issue_DroppedFrames | HMC_Issue_ClipNotReady |
@@ -154,11 +160,14 @@ FString UPCAPToolStatics::GetIssueBannerText(int32 Flags)
     if (Flags & HMC_Issue_NoFace)        return TEXT("NO FACE IN FRAME · Reframe");
     if (Flags & HMC_Issue_NotStreaming)  return TEXT("Camera disconnected · Check device");
     if (Flags & HMC_Issue_Overexposed)   return TEXT("Overexposed · Reduce exposure");
-    if (Flags & HMC_Issue_FramingDrift)  return TEXT("Framing drifted · Re-seat rig / reposition");
+    if (Flags & HMC_Issue_FramingDrift)  return TEXT("Framing drifted · Re-center to the reference");
+    if (Flags & HMC_Issue_Bumped)        return TEXT("Headset bumped · Re-seat & re-set the reference");
+    if (Flags & HMC_Issue_Unstable)      return TEXT("Unstable mount · Camera isn't holding still on the face");
     if (Flags & HMC_Issue_OutOfFocus)    return TEXT("Out of focus · Adjust lens");
     if (Flags & HMC_Issue_LowBattery)    return TEXT("Battery low · Eyes on it");
     if (Flags & HMC_Issue_LowStorage)    return TEXT("Storage critical · Wrap soon");
     if (Flags & HMC_Issue_HighTemp)      return TEXT("Overheating · Check rig");
+    if (Flags & HMC_Issue_LowFPS)        return TEXT("Low frame rate · Capture below 60 fps");
     // Amber (warning) issues
     if (Flags & HMC_Issue_UnevenLight)   return TEXT("Uneven lighting · Flatten the light");
     if (Flags & HMC_Issue_Underexposed)  return TEXT("Underexposed · Raise exposure or gain");

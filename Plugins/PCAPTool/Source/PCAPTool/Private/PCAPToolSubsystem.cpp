@@ -93,6 +93,8 @@ void UPCAPToolSubsystem::UnregisterDevice(const FString& DeviceName)
         LastAnalyzeTime.Remove(CamKey);
         StableAutoFlags.Remove(CamKey);
         FrameNoFace.Remove(CamKey);
+        CentroidHistory.Remove(CamKey);
+        BumpUntil.Remove(CamKey);
     }
     const FString Prefix = DeviceName + TEXT("_");
     for (auto It = AutoFlagHold.CreateIterator(); It; ++It)
@@ -497,7 +499,13 @@ int32 UPCAPToolSubsystem::GetEffectiveIssueFlags(const FString& DeviceName, int3
     // Debounced automatic image-analysis flags (focus / exposure / lighting / framing).
     const int32 AutoFlags = StableAutoFlags.Contains(Key) ? StableAutoFlags[Key] : 0;
 
-    return Hardware | GetManualIssueFlags(DeviceName) | FrameFlags | AutoFlags;
+    // Bump latch — a momentary knock stays red for its hold window (bypasses the slow
+    // hysteresis so a single-frame jump is actually visible).
+    int32 BumpFlag = 0;
+    if (const double* BU = BumpUntil.Find(Key))
+        if (FPlatformTime::Seconds() < *BU) BumpFlag = HMC_Issue_Bumped;
+
+    return Hardware | GetManualIssueFlags(DeviceName) | FrameFlags | AutoFlags | BumpFlag;
 }
 
 // ─── Video Frames ─────────────────────────────────────────────────────────────
@@ -562,10 +570,36 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
                 const FHMCImageMetrics M = UPCAPToolStatics::AnalyzeFrameBGRA(
                     Uncompressed, IW->GetWidth(), IW->GetHeight());
                 ImageMetrics.Add(CamKey, M);
+
+                // Mount stability from the subject centroid: a sudden jump = a bump
+                // (latched ~1.2s so a one-frame knock stays visible), and high variance
+                // over the window = an unstable / wobbling mount. Only with a subject.
+                int32 StabilityFlags = 0;
+                if (M.bHasSubject)
+                {
+                    TArray<FVector2D>& Hist = CentroidHistory.FindOrAdd(CamKey);
+                    if (Hist.Num() > 0 &&
+                        FVector2D::Distance(M.SubjectCenter, Hist.Last()) > 0.06)
+                    {
+                        BumpUntil.FindOrAdd(CamKey) = NowT + 1.2;   // latch the bump
+                    }
+                    Hist.Add(M.SubjectCenter);
+                    while (Hist.Num() > 10) Hist.RemoveAt(0);       // ~2s window @ ~5Hz
+                    if (Hist.Num() >= 5)
+                    {
+                        FVector2D Mean(0.0, 0.0);
+                        for (const FVector2D& P : Hist) Mean += P;
+                        Mean /= (double)Hist.Num();
+                        double Var = 0.0;
+                        for (const FVector2D& P : Hist) Var += FVector2D::DistSquared(P, Mean);
+                        if (FMath::Sqrt(Var / Hist.Num()) > 0.03) StabilityFlags |= HMC_Issue_Unstable;
+                    }
+                }
+
                 const FPipelineCheckProfile Profile =
                     UPCAPToolStatics::GetPipelineProfile(GetDevicePipeline(DeviceName));
                 const int32 RawAuto = UPCAPToolStatics::MapMetricsToAutoFlags(
-                    M, Profile, GetFramingRef(DeviceName, CameraIndex));
+                    M, Profile, GetFramingRef(DeviceName, CameraIndex)) | StabilityFlags;
                 UpdateAutoFlagHysteresis(CamKey, RawAuto);
             }
         }
@@ -836,6 +870,31 @@ FHMCFramingRef UPCAPToolSubsystem::GetFramingRef(const FString& DeviceName, int3
     return FHMCFramingRef();
 }
 
+FString UPCAPToolSubsystem::GetFramingHint(const FString& DeviceName, int32 CameraIndex) const
+{
+    const FHMCFramingRef Ref = GetFramingRef(DeviceName, CameraIndex);
+    if (!Ref.bSet) return FString();
+
+    const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+    const FHMCImageMetrics* M = ImageMetrics.Find(CamKey);
+    if (!M || !M->bValid || !M->bHasSubject) return FString();
+
+    const double Tol = 0.04;   // dead-zone so tiny motion isn't called drift
+    const double dx = M->SubjectCenter.X - Ref.Center.X;
+    const double dy = M->SubjectCenter.Y - Ref.Center.Y;
+
+    FString V, H;
+    if (dy >  Tol)      V = TEXT("low");    // face sits lower in frame than the reference
+    else if (dy < -Tol) V = TEXT("high");
+    if (dx >  Tol)      H = TEXT("right");
+    else if (dx < -Tol) H = TEXT("left");
+
+    if (!V.IsEmpty() && !H.IsEmpty()) return FString::Printf(TEXT("%s & %s"), *V, *H);
+    if (!V.IsEmpty())                 return V;
+    if (!H.IsEmpty())                 return TEXT("off-axis ") + H;
+    return FString();
+}
+
 bool UPCAPToolSubsystem::SetFramingReferenceFromCurrent(const FString& DeviceName, int32 CameraIndex)
 {
     FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
@@ -900,7 +959,8 @@ int32 UPCAPToolSubsystem::UpdateAutoFlagHysteresis(const FString& CamKey, int32 
 {
     static const int32 Bits[] = {
         HMC_Issue_Overexposed, HMC_Issue_Underexposed,
-        HMC_Issue_OutOfFocus,  HMC_Issue_UnevenLight, HMC_Issue_FramingDrift
+        HMC_Issue_OutOfFocus,  HMC_Issue_UnevenLight, HMC_Issue_FramingDrift,
+        HMC_Issue_Unstable
     };
     const int32 HOLD = 5;   // ~1s at the ~5Hz analysis rate
 

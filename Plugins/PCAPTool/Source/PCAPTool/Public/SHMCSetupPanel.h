@@ -64,6 +64,8 @@ private:
     // position dropdown; its tooltip explains a red box from the pipeline docs.
     TSharedRef<SWidget> BuildCheckBox(const FString& Label, int32 FlagBit, int32 CameraIndex);
     FString CheckExplanation(const FString& Label, int32 FlagBit, int32 CameraIndex) const;
+    // Aggregated red status line for the selected HMC (both cameras) — empty when good.
+    FString SetupStatusText() const;
     static FString PipelineName(ECapturePipeline Pipeline);
 
     // Issue-driven feed border + banner (mirrors Preview's look).

@@ -382,9 +382,15 @@ FString SHMCPreviewPanel::DeviceErrorText(const FString& DeviceName) const
     auto CamErr = [Sub, &DeviceName](int32 Cam) -> FString
     {
         const int32 Flags = Sub->GetEffectiveIssueFlags(DeviceName, Cam);
-        return UPCAPToolStatics::GetIssueSeverity(Flags) == EHMCIssueSeverity::None
-            ? FString()
-            : UPCAPToolStatics::GetIssueBannerText(Flags);
+        if (UPCAPToolStatics::GetIssueSeverity(Flags) == EHMCIssueSeverity::None)
+            return FString();
+        FString Msg = UPCAPToolStatics::GetIssueBannerText(Flags);
+        if (Flags & HMC_Issue_FramingDrift)
+        {
+            const FString Hint = Sub->GetFramingHint(DeviceName, Cam);
+            if (!Hint.IsEmpty()) Msg += FString::Printf(TEXT(" (%s)"), *Hint);
+        }
+        return Msg;
     };
 
     const FString Top = CamErr(0);

@@ -470,6 +470,15 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDetailPanel()
             + SHorizontalBox::Slot().FillWidth(1.f)                  [ BuildSetupFeed(1, TEXT("BOT")) ]
         ]
 
+        // Status line — writes out every active reason for the selected HMC (red); empty when good.
+        + SVerticalBox::Slot().AutoHeight().Padding(12.f, 4.f, 12.f, 0.f)
+        [
+            SNew(STextBlock)
+            .AutoWrapText(true)
+            .Text_Lambda([this]() { return FText::FromString(SetupStatusText()); })
+            .ColorAndOpacity(FSlateColor(ColRed))
+        ]
+
         // Controls (left)  +  Capture Monitor (right)
         + SVerticalBox::Slot().AutoHeight().Padding(12.f, 12.f)
         [
@@ -672,7 +681,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildSetupFeed(int32 CameraIndex, const FStr
             + SHorizontalBox::Slot().AutoWidth() [ BuildCheckBox(TEXT("Focus"), HMC_Issue_OutOfFocus, CameraIndex) ]
             + SHorizontalBox::Slot().AutoWidth() [ BuildCheckBox(TEXT("Exp"),   HMC_Issue_Overexposed | HMC_Issue_Underexposed, CameraIndex) ]
             + SHorizontalBox::Slot().AutoWidth() [ BuildCheckBox(TEXT("Light"), HMC_Issue_UnevenLight, CameraIndex) ]
-            + SHorizontalBox::Slot().AutoWidth() [ BuildCheckBox(TEXT("Frame"), HMC_Issue_FramingDrift | HMC_Issue_NoFace, CameraIndex) ]
+            + SHorizontalBox::Slot().AutoWidth() [ BuildCheckBox(TEXT("Frame"), HMC_Issue_FramingDrift | HMC_Issue_NoFace | HMC_Issue_Bumped | HMC_Issue_Unstable, CameraIndex) ]
         ];
 }
 
@@ -909,10 +918,47 @@ FString SHMCSetupPanel::CheckExplanation(const FString& Label, int32 FlagBit, in
     if (Active & HMC_Issue_UnevenLight)
         return TEXT("Uneven lighting / shadows. MetaHuman HMC: light the face evenly and frontally - no harsh shadows, side-light, or visible room lights.");
     if (Active & HMC_Issue_FramingDrift)
-        return TEXT("Framing drifted from the reference. MetaHuman HMC: the camera must stay stable relative to the face; keep it centred (philtrum at centre). Re-seat the rig or re-set the reference.");
+    {
+        FString Hint;
+        if (UPCAPToolSubsystem* S2 = GetSubsystem())
+            Hint = S2->GetFramingHint(ActiveDeviceName, CameraIndex);
+        const FString Where = Hint.IsEmpty()
+            ? FString() : FString::Printf(TEXT(" (face is %s of the reference)"), *Hint);
+        return FString::Printf(TEXT("Framing drifted from the reference%s. MetaHuman HMC: keep the camera stable and the image centred on the upper philtrum. Re-center, re-seat the rig, or re-set the reference."), *Where);
+    }
+    if (Active & HMC_Issue_Bumped)
+        return TEXT("Headset bumped - the mount took a sudden knock. MetaHuman HMC: the camera must stay stable relative to the face. Re-seat the rig and re-set the framing reference.");
+    if (Active & HMC_Issue_Unstable)
+        return TEXT("Unstable mount - the camera isn't holding still on the face (wobble / loose fit). MetaHuman HMC needs a well-fitted, stable mount; tighten or re-seat it.");
+    if (Active & HMC_Issue_LowFPS)
+        return TEXT("Low frame rate - capture is below the recommended 60 fps. MetaHuman Capture Device Requirements: 60 fps or higher (higher aids eye / blink tracking).");
     if (Active & HMC_Issue_NoFace)
         return TEXT("No face detected in frame. Reframe so the face fills the centre of the image.");
     return UPCAPToolStatics::GetIssueBannerText(Active);
+}
+
+FString SHMCSetupPanel::SetupStatusText() const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (!Sub || ActiveDeviceName.IsEmpty()) return FString();
+    if (GetStatus(ActiveDeviceName).ConnectionState != EHMCConnectionState::Connected)
+        return TEXT("OFFLINE");
+
+    FString Out;
+    for (int32 Cam = 0; Cam < 2; ++Cam)
+    {
+        const int32 Flags = Sub->GetEffectiveIssueFlags(ActiveDeviceName, Cam);
+        if (UPCAPToolStatics::GetIssueSeverity(Flags) == EHMCIssueSeverity::None) continue;
+        FString Msg = UPCAPToolStatics::GetIssueBannerText(Flags);
+        if (Flags & HMC_Issue_FramingDrift)
+        {
+            const FString Hint = Sub->GetFramingHint(ActiveDeviceName, Cam);
+            if (!Hint.IsEmpty()) Msg += FString::Printf(TEXT(" (%s)"), *Hint);
+        }
+        if (!Out.IsEmpty()) Out += TEXT("     ");
+        Out += FString::Printf(TEXT("%s: %s"), Cam == 0 ? TEXT("TOP") : TEXT("BOT"), *Msg);
+    }
+    return Out;
 }
 
 TSharedRef<SWidget> SHMCSetupPanel::BuildCheckReadout(int32 CameraIndex)

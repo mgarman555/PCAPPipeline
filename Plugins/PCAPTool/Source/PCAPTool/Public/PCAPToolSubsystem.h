@@ -157,6 +157,11 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     FHMCImageMetrics GetImageMetrics(const FString& DeviceName, int32 CameraIndex) const;
 
+    // Direction the subject has drifted from its framing reference ("low" / "high" /
+    // "off-axis left" / ...) — empty if no reference set or no significant drift.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    FString GetFramingHint(const FString& DeviceName, int32 CameraIndex) const;
+
     // ─── Prepped for Preview ────────────────────────────────────────────────────
     // Only prepped devices appear in HMC Preview. Set by the "Prepped for Preview"
     // action in Setup; persisted on the device config.
@@ -202,6 +207,12 @@ private:
     TMap<FString, double>           LastAnalyzeTime;   // last analysis timestamp per cam
     TMap<FString, int32>            StableAutoFlags;   // hysteresis-stable auto flags per cam
     TMap<FString, int32>            AutoFlagHold;      // per "Cam|bit" integrator counter
+
+    // Mount-stability detection: subject-centroid history per camera (~last 2s at the
+    // ~5Hz rate) for instability variance, plus a per-camera "bumped until" timestamp
+    // so a one-frame jump stays visible ~1.2s.
+    TMap<FString, TArray<FVector2D>> CentroidHistory;
+    TMap<FString, double>            BumpUntil;
 
     // Continuous video pump state. Frames are NOT tied to the 2s status poll —
     // each device runs a self-sustaining chain that alternates cameras as fast as
