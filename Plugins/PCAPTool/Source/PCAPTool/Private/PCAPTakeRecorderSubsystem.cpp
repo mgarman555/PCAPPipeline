@@ -3,6 +3,7 @@
 #include "MocapDatabase.h"
 #include "PCAPToolSettings.h"
 #include "PCAPToolTypes.h"
+#include "PCAPToolPaths.h"
 
 #include "Engine/Engine.h"
 #include "LevelSequence.h"
@@ -162,8 +163,8 @@ bool UPCAPTakeRecorderSubsystem::StartRecordForActiveShot(FString& OutError)
     // Output path: /Game/Mocap/Productions/<Code>/Day_<Day>/Session_<Sess>/Shot_<Shot>/<TakeID>/
     FTakeRecorderParameters Params = UTakeRecorderBlueprintLibrary::GetDefaultParameters();
     Params.Project.RootTakeSaveDir.Path = FString::Printf(
-        TEXT("/Game/Mocap/Productions/%s/Day_%s/Session_%s/Shot_%s"),
-        *PendingProductionCode, *PendingDayID, *PendingSessionID, *PendingShotID);
+        TEXT("%s/%s/Day_%s/Session_%s/Shot_%s"),
+        *PCAPPaths::Productions(), *PendingProductionCode, *PendingDayID, *PendingSessionID, *PendingShotID);
     Params.Project.TakeSaveDir = PendingTakeID;   // the take's own folder
 
     UTakeRecorder* Recorder = UTakeRecorderBlueprintLibrary::StartRecording(LevelSequence, Sources, MetaData, Params);

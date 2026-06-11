@@ -20,6 +20,9 @@
 
 void SPCAPCallSheetPanel::Construct(const FArguments& InArgs)
 {
+    // Zero-setup: ensure a database exists in the PCAP tool area on first open.
+    if (UPCAPToolSettings* S = UPCAPToolSettings::Get()) { S->GetOrCreateDatabase(); }
+
     ChildSlot
     [
         SNew(SBorder).BorderImage(FAppStyle::GetBrush("NoBorder")).Padding(0)

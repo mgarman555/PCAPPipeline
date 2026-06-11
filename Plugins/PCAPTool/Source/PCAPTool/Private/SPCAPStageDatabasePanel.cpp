@@ -23,6 +23,7 @@
 #include "UObject/Package.h"
 #include "Editor.h"
 #include "Subsystems/AssetEditorSubsystem.h"
+#include "PCAPToolPaths.h"
 
 #define LOCTEXT_NAMESPACE "PCAPStageDatabase"
 
@@ -141,7 +142,7 @@ UStageConfigAsset* SPCAPStageDatabasePanel::CreateStageAsset(const FString& Stag
     AssetName.ReplaceInline(TEXT(" "), TEXT("_"));
     AssetName = ObjectTools::SanitizeObjectName(AssetName);
 
-    const FString PackageName = FString::Printf(TEXT("/Game/Mocap/Database/Stages/%s"), *AssetName);
+    const FString PackageName = FString::Printf(TEXT("%s/%s"), *PCAPPaths::StagesDir(), *AssetName);
     if (FPackageName::DoesPackageExist(PackageName)) return nullptr;
 
     UPackage* Package = CreatePackage(*PackageName);

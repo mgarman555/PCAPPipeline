@@ -1,5 +1,6 @@
 #include "MocapDatabase.h"
 #include "PCAPToolStatics.h"
+#include "PCAPToolPaths.h"
 
 namespace
 {
@@ -154,8 +155,8 @@ FString UMocapDatabase::BuildNextTakeID() const
 FString UMocapDatabase::BuildTakeAssetPath(const FString& TakeID, const FString& ActorID, const FString& StreamSuffix) const
 {
     const FString Base = FString::Printf(
-        TEXT("/Game/Mocap/Productions/%s/Day_%s/Session_%s/Shot_%s/%s/"),
-        *ActiveProductionCode, *ActiveDayID, *ActiveSessionID, *ActiveShotID, *TakeID);
+        TEXT("%s/%s/Day_%s/Session_%s/Shot_%s/%s/"),
+        *PCAPPaths::Productions(), *ActiveProductionCode, *ActiveDayID, *ActiveSessionID, *ActiveShotID, *TakeID);
 
     const FString AssetName = ActorID.IsEmpty()
         ? FString::Printf(TEXT("%s_%s"), *TakeID, *StreamSuffix)

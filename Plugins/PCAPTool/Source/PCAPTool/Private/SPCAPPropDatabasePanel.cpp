@@ -25,6 +25,7 @@
 #include "Widgets/Input/SCheckBox.h"
 #include "PCAPToolSettings.h"
 #include "MocapDatabase.h"
+#include "PCAPToolPaths.h"
 
 #define LOCTEXT_NAMESPACE "PCAPPropDatabase"
 
@@ -126,7 +127,7 @@ void SPCAPPropDatabasePanel::ApplyFilter()
 UPropRosterEntry* SPCAPPropDatabasePanel::CreatePropAsset(const FString& PropID)
 {
     if (PropID.IsEmpty()) return nullptr;
-    const FString PackageName = FString::Printf(TEXT("/Game/Mocap/Database/Props/%s"), *PropID);
+    const FString PackageName = FString::Printf(TEXT("%s/%s"), *PCAPPaths::PropsDir(), *PropID);
     if (FPackageName::DoesPackageExist(PackageName)) return nullptr;
     UPackage* Package = CreatePackage(*PackageName);
     if (!Package) return nullptr;

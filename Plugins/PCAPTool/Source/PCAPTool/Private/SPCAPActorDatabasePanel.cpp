@@ -25,6 +25,7 @@
 #include "AssetThumbnail.h"
 #include "PCAPToolSettings.h"
 #include "MocapDatabase.h"
+#include "PCAPToolPaths.h"
 
 #define LOCTEXT_NAMESPACE "PCAPActorDatabase"
 
@@ -150,7 +151,7 @@ UActorRosterEntry* SPCAPActorDatabasePanel::CreateActorAsset(const FString& Acto
 {
     if (ActorID.IsEmpty()) return nullptr;
 
-    const FString PackageName = FString::Printf(TEXT("/Game/Mocap/Database/Actors/%s"), *ActorID);
+    const FString PackageName = FString::Printf(TEXT("%s/%s"), *PCAPPaths::ActorsDir(), *ActorID);
     if (FPackageName::DoesPackageExist(PackageName)) return nullptr;   // already taken
 
     UPackage* Package = CreatePackage(*PackageName);
