@@ -32,11 +32,11 @@ bool FPCAPBuildTakeAssetPathTest::RunTest(const FString&)
 
     TestEqual(TEXT("body path"),
         DB->BuildTakeAssetPath(TEXT("001003_004"), TEXT("kevinDorman"), TEXT("mocap")),
-        FString(TEXT("/Game/PCAPTool/Productions/DA/Day_001/Session_S01/Shot_003/001003_004/001003_004_kevinDorman_mocap")));
+        FString(TEXT("/Game/PCAP Tool/Productions/DA/Day_001/Session_S01/Shot_003/001003_004/001003_004_kevinDorman_mocap")));
 
     TestEqual(TEXT("vcam path (no actor segment)"),
         DB->BuildTakeAssetPath(TEXT("001003_004"), FString(), TEXT("VCam")),
-        FString(TEXT("/Game/PCAPTool/Productions/DA/Day_001/Session_S01/Shot_003/001003_004/001003_004_VCam")));
+        FString(TEXT("/Game/PCAP Tool/Productions/DA/Day_001/Session_S01/Shot_003/001003_004/001003_004_VCam")));
     return true;
 }
 

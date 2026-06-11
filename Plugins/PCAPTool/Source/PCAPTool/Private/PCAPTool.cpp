@@ -26,54 +26,60 @@ const FName FPCAPToolModule::CallSheetTabName = TEXT("PCAPTool_CallSheet");
 
 void FPCAPToolModule::StartupModule()
 {
+    // Group every PCAP tab under a "PCAP Tools" submenu within Window > Tools.
+    PCAPMenuGroup = WorkspaceMenu::GetMenuStructure().GetToolsCategory()->AddGroup(
+        LOCTEXT("PCAPToolsGroup", "PCAP Tools"),
+        LOCTEXT("PCAPToolsGroupTooltip", "Performance capture tools"),
+        FSlateIcon());
+
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
         HMCTabName,
         FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnHMCTab))
         .SetDisplayName(LOCTEXT("HMCTabTitle", "HMC Monitor"))
         .SetTooltipText(LOCTEXT("HMCTabTooltip", "PCAP Tool — HMC device monitor"))
-        .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+        .SetGroup(PCAPMenuGroup.ToSharedRef());
 
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
         DatabaseTabName,
         FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnDatabaseTab))
         .SetDisplayName(LOCTEXT("DatabaseTabTitle", "Mocap Database"))
         .SetTooltipText(LOCTEXT("DatabaseTabTooltip", "PCAP Tool — browse the mocap database (read-only)"))
-        .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+        .SetGroup(PCAPMenuGroup.ToSharedRef());
 
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
         ActorDBTabName,
         FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnActorDBTab))
         .SetDisplayName(LOCTEXT("ActorDBTabTitle", "Actor Database"))
         .SetTooltipText(LOCTEXT("ActorDBTabTooltip", "PCAP Tool — the permanent talent library"))
-        .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+        .SetGroup(PCAPMenuGroup.ToSharedRef());
 
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
         PropDBTabName,
         FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnPropDBTab))
         .SetDisplayName(LOCTEXT("PropDBTabTitle", "Prop Database"))
         .SetTooltipText(LOCTEXT("PropDBTabTooltip", "PCAP Tool — the prop library (with mesh previews)"))
-        .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+        .SetGroup(PCAPMenuGroup.ToSharedRef());
 
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
         StageDBTabName,
         FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnStageDBTab))
         .SetDisplayName(LOCTEXT("StageDBTabTitle", "Stage Database"))
         .SetTooltipText(LOCTEXT("StageDBTabTooltip", "PCAP Tool — stages (location + what to record)"))
-        .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+        .SetGroup(PCAPMenuGroup.ToSharedRef());
 
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
         ConsoleTabName,
         FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnConsoleTab))
         .SetDisplayName(LOCTEXT("ConsoleTabTitle", "Operator Console"))
         .SetTooltipText(LOCTEXT("ConsoleTabTooltip", "PCAP Tool — navigate shots + run takes (solo operator)"))
-        .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+        .SetGroup(PCAPMenuGroup.ToSharedRef());
 
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
         CallSheetTabName,
         FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnCallSheetTab))
         .SetDisplayName(LOCTEXT("CallSheetTabTitle", "Call Sheet"))
         .SetTooltipText(LOCTEXT("CallSheetTabTooltip", "PCAP Tool — shoot-day prep (project, stage, day, actors, props)"))
-        .SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
+        .SetGroup(PCAPMenuGroup.ToSharedRef());
 }
 
 void FPCAPToolModule::ShutdownModule()
