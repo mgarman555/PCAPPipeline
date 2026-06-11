@@ -149,12 +149,16 @@ TSharedRef<SWidget> SPCAPOperatorConsole::BuildProductionPicker()
         {
             FMenuBuilder MB(true, nullptr);
             if (UMocapDatabase* DB = GetDB())
-                for (const FProduction& P : DB->Productions)
+            {
+                TArray<FProduction> Prods = DB->Productions;   // sorted copy — alphabetical
+                Prods.Sort([](const FProduction& A, const FProduction& B){ return A.ProjectCode < B.ProjectCode; });
+                for (const FProduction& P : Prods)
                 {
                     const FString Code = P.ProjectCode;
                     MB.AddMenuEntry(FText::FromString(FString::Printf(TEXT("%s — %s"), *Code, *P.ProductionName)), FText::GetEmpty(), FSlateIcon(),
                         FUIAction(FExecuteAction::CreateLambda([this, Code]() { SelProduction = Code; SelDay.Empty(); SelSession.Empty(); SelShot.Empty(); RebuildHeader(); RebuildShotList(); RebuildContext(); })));
                 }
+            }
             return MB.MakeWidget();
         });
 }
@@ -168,12 +172,16 @@ TSharedRef<SWidget> SPCAPOperatorConsole::BuildDayPicker()
             FMenuBuilder MB(true, nullptr);
             if (UMocapDatabase* DB = GetDB())
                 if (FProduction* P = DB->GetProductionByCode(SelProduction))
-                    for (const FShootDay& D : P->Days)
+                {
+                    TArray<FShootDay> Days = P->Days;   // sorted copy — alphabetical
+                    Days.Sort([](const FShootDay& A, const FShootDay& B){ return A.DayID < B.DayID; });
+                    for (const FShootDay& D : Days)
                     {
                         const FString Day = D.DayID;
                         MB.AddMenuEntry(FText::FromString(TEXT("Day_") + Day), FText::GetEmpty(), FSlateIcon(),
                             FUIAction(FExecuteAction::CreateLambda([this, Day]() { SelDay = Day; SelSession.Empty(); SelShot.Empty(); RebuildHeader(); RebuildShotList(); RebuildContext(); })));
                     }
+                }
             return MB.MakeWidget();
         });
 }
@@ -187,12 +195,16 @@ TSharedRef<SWidget> SPCAPOperatorConsole::BuildSessionPicker()
             FMenuBuilder MB(true, nullptr);
             if (UMocapDatabase* DB = GetDB())
                 if (FShootDay* D = DB->GetDay(SelProduction, SelDay))
-                    for (const FSession& S : D->Sessions)
+                {
+                    TArray<FSession> Sessions = D->Sessions;   // sorted copy — alphabetical
+                    Sessions.Sort([](const FSession& A, const FSession& B){ return A.SessionID < B.SessionID; });
+                    for (const FSession& S : Sessions)
                     {
                         const FString Sess = S.SessionID;
                         MB.AddMenuEntry(FText::FromString(TEXT("Session_") + Sess), FText::GetEmpty(), FSlateIcon(),
                             FUIAction(FExecuteAction::CreateLambda([this, Sess]() { SelSession = Sess; SelShot.Empty(); RebuildHeader(); RebuildShotList(); RebuildContext(); })));
                     }
+                }
             return MB.MakeWidget();
         });
 }
@@ -232,8 +244,14 @@ void SPCAPOperatorConsole::RebuildShotList()
     ShotItems.Reset();
     if (UMocapDatabase* DB = GetDB())
         if (FSession* Session = DB->GetSession(SelProduction, SelDay, SelSession))
+        {
             for (const FShot& S : Session->Shots)
                 ShotItems.Add(MakeShared<FString>(S.ShotID));
+            ShotItems.Sort([](const TSharedPtr<FString>& A, const TSharedPtr<FString>& B)
+            {
+                return A.IsValid() && B.IsValid() && *A < *B;   // alphabetical
+            });
+        }
 
     if (ShotListView.IsValid()) ShotListView->RequestListRefresh();
 }

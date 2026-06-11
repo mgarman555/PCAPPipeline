@@ -195,6 +195,19 @@ void SPCAPDatabasePanel::RebuildTree()
         RootNodes.Add(Prods);
     }
 
+    // Alphabetical everywhere — sort every level of the tree by label.
+    TFunction<void(TArray<TSharedPtr<FPCAPDBNode>>&)> SortByLabel =
+        [&SortByLabel](TArray<TSharedPtr<FPCAPDBNode>>& Nodes)
+        {
+            Nodes.Sort([](const TSharedPtr<FPCAPDBNode>& A, const TSharedPtr<FPCAPDBNode>& B)
+            {
+                return A.IsValid() && B.IsValid() && A->Label < B->Label;
+            });
+            for (TSharedPtr<FPCAPDBNode>& N : Nodes)
+                if (N.IsValid()) SortByLabel(N->Children);
+        };
+    SortByLabel(RootNodes);
+
     if (TreeView.IsValid())
     {
         TreeView->RequestTreeRefresh();
