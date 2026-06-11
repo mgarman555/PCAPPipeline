@@ -150,7 +150,7 @@ UActorRosterEntry* SPCAPActorDatabasePanel::CreateActorAsset(const FString& Acto
 {
     if (ActorID.IsEmpty()) return nullptr;
 
-    const FString PackageName = FString::Printf(TEXT("/Game/Mocap/_Roster/Actors/%s"), *ActorID);
+    const FString PackageName = FString::Printf(TEXT("/Game/Mocap/Database/Actors/%s"), *ActorID);
     if (FPackageName::DoesPackageExist(PackageName)) return nullptr;   // already taken
 
     UPackage* Package = CreatePackage(*PackageName);

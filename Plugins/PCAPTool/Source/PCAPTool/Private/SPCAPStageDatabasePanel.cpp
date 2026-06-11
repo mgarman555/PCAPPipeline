@@ -141,7 +141,7 @@ UStageConfigAsset* SPCAPStageDatabasePanel::CreateStageAsset(const FString& Stag
     AssetName.ReplaceInline(TEXT(" "), TEXT("_"));
     AssetName = ObjectTools::SanitizeObjectName(AssetName);
 
-    const FString PackageName = FString::Printf(TEXT("/Game/Mocap/_Roster/StageConfigs/%s"), *AssetName);
+    const FString PackageName = FString::Printf(TEXT("/Game/Mocap/Database/Stages/%s"), *AssetName);
     if (FPackageName::DoesPackageExist(PackageName)) return nullptr;
 
     UPackage* Package = CreatePackage(*PackageName);

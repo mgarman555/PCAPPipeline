@@ -126,7 +126,7 @@ void SPCAPPropDatabasePanel::ApplyFilter()
 UPropRosterEntry* SPCAPPropDatabasePanel::CreatePropAsset(const FString& PropID)
 {
     if (PropID.IsEmpty()) return nullptr;
-    const FString PackageName = FString::Printf(TEXT("/Game/Mocap/_Roster/Props/%s"), *PropID);
+    const FString PackageName = FString::Printf(TEXT("/Game/Mocap/Database/Props/%s"), *PropID);
     if (FPackageName::DoesPackageExist(PackageName)) return nullptr;
     UPackage* Package = CreatePackage(*PackageName);
     if (!Package) return nullptr;
