@@ -2,19 +2,22 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/Views/SListView.h"
+#include "Widgets/Views/STileView.h"
+#include "Brushes/SlateColorBrush.h"
 
 class UStageConfigAsset;
 class STableViewBase;
 class ITableRow;
 class SBox;
 class UEnum;
+class FAssetThumbnail;
+class FAssetThumbnailPool;
 
 /**
- * Stage Database — the stage library (Tool 3). A stage is a physical location (e.g.
- * "Osborne Stage") plus a per-element checklist of which capture system is used:
- * body (Giant/Xsens/Motive/Shogun), face, audio, vcam — "what we're looking to record".
- * Backed by UStageConfigAsset at _Roster/StageConfigs/[name].uasset.
+ * Stage Database — a card gallery of UStageConfigAsset assets. Each card shows the
+ * stage reference mesh (the physical layout) + the stage name + a tool summary, so
+ * you can see at a glance which stage uses which capture systems. Clicking a card
+ * opens a detail panel: the mesh, the systems (body/face/audio/vcam), timecode, etc.
  */
 class PCAPTOOL_API SPCAPStageDatabasePanel : public SCompoundWidget
 {
@@ -30,8 +33,12 @@ private:
     TWeakObjectPtr<UStageConfigAsset> SelectedStage;
     FString FilterText;
 
-    TSharedPtr<SListView<TWeakObjectPtr<UStageConfigAsset>>> ListView;
-    TSharedPtr<SBox> FormContainer;
+    TSharedPtr<STileView<TWeakObjectPtr<UStageConfigAsset>>> TileView;
+    TSharedPtr<SBox> DetailBox;
+    TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
+    TMap<TWeakObjectPtr<UStageConfigAsset>, TSharedPtr<FAssetThumbnail>> TileThumbnails;
+    TSharedPtr<FAssetThumbnail> DetailThumbnail;
+    FSlateColorBrush ScrimBrush = FSlateColorBrush(FLinearColor(0.f, 0.f, 0.f, 0.5f));
 
     void ReloadStages();
     void ApplyFilter();
@@ -39,14 +46,13 @@ private:
     static void SaveStageAsset(UStageConfigAsset* Entry);
     static bool DeleteStageAsset(UStageConfigAsset* Entry);
 
-    TSharedRef<ITableRow> OnGenerateRow(TWeakObjectPtr<UStageConfigAsset> Item, const TSharedRef<STableViewBase>& Owner);
+    TSharedRef<ITableRow> OnGenerateTile(TWeakObjectPtr<UStageConfigAsset> Item, const TSharedRef<STableViewBase>& Owner);
     void OnSelectionChanged(TWeakObjectPtr<UStageConfigAsset> Item, ESelectInfo::Type);
     void OnFilterChanged(const FText& Text);
     void OnNewStageCommitted(const FText& Text, ETextCommit::Type CommitType);
-    FReply OnRefreshClicked();
 
-    void RebuildForm();
-    TSharedRef<SWidget> BuildFormFor(UStageConfigAsset* Entry);
+    void CloseDetail();
+    TSharedRef<SWidget> BuildDetailFor(UStageConfigAsset* Entry);
     TSharedRef<SWidget> MakeEnumRow(const FString& Label, UEnum* EnumPtr, int32 Current, TFunction<void(int32)> Set);
 
     const FLinearColor ColGreen = FLinearColor(0.290f, 0.878f, 0.502f);

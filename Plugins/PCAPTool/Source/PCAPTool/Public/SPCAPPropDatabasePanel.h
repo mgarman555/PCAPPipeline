@@ -2,7 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/Views/SListView.h"
+#include "Widgets/Views/STileView.h"
+#include "Brushes/SlateColorBrush.h"
 
 class UPropRosterEntry;
 class STableViewBase;
@@ -12,10 +13,9 @@ class FAssetThumbnail;
 class FAssetThumbnailPool;
 
 /**
- * Prop Database — the prop library (Tool 2). Two-pane: searchable list of UPropRosterEntry
- * assets + the selected prop's setup form. The prop's mesh/asset renders as a real
- * FAssetThumbnail so the operator can confirm it's the right model. No "tracked" toggle —
- * tracking is a per-shot decision. "+ new propID + Enter" creates _Roster/Props/[propID].uasset.
+ * Prop Database — a card gallery of UPropRosterEntry assets. Cards show the prop's
+ * mesh thumbnail + propID; clicking a card brings its info up in a focused detail
+ * panel. Mirrors the Actor/Stage database card + click-panel pattern.
  */
 class PCAPTOOL_API SPCAPPropDatabasePanel : public SCompoundWidget
 {
@@ -31,10 +31,12 @@ private:
     TWeakObjectPtr<UPropRosterEntry> SelectedProp;
     FString FilterText;
 
-    TSharedPtr<SListView<TWeakObjectPtr<UPropRosterEntry>>> ListView;
-    TSharedPtr<SBox> FormContainer;
+    TSharedPtr<STileView<TWeakObjectPtr<UPropRosterEntry>>> TileView;
+    TSharedPtr<SBox> DetailBox;
     TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
-    TSharedPtr<FAssetThumbnail> CurrentThumbnail;   // kept alive while shown
+    TMap<TWeakObjectPtr<UPropRosterEntry>, TSharedPtr<FAssetThumbnail>> TileThumbnails;
+    TSharedPtr<FAssetThumbnail> DetailThumbnail;
+    FSlateColorBrush ScrimBrush = FSlateColorBrush(FLinearColor(0.f, 0.f, 0.f, 0.5f));
 
     void ReloadProps();
     void ApplyFilter();
@@ -42,14 +44,13 @@ private:
     static void SavePropAsset(UPropRosterEntry* Entry);
     static bool DeletePropAsset(UPropRosterEntry* Entry);
 
-    TSharedRef<ITableRow> OnGenerateRow(TWeakObjectPtr<UPropRosterEntry> Item, const TSharedRef<STableViewBase>& Owner);
+    TSharedRef<ITableRow> OnGenerateTile(TWeakObjectPtr<UPropRosterEntry> Item, const TSharedRef<STableViewBase>& Owner);
     void OnSelectionChanged(TWeakObjectPtr<UPropRosterEntry> Item, ESelectInfo::Type);
     void OnFilterChanged(const FText& Text);
     void OnNewPropCommitted(const FText& Text, ETextCommit::Type CommitType);
-    FReply OnRefreshClicked();
 
-    void RebuildForm();
-    TSharedRef<SWidget> BuildFormFor(UPropRosterEntry* Entry);
+    void CloseDetail();
+    TSharedRef<SWidget> BuildDetailFor(UPropRosterEntry* Entry);
 
     const FLinearColor ColGreen = FLinearColor(0.290f, 0.878f, 0.502f);
     const FLinearColor ColText2 = FLinearColor(0.478f, 0.541f, 0.502f);
