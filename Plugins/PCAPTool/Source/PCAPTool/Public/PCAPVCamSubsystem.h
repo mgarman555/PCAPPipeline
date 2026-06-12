@@ -4,7 +4,7 @@
 #include "Subsystems/EngineSubsystem.h"
 #include "TickableEditorObject.h"
 #include "HAL/CriticalSection.h"
-#include "Serialization/ArrayReader.h"   // FArrayReaderPtr (input packet)
+#include "Common/UdpSocketReceiver.h"   // FArrayReaderPtr + FUdpSocketReceiver + FIPv4Endpoint
 #include "VCamProcessor.h"      // FPCAPVCamRuntimeState
 #include "VCamInputLayer.h"     // FVCamInputLayer / FVCamControllerInput / FVCamInputIntents
 #include "PCAPToolTypes.h"      // EStreamStatus
@@ -13,8 +13,6 @@
 class UPCAPVCamConfig;
 class APCAPVCamActor;
 class FSocket;
-class FUdpSocketReceiver;
-struct FIPv4Endpoint;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPCAPVCamStreamStatusChanged, EStreamStatus, NewStatus);
 
@@ -76,6 +74,9 @@ public:
 
     // Joystick/d-pad translation rate (units/sec); the tick accumulates it into Navigate.
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetNavigateRate(FVector Rate);
+
+    // Active controller layout (0=Default, 1=Variation 1, 2=Inverted) — stored on the config.
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetActiveButtonLayout(int32 Layout);
 
     // ── Readouts ───────────────────────────────────────────────────────────────
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") EStreamStatus GetStreamStatus() const { return StreamStatus; }

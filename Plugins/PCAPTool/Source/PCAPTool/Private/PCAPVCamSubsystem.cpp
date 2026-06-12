@@ -256,6 +256,11 @@ void UPCAPVCamSubsystem::SetNavigateRate(FVector Rate)
     RuntimeState.NavigateRate = Rate;
 }
 
+void UPCAPVCamSubsystem::SetActiveButtonLayout(int32 Layout)
+{
+    if (ActiveConfig) { ActiveConfig->ActiveButtonLayout = FMath::Clamp(Layout, 0, 2); }
+}
+
 void UPCAPVCamSubsystem::AddFocalLengthDelta(float DeltaMm)
 {
     if (ActiveConfig)

@@ -11,5 +11,5 @@ class PCAPTOOL_API APCAPVCamActor : public ACineCameraActor
 {
     GENERATED_BODY()
 public:
-    APCAPVCamActor();
+    APCAPVCamActor(const FObjectInitializer& ObjectInitializer);
 };
