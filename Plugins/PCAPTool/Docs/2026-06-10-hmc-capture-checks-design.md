@@ -129,6 +129,9 @@ Built on top of the original auto-monitor, all in the same MetaHuman HMC pipelin
 - **Prepped for Preview** — `FHMCDeviceConfig.bPreppedForPreview`; Preview shows only prepped devices; the bottom button marks all registered devices.
 - **Pipelines** — `ECapturePipeline { MetaHumanHMC, FaceWareHMC }`. Faceware is its OWN pipeline that runs NO checks (all `bCheck* = false`) until its docs land; its check boxes render **grey** and read "not checked by this pipeline".
 - **Actor sourcing** — the Setup actor dropdown lists only the active day's call sheet (`MocapDatabase` active day → `FShootDay.CalledActorIDs`), resolved to "First Last" via the Actor roster.
+- **Per-check honest state** — a Setup check box renders **grey** (not green) when its check is inactive: the pipeline doesn't run it, or (Focus) `FocusMin` is still 0/untuned. Green now strictly means an *active* check is passing. Preview cards resolve the actor to "First Last" and show the device's pipeline under the IP, so a no-check Faceware feed is labelled rather than silently green.
+- **Actor reassign resets the reference** — `AssignActor` clears the per-camera `FHMCFramingRef` + stability history (the reference was captured for the previous performer's face/mount, so it would mis-fire for the new actor).
+- **Set-reference feedback** — the Setup reference line shows whether the captured reference is within the pipeline target ("within target", muted) or off it (red "reframe (off target)"), not just in the Output Log.
 
 All image trip-points now live in `FPipelineCheckProfile` (`PCAPToolTypes.h`); `LowFPS` is in `EvaluateCameraIssues`. Severity is strictly binary on the bar (any flag → red); the *reason* is always written in the status area.
 
