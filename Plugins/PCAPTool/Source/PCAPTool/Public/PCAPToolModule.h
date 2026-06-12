@@ -9,20 +9,26 @@ class FWorkspaceItem;
 class FPCAPToolModule : public IModuleInterface
 {
 public:
+    // PCAP Tools group.
     static const FName HMCTabName;
-    static const FName DatabaseTabName;
     static const FName ConsoleTabName;
     static const FName CallSheetTabName;
+    // Databases group.
+    static const FName ActorDBTabName;
+    static const FName PropDBTabName;
+    static const FName StageDBTabName;
 
     virtual void StartupModule() override;
     virtual void ShutdownModule() override;
 
 private:
     TSharedRef<SDockTab> SpawnHMCTab(const FSpawnTabArgs& Args);
-    TSharedRef<SDockTab> SpawnDatabaseTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnConsoleTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnCallSheetTab(const FSpawnTabArgs& Args);
-    void RegisterMenus();
+    TSharedRef<SDockTab> SpawnActorDBTab(const FSpawnTabArgs& Args);
+    TSharedRef<SDockTab> SpawnPropDBTab(const FSpawnTabArgs& Args);
+    TSharedRef<SDockTab> SpawnStageDBTab(const FSpawnTabArgs& Args);
 
-    TSharedPtr<FWorkspaceItem> PCAPMenuGroup;   // "PCAP Tools" submenu under Window > Tools
+    TSharedPtr<FWorkspaceItem> PCAPMenuGroup;        // "PCAP Tools" — operator tools
+    TSharedPtr<FWorkspaceItem> DatabasesMenuGroup;   // "Databases" — separate data setup
 };
