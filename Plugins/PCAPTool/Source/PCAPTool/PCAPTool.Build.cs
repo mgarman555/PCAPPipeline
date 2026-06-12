@@ -24,6 +24,7 @@ public class PCAPTool : ModuleRules
             "ToolMenus",            // Window menu registration
             "WorkspaceMenuStructure",// Window menu category
             "InputCore",            // FKey, keyboard input in Slate
+            "CinematicCamera",      // ACineCameraActor / UCineCameraComponent — APCAPVCamActor base
         });
 
         PrivateDependencyModuleNames.AddRange(new string[]
@@ -35,6 +36,8 @@ public class PCAPTool : ModuleRules
             "MovieScene",           // FFrameNumber / movie-scene types used by Take Recorder params
             "AssetRegistry",        // list roster DataAssets (Actor/Prop/Stage databases)
             "PropertyEditor",       // SObjectPropertyEntryBox — asset-picker slots in DB forms
+            "LiveLink",             // FLiveLinkClientReference / plugin module
+            "LiveLinkInterface",    // ILiveLinkClient, transform role + frame-data types — TPVCam read
         });
     }
 }
