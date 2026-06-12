@@ -125,6 +125,18 @@ void UPCAPToolSubsystem::AssignActor(const FString& DeviceName, const FString& N
         Status->ActorID = NewActorID;
     }
 
+    // 1b. The framing reference + stability history were captured for the PREVIOUS
+    // performer's face/mount — clear them so they don't mis-fire for the new actor
+    // (Preview shows "framing reference not set" until it's re-captured in Setup).
+    Config->FramingRef0 = FHMCFramingRef();
+    Config->FramingRef1 = FHMCFramingRef();
+    for (int32 Cam = 0; Cam < 2; ++Cam)
+    {
+        const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, Cam);
+        CentroidHistory.Remove(CamKey);
+        BumpUntil.Remove(CamKey);
+    }
+
     // 2. CameraFeeds is keyed by ActorID — move this device's feeds to the new key.
     TArray<FHMCCameraFeed>& NewGroup = CameraFeeds.FindOrAdd(NewActorID);
     if (TArray<FHMCCameraFeed>* OldGroup = CameraFeeds.Find(OldActorID))

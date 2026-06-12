@@ -47,6 +47,7 @@ private:
     // ── Detail panel (selected device: live feed + controls) ──────────────────
     FString ActiveDeviceName;                                  // selected row
     TMap<FString, TSharedPtr<FSlateBrush>> FeedBrushPersist;   // "Device_Cam"
+    TSet<FString> RefOffTarget;   // "Device_Cam" whose last Set-reference was off the pipeline target
 
     FReply OnSelectDevice(FString DeviceName);
     EActiveTimerReturnType OnFastRepaint(double CurrentTime, float DeltaTime);

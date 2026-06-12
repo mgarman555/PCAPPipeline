@@ -1065,15 +1065,25 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCheckReadout(int32 CameraIndex)
                 + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center).Padding(10, 0)
                 [
                     SNew(STextBlock)
-                    .ColorAndOpacity(FSlateColor(ColMuted))
+                    .ColorAndOpacity_Lambda([this, CameraIndex]()
+                    {
+                        UPCAPToolSubsystem* Sub = GetSubsystem();
+                        const FString CamKey = FString::Printf(TEXT("%s_%d"), *ActiveDeviceName, CameraIndex);
+                        const bool bOff = Sub && Sub->GetFramingRef(ActiveDeviceName, CameraIndex).bSet
+                            && RefOffTarget.Contains(CamKey);
+                        return FSlateColor(bOff ? ColRed : ColMuted);
+                    })
                     .Text_Lambda([this, CameraIndex]() -> FText
                     {
                         UPCAPToolSubsystem* Sub = GetSubsystem();
                         if (!Sub || ActiveDeviceName.IsEmpty()) return FText::FromString(TEXT("-"));
                         const FHMCFramingRef R = Sub->GetFramingRef(ActiveDeviceName, CameraIndex);
                         if (!R.bSet) return FText::FromString(TEXT("Reference: not set"));
-                        return FText::FromString(FString::Printf(TEXT("Reference: set  (%.2f,%.2f · %.2f)"),
-                            R.Center.X, R.Center.Y, R.Size));
+                        const FString CamKey = FString::Printf(TEXT("%s_%d"), *ActiveDeviceName, CameraIndex);
+                        const TCHAR* Tag = RefOffTarget.Contains(CamKey)
+                            ? TEXT("  - reframe (off target)") : TEXT("  - within target");
+                        return FText::FromString(FString::Printf(TEXT("Reference: set  (%.2f,%.2f · %.2f)%s"),
+                            R.Center.X, R.Center.Y, R.Size, Tag));
                     })
                 ]
                 + SHorizontalBox::Slot().AutoWidth()
@@ -1099,6 +1109,8 @@ FReply SHMCSetupPanel::OnSetFramingRef(int32 CameraIndex)
         if (!ActiveDeviceName.IsEmpty())
         {
             const bool bInTol = Sub->SetFramingReferenceFromCurrent(ActiveDeviceName, CameraIndex);
+            const FString CamKey = FString::Printf(TEXT("%s_%d"), *ActiveDeviceName, CameraIndex);
+            if (bInTol) RefOffTarget.Remove(CamKey); else RefOffTarget.Add(CamKey);
             UE_LOG(LogTemp, Log, TEXT("[PCAPTool] %s cam%d framing reference %s"),
                 *ActiveDeviceName, CameraIndex,
                 bInTol ? TEXT("set (within target)") : TEXT("set - reframe: off target or no subject"));
@@ -1110,7 +1122,10 @@ FReply SHMCSetupPanel::OnClearFramingRef(int32 CameraIndex)
 {
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
         if (!ActiveDeviceName.IsEmpty())
+        {
             Sub->ClearFramingReference(ActiveDeviceName, CameraIndex);
+            RefOffTarget.Remove(FString::Printf(TEXT("%s_%d"), *ActiveDeviceName, CameraIndex));
+        }
     return FReply::Handled();
 }
 
