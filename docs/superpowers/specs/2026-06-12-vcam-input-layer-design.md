@@ -16,10 +16,13 @@ The three `.py` files run **inside WVCAM** (`import vcam`). Each does two jobs:
 
 **Therefore:** WVCAM's broadcast carries **only** zoom-gain, Sony XY, and the map/activation bits — **not** translation, lens, zero/hold, or button presses (those are consumed internally to drive MoBu). The handoff's "read joystick state from WVCAM's broadcast" is true only for that tiny feed; it is **not** enough for UE to own the mapping.
 
-**Decision needed (V-IN-D1):** to make UE the camera brain we need the **raw axes/buttons** in UE. Two paths:
-- **(A) New WVCAM broadcast script** — a WVCAM-side Python that broadcasts *all* raw axis/button values over UDP; UE does the mapping. Keeps WVCAM as the USB shim only.
-- **(B) Direct HID** — once the tombstone USB protocol is reverse-engineered (USBPcap/Wireshark), UE reads it directly; WVCAM removed.
-The mapping logic below is **identical for both** — only the provider changes. Build the logic now; choose the provider later.
+**Decision (V-IN-D1) — DECIDED 2026-06-12: Option A** (B is the fallback if A doesn't behave on-rig).
+- **(A) CHOSEN — WVCAM raw-broadcast script** — a WVCAM-side Python (`Plugins/PCAPTool/WVCAM/pcap_vcam_raw_broadcast.py`) reads *all* raw axes/buttons and sends them over UDP; UE parses + maps. Keeps WVCAM as a silent shim only.
+- **(B) Fallback — Direct HID** — if A proves unworkable (e.g. WVCAM can't expose raw button state), reverse-engineer the tombstone USB (USBPcap/Wireshark) and read it directly; WVCAM removed.
+
+**Wire format (A):** JSON over UDP to `127.0.0.1:7401` (host/port configurable on both ends). Fields: `seq` (counter) + the 6 axes/encoders (`left_joy_x/y`, `right_joy_x/y`, `left_enc`, `right_enc`, 0–4095 / raw counts) + the 14 buttons (`left/right_trigger`, the 8 d-pad dirs, `left/right_a/b`, 0/1). The mapping logic below is **identical** regardless of provider — only the provider feeding `FVCamControllerInput` changes.
+
+**Build order (A):** (1) the WVCAM script — testable standalone on the rig; (2) `FVCamInputLayer` pure logic + tests (UE); (3) UDP receiver + `Networking`/`Sockets` Build.cs deps, wired into the subsystem.
 
 ---
 
