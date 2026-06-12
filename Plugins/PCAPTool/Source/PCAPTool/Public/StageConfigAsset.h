@@ -18,6 +18,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
     FString ConfigName;          // "Home_Xsens"
 
+    // Visual reference — a mesh laying out the physical mocap stage (any mesh: skeletal or static).
+    // Shown as the Stage's card thumbnail, so you can see the stage + (with the systems below) what
+    // tools it uses at a glance.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
+    TSoftObjectPtr<UObject> StageReferenceMesh;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
     EBodySystem BodySystem = EBodySystem::None;
 

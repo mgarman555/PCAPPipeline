@@ -1,6 +1,10 @@
 #include "SPCAPActorDatabasePanel.h"
 #include "ActorRosterEntry.h"
+#include "MocapDatabase.h"
+#include "PCAPToolSettings.h"
+#include "PCAPToolPaths.h"
 
+#include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBox.h"
@@ -11,8 +15,8 @@
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/SBoxPanel.h"
-#include "PropertyCustomizationHelpers.h"
 #include "Widgets/Views/STableRow.h"
+#include "PropertyCustomizationHelpers.h"
 #include "Styling/AppStyle.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -23,9 +27,6 @@
 #include "Editor.h"
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "AssetThumbnail.h"
-#include "PCAPToolSettings.h"
-#include "MocapDatabase.h"
-#include "PCAPToolPaths.h"
 
 #define LOCTEXT_NAMESPACE "PCAPActorDatabase"
 
@@ -33,76 +34,60 @@
 
 void SPCAPActorDatabasePanel::Construct(const FArguments& InArgs)
 {
-    ThumbnailPool = MakeShared<FAssetThumbnailPool>(24);
+    ThumbnailPool = MakeShared<FAssetThumbnailPool>(64);
 
     ChildSlot
     [
-        SNew(SBorder)
-        .BorderImage(FAppStyle::GetBrush("NoBorder"))
-        .Padding(0)
+        SNew(SOverlay)
+
+        // ── Gallery ────────────────────────────────────────────────────────
+        + SOverlay::Slot()
         [
-            SNew(SVerticalBox)
-
-            // Header
-            + SVerticalBox::Slot().AutoHeight()
+            SNew(SBorder).BorderImage(FAppStyle::GetBrush("NoBorder")).Padding(0)
             [
-                SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(8.f, 6.f))
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight()
                 [
-                    SNew(SHorizontalBox)
-                    + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-                    [ SNew(STextBlock).Text(LOCTEXT("Title", "ACTOR DATABASE")).ColorAndOpacity(FSlateColor(ColGreen)) ]
-                    + SHorizontalBox::Slot().FillWidth(1.f)
-                    + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-                    [ SNew(SButton).Text(LOCTEXT("Refresh", "Refresh")).OnClicked(this, &SPCAPActorDatabasePanel::OnRefreshClicked) ]
-                ]
-            ]
-
-            // Body — two panes
-            + SVerticalBox::Slot().FillHeight(1.f)
-            [
-                SNew(SHorizontalBox)
-
-                // Left: search + new + list
-                + SHorizontalBox::Slot().FillWidth(0.42f).Padding(FMargin(6.f))
-                [
-                    SNew(SVerticalBox)
-                    + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+                    SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(8.f, 6.f))
                     [
                         SNew(SHorizontalBox)
-                        + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
-                        [ SNew(SSearchBox).HintText(LOCTEXT("Filter", "Filter actors…")).OnTextChanged(this, &SPCAPActorDatabasePanel::OnFilterChanged) ]
-                        + SHorizontalBox::Slot().AutoWidth().Padding(6.f, 0.f, 0.f, 0.f).VAlign(VAlign_Center)
-                        [
-                            SNew(SBox).WidthOverride(160.f)
-                            [
-                                SNew(SEditableTextBox)
-                                .HintText(LOCTEXT("NewHint", "+ new actorID  ↵"))
-                                .OnTextCommitted(this, &SPCAPActorDatabasePanel::OnNewActorCommitted)
-                            ]
-                        ]
-                    ]
-                    + SVerticalBox::Slot().FillHeight(1.f)
-                    [
-                        SAssignNew(ListView, SListView<TWeakObjectPtr<UActorRosterEntry>>)
-                        .ListItemsSource(&FilteredActors)
-                        .OnGenerateRow(this, &SPCAPActorDatabasePanel::OnGenerateRow)
-                        .OnSelectionChanged(this, &SPCAPActorDatabasePanel::OnSelectionChanged)
-                        .SelectionMode(ESelectionMode::Single)
+                        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+                        [ SNew(STextBlock).Text(LOCTEXT("Title", "ACTOR DATABASE")).ColorAndOpacity(FSlateColor(ColGreen)) ]
+                        + SHorizontalBox::Slot().FillWidth(1.f).Padding(10.f, 0.f).VAlign(VAlign_Center)
+                        [ SNew(SSearchBox).HintText(LOCTEXT("Filter", "Search actors…")).OnTextChanged(this, &SPCAPActorDatabasePanel::OnFilterChanged) ]
+                        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+                        [ SNew(SBox).WidthOverride(160.f)
+                          [ SNew(SEditableTextBox).HintText(LOCTEXT("NewHint", "+ new actorID  ↵")).OnTextCommitted(this, &SPCAPActorDatabasePanel::OnNewActorCommitted) ] ]
                     ]
                 ]
-
-                // Right: setup form
-                + SHorizontalBox::Slot().FillWidth(0.58f).Padding(FMargin(6.f))
+                + SVerticalBox::Slot().FillHeight(1.f).Padding(FMargin(6.f))
                 [
-                    SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(10.f))
-                    [ SAssignNew(FormContainer, SBox) ]
+                    SAssignNew(TileView, STileView<TWeakObjectPtr<UActorRosterEntry>>)
+                    .ListItemsSource(&FilteredActors)
+                    .OnGenerateTile(this, &SPCAPActorDatabasePanel::OnGenerateTile)
+                    .OnSelectionChanged(this, &SPCAPActorDatabasePanel::OnSelectionChanged)
+                    .ItemWidth(132.f)
+                    .ItemHeight(154.f)
+                    .SelectionMode(ESelectionMode::Single)
                 ]
+            ]
+        ]
+
+        // ── Detail popup (scrim + centered card) ───────────────────────────
+        + SOverlay::Slot()
+        [
+            SNew(SBorder)
+            .BorderImage(&ScrimBrush)
+            .Visibility_Lambda([this]() { return SelectedActor.IsValid() ? EVisibility::Visible : EVisibility::Collapsed; })
+            .HAlign(HAlign_Center).VAlign(VAlign_Center)
+            [
+                SNew(SBox).WidthOverride(372.f).MaxDesiredHeight(448.f)
+                [ SAssignNew(DetailBox, SBox) ]
             ]
         ]
     ];
 
     ReloadActors();
-    RebuildForm();
 }
 
 // ── Data ────────────────────────────────────────────────────────────────────
@@ -110,22 +95,17 @@ void SPCAPActorDatabasePanel::Construct(const FArguments& InArgs)
 void SPCAPActorDatabasePanel::ReloadActors()
 {
     AllActors.Reset();
+    TileThumbnails.Empty();
 
     FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
     TArray<FAssetData> Found;
     ARM.Get().GetAssetsByClass(UActorRosterEntry::StaticClass()->GetClassPathName(), Found, /*bSearchSubClasses*/ false);
     for (const FAssetData& AD : Found)
-    {
         if (UActorRosterEntry* Entry = Cast<UActorRosterEntry>(AD.GetAsset()))
-        {
             AllActors.Add(Entry);
-        }
-    }
 
     AllActors.Sort([](const TWeakObjectPtr<UActorRosterEntry>& A, const TWeakObjectPtr<UActorRosterEntry>& B)
-    {
-        return A.IsValid() && B.IsValid() && A->ActorID < B->ActorID;
-    });
+    { return A.IsValid() && B.IsValid() && A->ActorID < B->ActorID; });
 
     ApplyFilter();
 }
@@ -136,30 +116,21 @@ void SPCAPActorDatabasePanel::ApplyFilter()
     for (const TWeakObjectPtr<UActorRosterEntry>& Ptr : AllActors)
     {
         if (!Ptr.IsValid()) continue;
-        if (FilterText.IsEmpty()
-            || Ptr->ActorID.Contains(FilterText)
-            || Ptr->FirstName.Contains(FilterText)
-            || Ptr->LastName.Contains(FilterText))
-        {
+        if (FilterText.IsEmpty() || Ptr->ActorID.Contains(FilterText) || Ptr->FirstName.Contains(FilterText) || Ptr->LastName.Contains(FilterText))
             FilteredActors.Add(Ptr);
-        }
     }
-    if (ListView.IsValid()) ListView->RequestListRefresh();
+    if (TileView.IsValid()) TileView->RequestListRefresh();
 }
 
 UActorRosterEntry* SPCAPActorDatabasePanel::CreateActorAsset(const FString& ActorID)
 {
     if (ActorID.IsEmpty()) return nullptr;
-
     const FString PackageName = FString::Printf(TEXT("%s/%s"), *PCAPPaths::ActorsDir(), *ActorID);
-    if (FPackageName::DoesPackageExist(PackageName)) return nullptr;   // already taken
-
+    if (FPackageName::DoesPackageExist(PackageName)) return nullptr;
     UPackage* Package = CreatePackage(*PackageName);
     if (!Package) return nullptr;
-
     UActorRosterEntry* Entry = NewObject<UActorRosterEntry>(Package, FName(*ActorID), RF_Public | RF_Standalone | RF_Transactional);
     Entry->ActorID = ActorID;
-
     FAssetRegistryModule::AssetCreated(Entry);
     Package->MarkPackageDirty();
     FEditorFileUtils::PromptForCheckoutAndSave({ Package }, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
@@ -182,52 +153,59 @@ bool SPCAPActorDatabasePanel::DeleteActorAsset(UActorRosterEntry* Entry)
     return ObjectTools::DeleteSingleObject(Entry, /*bPerformReferenceCheck*/ false);
 }
 
-// ── List ──────────────────────────────────────────────────────────────────
+UObject* SPCAPActorDatabasePanel::ResolvePreview(UActorRosterEntry* Entry)
+{
+    if (!Entry) return nullptr;
+    UObject* P = Entry->Headshot.LoadSynchronous();
+    if (!P) P = Entry->MetaHuman.LoadSynchronous();
+    if (!P) P = Entry->FaceScan.LoadSynchronous();
+    return P;
+}
 
-TSharedRef<ITableRow> SPCAPActorDatabasePanel::OnGenerateRow(TWeakObjectPtr<UActorRosterEntry> Item, const TSharedRef<STableViewBase>& Owner)
+// ── Gallery tiles ─────────────────────────────────────────────────────────
+
+TSharedRef<ITableRow> SPCAPActorDatabasePanel::OnGenerateTile(TWeakObjectPtr<UActorRosterEntry> Item, const TSharedRef<STableViewBase>& Owner)
 {
     UActorRosterEntry* E = Item.Get();
     const FString IDText   = E ? E->ActorID : TEXT("(missing)");
     const FString NameText = E ? FString::Printf(TEXT("%s %s"), *E->FirstName, *E->LastName).TrimStartAndEnd() : FString();
 
+    TSharedRef<SWidget> ThumbWidget =
+        SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).HAlign(HAlign_Center).VAlign(VAlign_Center)
+        [ SNew(STextBlock).Text(LOCTEXT("NoImg", "no image")).ColorAndOpacity(FSlateColor(ColLabel)) ];
+
+    if (UObject* Asset = ResolvePreview(E))
+    {
+        TSharedPtr<FAssetThumbnail> Thumb = TileThumbnails.FindRef(Item);
+        if (!Thumb.IsValid())
+        {
+            Thumb = MakeShared<FAssetThumbnail>(Asset, 96, 96, ThumbnailPool);
+            TileThumbnails.Add(Item, Thumb);
+        }
+        ThumbWidget = Thumb->MakeThumbnailWidget();
+    }
+
     return SNew(STableRow<TWeakObjectPtr<UActorRosterEntry>>, Owner)
-    [
-        SNew(SHorizontalBox)
-        + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center).Padding(2.f, 4.f)
+        .Padding(4.f)
         [
-            SNew(SVerticalBox)
-            + SVerticalBox::Slot().AutoHeight()
-            [ SNew(STextBlock).Text(FText::FromString(IDText)) ]
-            + SVerticalBox::Slot().AutoHeight()
-            [ SNew(STextBlock).Text(FText::FromString(NameText)).ColorAndOpacity(FSlateColor(ColText2)) ]
-        ]
-        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(6.f, 0.f, 2.f, 0.f)
-        [
-            SNew(SCheckBox)
-            .IsChecked_Lambda([Item]()
-            {
-                UPCAPToolSettings* S = UPCAPToolSettings::Get();
-                UMocapDatabase* DB = S ? S->GetDatabase() : nullptr;
-                const FString ID = Item.IsValid() ? Item->ActorID : FString();
-                return (DB && DB->IsActorCalled(ID)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-            })
-            .OnCheckStateChanged_Lambda([Item](ECheckBoxState NewState)
-            {
-                UPCAPToolSettings* S = UPCAPToolSettings::Get();
-                if (UMocapDatabase* DB = (S ? S->GetDatabase() : nullptr))
-                {
-                    if (Item.IsValid()) DB->SetActorCalled(Item->ActorID, NewState == ECheckBoxState::Checked);
-                }
-            })
-            [ SNew(STextBlock).Text(LOCTEXT("Call", "Call")) ]
-        ]
-    ];
+            SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(6.f)
+            [
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight()
+                [ SNew(SBox).HeightOverride(88.f)[ ThumbWidget ] ]
+                + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0.f, 5.f, 0.f, 0.f)
+                [ SNew(STextBlock).Text(FText::FromString(IDText)) ]
+                + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
+                [ SNew(STextBlock).Text(FText::FromString(NameText)).ColorAndOpacity(FSlateColor(ColText2)) ]
+            ]
+        ];
 }
 
 void SPCAPActorDatabasePanel::OnSelectionChanged(TWeakObjectPtr<UActorRosterEntry> Item, ESelectInfo::Type)
 {
     SelectedActor = Item;
-    RebuildForm();
+    if (Item.IsValid() && DetailBox.IsValid())
+        DetailBox->SetContent(BuildDetailFor(Item.Get()));
 }
 
 void SPCAPActorDatabasePanel::OnFilterChanged(const FText& Text)
@@ -236,210 +214,155 @@ void SPCAPActorDatabasePanel::OnFilterChanged(const FText& Text)
     ApplyFilter();
 }
 
-// ── Form ────────────────────────────────────────────────────────────────────
-
-void SPCAPActorDatabasePanel::RebuildForm()
+void SPCAPActorDatabasePanel::OnNewActorCommitted(const FText& Text, ETextCommit::Type CommitType)
 {
-    if (FormContainer.IsValid())
+    if (CommitType != ETextCommit::OnEnter) return;
+    const FString ActorID = Text.ToString().TrimStartAndEnd();
+    if (ActorID.IsEmpty()) return;
+    if (UActorRosterEntry* Created = CreateActorAsset(ActorID))
     {
-        FormContainer->SetContent(BuildFormFor(SelectedActor.Get()));
+        ReloadActors();
+        if (TileView.IsValid()) TileView->SetSelection(TWeakObjectPtr<UActorRosterEntry>(Created));
     }
 }
 
-TSharedRef<SWidget> SPCAPActorDatabasePanel::BuildFormFor(UActorRosterEntry* Entry)
+FReply SPCAPActorDatabasePanel::OnRefreshClicked()
 {
-    if (!Entry)
-    {
-        return SNew(STextBlock)
-            .Text(LOCTEXT("NoSelection", "Select an actor, or + New to create one."))
-            .ColorAndOpacity(FSlateColor(ColText2));
-    }
+    ReloadActors();
+    return FReply::Handled();
+}
+
+void SPCAPActorDatabasePanel::CloseDetail()
+{
+    SelectedActor = nullptr;
+    if (TileView.IsValid()) TileView->ClearSelection();
+}
+
+// ── Detail card ───────────────────────────────────────────────────────────
+
+TSharedRef<SWidget> SPCAPActorDatabasePanel::BuildDetailFor(UActorRosterEntry* Entry)
+{
+    if (!Entry) return SNew(SBox);
 
     TWeakObjectPtr<UActorRosterEntry> Weak(Entry);
 
-    // Labelled editable field helper.
     auto Field = [](const FString& Label, const FString& Value, TFunction<void(const FString&)> Commit) -> TSharedRef<SWidget>
     {
         return SNew(SVerticalBox)
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 2.f)
             [ SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColLabel)) ]
             + SVerticalBox::Slot().AutoHeight()
-            [
-                SNew(SEditableTextBox)
-                .Text(FText::FromString(Value))
-                .OnTextCommitted_Lambda([Commit](const FText& T, ETextCommit::Type) { Commit(T.ToString()); })
-            ];
+            [ SNew(SEditableTextBox).Text(FText::FromString(Value)).OnTextCommitted_Lambda([Commit](const FText& T, ETextCommit::Type){ Commit(T.ToString()); }) ];
     };
 
-    // Labelled asset-picker slot (soft object ref).
     auto AssetSlot = [](const FString& Label, TFunction<FString()> Get, TFunction<void(const FAssetData&)> Set) -> TSharedRef<SWidget>
     {
         return SNew(SVerticalBox)
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 2.f)
             [ SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColLabel)) ]
             + SVerticalBox::Slot().AutoHeight()
-            [
-                SNew(SObjectPropertyEntryBox)
-                .AllowedClass(UObject::StaticClass())
-                .DisplayThumbnail(false)
-                .ObjectPath_Lambda(MoveTemp(Get))
-                .OnObjectChanged_Lambda(MoveTemp(Set))
-            ];
+            [ SNew(SObjectPropertyEntryBox).AllowedClass(UObject::StaticClass()).DisplayThumbnail(false)
+              .ObjectPath_Lambda(MoveTemp(Get)).OnObjectChanged_Lambda(MoveTemp(Set)) ];
     };
 
-    // Visual preview — headshot first, else the assigned digital double.
-    UObject* PreviewAsset = Entry->Headshot.LoadSynchronous();
-    if (!PreviewAsset) PreviewAsset = Entry->MetaHuman.LoadSynchronous();
-    if (!PreviewAsset) PreviewAsset = Entry->FaceScan.LoadSynchronous();
-
-    TSharedRef<SWidget> ThumbWidget =
-        SNew(SBox).WidthOverride(96.f).HeightOverride(96.f)
-        [ SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).HAlign(HAlign_Center).VAlign(VAlign_Center)
-          [ SNew(STextBlock).Text(LOCTEXT("NoImg", "no image")).ColorAndOpacity(FSlateColor(ColLabel)) ] ];
-    if (PreviewAsset && ThumbnailPool.IsValid())
+    TSharedRef<SWidget> Head =
+        SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).HAlign(HAlign_Center).VAlign(VAlign_Center)
+        [ SNew(STextBlock).Text(LOCTEXT("NoImg2", "no image")).ColorAndOpacity(FSlateColor(ColLabel)) ];
+    if (UObject* Asset = ResolvePreview(Entry))
     {
-        CurrentThumbnail = MakeShared<FAssetThumbnail>(PreviewAsset, 96, 96, ThumbnailPool);
-        ThumbWidget = SNew(SBox).WidthOverride(96.f).HeightOverride(96.f)[ CurrentThumbnail->MakeThumbnailWidget() ];
+        DetailThumbnail = MakeShared<FAssetThumbnail>(Asset, 72, 72, ThumbnailPool);
+        Head = DetailThumbnail->MakeThumbnailWidget();
     }
 
-    return SNew(SScrollBox)
-    + SScrollBox::Slot()
+    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(14.f)
     [
-        SNew(SVerticalBox)
-
-        // Headshot / digital-double preview + ActorID (locked)
-        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)
+        SNew(SScrollBox)
+        + SScrollBox::Slot()
         [
-            SNew(SHorizontalBox)
-            + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 12.f, 0.f)
-            [ ThumbWidget ]
-            + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+            SNew(SVerticalBox)
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 10.f)
             [
-                SNew(STextBlock)
-                .Text(FText::FromString(FString::Printf(TEXT("%s   (id locked)"), *Entry->ActorID)))
-                .ColorAndOpacity(FSlateColor(ColGreen))
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 12.f, 0.f)
+                [ SNew(SBox).WidthOverride(72.f).HeightOverride(72.f)[ Head ] ]
+                + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+                [
+                    SNew(SVerticalBox)
+                    + SVerticalBox::Slot().AutoHeight()
+                    [ SNew(STextBlock).Text(FText::FromString(Entry->ActorID)).ColorAndOpacity(FSlateColor(ColGreen)) ]
+                    + SVerticalBox::Slot().AutoHeight()
+                    [ SNew(STextBlock).Text(LOCTEXT("IdLocked", "id locked")).ColorAndOpacity(FSlateColor(ColText2)) ]
+                ]
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Top)
+                [ SNew(SButton).ButtonStyle(FAppStyle::Get(), "NoBorder")
+                  .OnClicked_Lambda([this]() { CloseDetail(); return FReply::Handled(); })
+                  [ SNew(STextBlock).Text(LOCTEXT("Close", "X")).ColorAndOpacity(FSlateColor(ColText2)) ] ]
             ]
-        ]
 
-        + SVerticalBox::Slot().AutoHeight()
-        [
-            SNew(SHorizontalBox)
-            + SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)
-            [ Field(TEXT("First name"), Entry->FirstName, [Weak](const FString& V){ if (Weak.IsValid()) Weak->FirstName = V; }) ]
-            + SHorizontalBox::Slot().FillWidth(1.f).Padding(4.f, 0.f, 0.f, 0.f)
-            [ Field(TEXT("Last name"), Entry->LastName, [Weak](const FString& V){ if (Weak.IsValid()) Weak->LastName = V; }) ]
-        ]
-
-        + SVerticalBox::Slot().AutoHeight()
-        [ Field(TEXT("Default body — Live Link subject"), Entry->DefaultBodyStream.LiveLinkSubjectName.ToString(),
-                [Weak](const FString& V){ if (Weak.IsValid()) Weak->DefaultBodyStream.LiveLinkSubjectName = FName(*V); }) ]
-        + SVerticalBox::Slot().AutoHeight()
-        [ Field(TEXT("Default body — Suit ID"), Entry->DefaultBodyStream.SuitID,
-                [Weak](const FString& V){ if (Weak.IsValid()) Weak->DefaultBodyStream.SuitID = V; }) ]
-
-        + SVerticalBox::Slot().AutoHeight()
-        [ Field(TEXT("Default face — Live Link subject"), Entry->DefaultFaceStream.LiveLinkSubjectName.ToString(),
-                [Weak](const FString& V){ if (Weak.IsValid()) Weak->DefaultFaceStream.LiveLinkSubjectName = FName(*V); }) ]
-        + SVerticalBox::Slot().AutoHeight()
-        [ Field(TEXT("Default face — Device ID"), Entry->DefaultFaceStream.DeviceID,
-                [Weak](const FString& V){ if (Weak.IsValid()) Weak->DefaultFaceStream.DeviceID = V; }) ]
-
-        // ── Digital double ──
-        + SVerticalBox::Slot().AutoHeight()
-        [ AssetSlot(TEXT("MetaHuman (driven character)"),
-                    [Weak]() { return Weak.IsValid() ? Weak->MetaHuman.ToString() : FString(); },
-                    [Weak](const FAssetData& AD) { if (Weak.IsValid()) Weak->MetaHuman = TSoftObjectPtr<UObject>(AD.GetSoftObjectPath()); }) ]
-        + SVerticalBox::Slot().AutoHeight()
-        [ AssetSlot(TEXT("Face scan / identity"),
-                    [Weak]() { return Weak.IsValid() ? Weak->FaceScan.ToString() : FString(); },
-                    [Weak](const FAssetData& AD) { if (Weak.IsValid()) Weak->FaceScan = TSoftObjectPtr<UObject>(AD.GetSoftObjectPath()); }) ]
-        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)
-        [
-            SNew(SCheckBox)
-            .IsChecked_Lambda([Weak]() { return (Weak.IsValid() && Weak->bUseFaceScanOnMetaHuman) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
-            .OnCheckStateChanged_Lambda([Weak](ECheckBoxState S) { if (Weak.IsValid()) Weak->bUseFaceScanOnMetaHuman = (S == ECheckBoxState::Checked); })
-            [ SNew(STextBlock).Text(LOCTEXT("UseFaceScan", "Use face scan on the MetaHuman")) ]
-        ]
-        + SVerticalBox::Slot().AutoHeight()
-        [ AssetSlot(TEXT("Headshot (optional — overrides the preview)"),
-                    [Weak]() { return Weak.IsValid() ? Weak->Headshot.ToString() : FString(); },
-                    [this, Weak](const FAssetData& AD) { if (Weak.IsValid()) { Weak->Headshot = TSoftObjectPtr<UTexture2D>(AD.GetSoftObjectPath()); RebuildForm(); } }) ]
-
-        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 2.f)
-        [ SNew(STextBlock).Text(LOCTEXT("AudioNote", "Audio channels — edit in the full asset")).ColorAndOpacity(FSlateColor(ColLabel)) ]
-
-        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 2.f)
-        [ SNew(STextBlock).Text(LOCTEXT("NotesLabel", "Notes")).ColorAndOpacity(FSlateColor(ColLabel)) ]
-        + SVerticalBox::Slot().AutoHeight()
-        [
-            SNew(SMultiLineEditableTextBox)
-            .Text(FText::FromString(Entry->Notes))
-            .OnTextCommitted_Lambda([Weak](const FText& T, ETextCommit::Type){ if (Weak.IsValid()) Weak->Notes = T.ToString(); })
-        ]
-
-        // Actions
-        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 14.f, 0.f, 0.f)
-        [
-            SNew(SHorizontalBox)
-            + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
+            + SVerticalBox::Slot().AutoHeight()
             [
-                SNew(SButton).Text(LOCTEXT("Save", "Save"))
-                .OnClicked_Lambda([this, Weak]() { if (Weak.IsValid()) SaveActorAsset(Weak.Get()); return FReply::Handled(); })
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)
+                [ Field(TEXT("First name"), Entry->FirstName, [Weak](const FString& V){ if (Weak.IsValid()) Weak->FirstName = V; }) ]
+                + SHorizontalBox::Slot().FillWidth(1.f).Padding(4.f, 0.f, 0.f, 0.f)
+                [ Field(TEXT("Last name"), Entry->LastName, [Weak](const FString& V){ if (Weak.IsValid()) Weak->LastName = V; }) ]
             ]
-            + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
+
+            + SVerticalBox::Slot().AutoHeight()
+            [ AssetSlot(TEXT("MetaHuman"),
+                [Weak]() { return Weak.IsValid() ? Weak->MetaHuman.ToString() : FString(); },
+                [Weak](const FAssetData& AD) { if (Weak.IsValid()) Weak->MetaHuman = TSoftObjectPtr<UObject>(AD.GetSoftObjectPath()); }) ]
+            + SVerticalBox::Slot().AutoHeight()
+            [ AssetSlot(TEXT("Face scan"),
+                [Weak]() { return Weak.IsValid() ? Weak->FaceScan.ToString() : FString(); },
+                [Weak](const FAssetData& AD) { if (Weak.IsValid()) Weak->FaceScan = TSoftObjectPtr<UObject>(AD.GetSoftObjectPath()); }) ]
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)
+            [ SNew(SCheckBox)
+              .IsChecked_Lambda([Weak]() { return (Weak.IsValid() && Weak->bUseFaceScanOnMetaHuman) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
+              .OnCheckStateChanged_Lambda([Weak](ECheckBoxState S) { if (Weak.IsValid()) Weak->bUseFaceScanOnMetaHuman = (S == ECheckBoxState::Checked); })
+              [ SNew(STextBlock).Text(LOCTEXT("UseFaceScan", "Use face scan on the MetaHuman")) ] ]
+            + SVerticalBox::Slot().AutoHeight()
+            [ AssetSlot(TEXT("Headshot (overrides preview)"),
+                [Weak]() { return Weak.IsValid() ? Weak->Headshot.ToString() : FString(); },
+                [this, Weak](const FAssetData& AD) { if (Weak.IsValid()) { Weak->Headshot = TSoftObjectPtr<UTexture2D>(AD.GetSoftObjectPath()); if (SelectedActor.IsValid() && DetailBox.IsValid()) DetailBox->SetContent(BuildDetailFor(SelectedActor.Get())); } }) ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)
+            [ SNew(SCheckBox)
+              .IsChecked_Lambda([Weak]()
+              {
+                  UPCAPToolSettings* S = UPCAPToolSettings::Get();
+                  UMocapDatabase* DB = S ? S->GetDatabase() : nullptr;
+                  const FString ID = Weak.IsValid() ? Weak->ActorID : FString();
+                  return (DB && DB->IsActorCalled(ID)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+              })
+              .OnCheckStateChanged_Lambda([Weak](ECheckBoxState S)
+              {
+                  UPCAPToolSettings* Set = UPCAPToolSettings::Get();
+                  if (UMocapDatabase* DB = (Set ? Set->GetDatabase() : nullptr))
+                      if (Weak.IsValid()) DB->SetActorCalled(Weak->ActorID, S == ECheckBoxState::Checked);
+              })
+              [ SNew(STextBlock).Text(LOCTEXT("Call", "Called to today's shoot")) ] ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 2.f)
+            [ SNew(STextBlock).Text(LOCTEXT("Notes", "Notes")).ColorAndOpacity(FSlateColor(ColLabel)) ]
+            + SVerticalBox::Slot().AutoHeight()
+            [ SNew(SMultiLineEditableTextBox).Text(FText::FromString(Entry->Notes)).OnTextCommitted_Lambda([Weak](const FText& T, ETextCommit::Type){ if (Weak.IsValid()) Weak->Notes = T.ToString(); }) ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 14.f, 0.f, 0.f)
             [
-                SNew(SButton).Text(LOCTEXT("OpenFull", "Open full asset"))
-                .OnClicked_Lambda([Weak]()
-                {
-                    if (Weak.IsValid() && GEditor)
-                    {
-                        GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(Weak.Get());
-                    }
-                    return FReply::Handled();
-                })
-            ]
-            + SHorizontalBox::Slot().AutoWidth()
-            [
-                SNew(SButton).Text(LOCTEXT("Delete", "Delete"))
-                .OnClicked_Lambda([this, Weak]()
-                {
-                    if (Weak.IsValid() && DeleteActorAsset(Weak.Get()))
-                    {
-                        SelectedActor = nullptr;
-                        ReloadActors();
-                        RebuildForm();
-                    }
-                    return FReply::Handled();
-                })
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
+                [ SNew(SButton).Text(LOCTEXT("Save", "Save")).OnClicked_Lambda([Weak]() { if (Weak.IsValid()) SaveActorAsset(Weak.Get()); return FReply::Handled(); }) ]
+                + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
+                [ SNew(SButton).Text(LOCTEXT("Open", "Open asset")).OnClicked_Lambda([Weak]() { if (Weak.IsValid() && GEditor) GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(Weak.Get()); return FReply::Handled(); }) ]
+                + SHorizontalBox::Slot().FillWidth(1.f)
+                + SHorizontalBox::Slot().AutoWidth()
+                [ SNew(SButton).Text(LOCTEXT("Delete", "Delete")).OnClicked_Lambda([this, Weak]()
+                  { if (Weak.IsValid() && DeleteActorAsset(Weak.Get())) { CloseDetail(); ReloadActors(); } return FReply::Handled(); }) ]
             ]
         ]
     ];
-}
-
-// ── Actions ──────────────────────────────────────────────────────────────────
-
-void SPCAPActorDatabasePanel::OnNewActorCommitted(const FText& Text, ETextCommit::Type CommitType)
-{
-    if (CommitType != ETextCommit::OnEnter) return;
-
-    const FString ActorID = Text.ToString().TrimStartAndEnd();
-    if (ActorID.IsEmpty()) return;
-
-    if (UActorRosterEntry* Created = CreateActorAsset(ActorID))
-    {
-        ReloadActors();
-        SelectedActor = Created;
-        if (ListView.IsValid()) ListView->SetSelection(TWeakObjectPtr<UActorRosterEntry>(Created));
-        RebuildForm();
-    }
-    // If the package already existed, CreateActorAsset returns null — the id is taken.
-}
-
-FReply SPCAPActorDatabasePanel::OnRefreshClicked()
-{
-    ReloadActors();
-    RebuildForm();
-    return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE
