@@ -79,6 +79,7 @@ void SPCAPActorDatabasePanel::Construct(const FArguments& InArgs)
             SNew(SBorder)
             .BorderImage(&ScrimBrush)
             .Visibility_Lambda([this]() { return SelectedActor.IsValid() ? EVisibility::Visible : EVisibility::Collapsed; })
+            .OnMouseButtonDown_Lambda([this](const FGeometry&, const FPointerEvent&) { CloseDetail(); return FReply::Handled(); })
             .HAlign(HAlign_Center).VAlign(VAlign_Center)
             [
                 SNew(SBox).WidthOverride(372.f).MaxDesiredHeight(448.f)
@@ -275,6 +276,7 @@ TSharedRef<SWidget> SPCAPActorDatabasePanel::BuildDetailFor(UActorRosterEntry* E
     }
 
     return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(14.f)
+    .OnMouseButtonDown_Lambda([](const FGeometry&, const FPointerEvent&) { return FReply::Handled(); })   // consume — don't close when clicking the card
     [
         SNew(SScrollBox)
         + SScrollBox::Slot()

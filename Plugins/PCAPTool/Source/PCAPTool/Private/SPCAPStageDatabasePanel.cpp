@@ -92,6 +92,7 @@ void SPCAPStageDatabasePanel::Construct(const FArguments& InArgs)
             SNew(SBorder)
             .BorderImage(&ScrimBrush)
             .Visibility_Lambda([this]() { return SelectedStage.IsValid() ? EVisibility::Visible : EVisibility::Collapsed; })
+            .OnMouseButtonDown_Lambda([this](const FGeometry&, const FPointerEvent&) { CloseDetail(); return FReply::Handled(); })
             .HAlign(HAlign_Center).VAlign(VAlign_Center)
             [
                 SNew(SBox).WidthOverride(400.f).MaxDesiredHeight(470.f)
@@ -283,6 +284,7 @@ TSharedRef<SWidget> SPCAPStageDatabasePanel::BuildDetailFor(UStageConfigAsset* E
     }
 
     return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(14.f)
+    .OnMouseButtonDown_Lambda([](const FGeometry&, const FPointerEvent&) { return FReply::Handled(); })   // consume — don't close when clicking the card
     [
         SNew(SScrollBox)
         + SScrollBox::Slot()
