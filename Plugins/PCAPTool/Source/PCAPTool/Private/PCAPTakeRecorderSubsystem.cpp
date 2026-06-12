@@ -4,6 +4,10 @@
 #include "PCAPToolSettings.h"
 #include "PCAPToolTypes.h"
 #include "PCAPToolPaths.h"
+#include "StageConfigAsset.h"
+#include "PCAPVCamSubsystem.h"
+#include "PCAPVCamActor.h"
+#include "UObject/LazyObjectPtr.h"
 
 #include "Engine/Engine.h"
 #include "LevelSequence.h"
@@ -141,8 +145,8 @@ bool UPCAPTakeRecorderSubsystem::StartRecordForActiveShot(FString& OutError)
     if (!Sources || !MetaData) { OutError = TEXT("Failed to allocate take sources/metadata."); return false; }
 
     // Arm a Live Link source per active body/face subject (hybrid: a stage preset may add more).
-    // NOTE: audio (TakeRecorderMicrophoneAudioSource) and VCam (TakeRecorderActorSource) arming
-    // are the next reflection pass — see header. Body/face cover the primary streams first.
+    // NOTE: audio (TakeRecorderMicrophoneAudioSource) arming is the next reflection pass — see
+    // header. Body/face here + VCam (below) cover the primary streams; audio follows.
     for (const FShotSubject& Subj : Shot->Subjects)
     {
         if (!Subj.bIsActive) continue;
@@ -153,6 +157,22 @@ bool UPCAPTakeRecorderSubsystem::StartRecordForActiveShot(FString& OutError)
         if (Subj.bHasFaceStream && !Subj.FaceStream.LiveLinkSubjectName.IsNone())
         {
             AddLiveLinkSource(Sources, Subj.FaceStream.LiveLinkSubjectName);
+        }
+    }
+
+    // Arm the VCam camera actor as a source if the active stage records a vcam.
+    PendingHasVCam = false;
+    if (UStageConfigAsset* Stage = DB->GetActiveStageConfig())
+    {
+        if (Stage->VCamSystem != EVCamSystem::None)
+        {
+            if (UPCAPVCamSubsystem* VCamSys = GEngine->GetEngineSubsystem<UPCAPVCamSubsystem>())
+            {
+                if (AActor* Cam = VCamSys->GetOrCreateVCamActor())
+                {
+                    PendingHasVCam = AddActorSource(Sources, Cam);
+                }
+            }
         }
     }
 
@@ -222,6 +242,8 @@ void UPCAPTakeRecorderSubsystem::HandleTakeFinished(ULevelSequence* SequenceAsse
     Take.RecordedAt = FDateTime::UtcNow();
     Take.Label      = ETakeLabel::Captured;
     Take.MasterSequence = SequenceAsset;   // the assembled take
+    Take.bHasVCam = PendingHasVCam;   // VCamAsset (the dedicated sub-asset) resolves in the
+                                      // same later per-stream pass as Body/Face/Audio refs.
 
     // Subject manifest (record-time provenance, incl. DrivenTarget).
     for (const FShotSubject& Subj : Shot->Subjects)
@@ -289,5 +311,41 @@ bool UPCAPTakeRecorderSubsystem::AddLiveLinkSource(UObject* Sources, FName Subje
 
     UTakeRecorderSource* NewSrc = Src->AddSource(LiveLinkSourceClass);
     SetSourceFName(NewSrc, TEXT("SubjectName"), SubjectName);
+    return NewSrc != nullptr;
+}
+
+// ── Reflection: arm an engine-private Actor source (VCam camera) ─────────────
+// CONFIRM-AT-BUILD: class path + "Target" property name/type (TLazyObjectPtr<AActor>
+// → FLazyObjectProperty) are the 5.7 risk points — log if either lookup is null.
+
+void UPCAPTakeRecorderSubsystem::SetSourceLazyActor(UObject* Source, const TCHAR* PropName, AActor* Value)
+{
+    if (!Source) { return; }
+    if (FLazyObjectProperty* Prop = FindFProperty<FLazyObjectProperty>(Source->GetClass(), PropName))
+    {
+        FLazyObjectPtr Lazy;
+        Lazy = Value;
+        Prop->SetPropertyValue_InContainer(Source, Lazy);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[PCAP] Actor source has no '%s' FLazyObjectProperty — confirm against 5.7 source."), PropName);
+    }
+}
+
+bool UPCAPTakeRecorderSubsystem::AddActorSource(UObject* Sources, AActor* Target) const
+{
+    UTakeRecorderSources* Src = Cast<UTakeRecorderSources>(Sources);
+    if (!Src || !Target) { return false; }
+
+    UClass* ActorSourceClass = FindSourceClass(TEXT("/Script/TakeRecorderSources.TakeRecorderActorSource"));
+    if (!ActorSourceClass)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[PCAP] TakeRecorderActorSource class not found — confirm /Script path on 5.7."));
+        return false;
+    }
+
+    UTakeRecorderSource* NewSrc = Src->AddSource(ActorSourceClass);
+    SetSourceLazyActor(NewSrc, TEXT("Target"), Target);
     return NewSrc != nullptr;
 }

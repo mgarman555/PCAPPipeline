@@ -85,6 +85,8 @@ private:
     FString PendingSessionID;
     FString PendingShotID;
 
+    bool PendingHasVCam = false;   // a VCam source was armed for the in-flight take
+
     UMocapDatabase* GetDB() const;
     void SetState(EPCAPRecordState NewState);
 
@@ -97,6 +99,10 @@ private:
     // true on success. Resolves /Script/LiveLinkSequencer.TakeRecorderLiveLinkSource and sets
     // its SubjectName (FName) via FProperty.
     bool AddLiveLinkSource(UObject* Sources, FName SubjectName) const;
+    // Arms an actor recording source for Target (used for the VCam camera). Resolves
+    // /Script/TakeRecorderSources.TakeRecorderActorSource and sets its Target via FProperty.
+    bool AddActorSource(UObject* Sources, AActor* Target) const;
+    static void SetSourceLazyActor(UObject* Source, const TCHAR* PropName, AActor* Value);
     static UClass* FindSourceClass(const TCHAR* ScriptPath);
     static void SetSourceFName(UObject* Source, const TCHAR* PropName, FName Value);
 };
