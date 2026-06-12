@@ -15,6 +15,16 @@
 
 #include "MocapDatabase.h"
 #include "PCAPToolSettings.h"
+#include "ActorRosterEntry.h"
+#include "PropRosterEntry.h"
+#include "StageConfigAsset.h"
+#include "PCAPToolTypes.h"
+
+#include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/Layout/SWrapBox.h"
+#include "AssetThumbnail.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "PCAPCallSheet"
 
@@ -22,6 +32,8 @@ void SPCAPCallSheetPanel::Construct(const FArguments& InArgs)
 {
     // Zero-setup: ensure a database exists in the PCAP tool area on first open.
     if (UPCAPToolSettings* S = UPCAPToolSettings::Get()) { S->GetOrCreateDatabase(); }
+
+    ThumbnailPool = MakeShared<FAssetThumbnailPool>(32);
 
     ChildSlot
     [
@@ -67,6 +79,7 @@ void SPCAPCallSheetPanel::SelectSection(ESection S)
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildRail()
 {
     return SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)[ BuildRailItem(ESection::Overview, LOCTEXT("Overview", "Overview")) ]
         + SVerticalBox::Slot().AutoHeight().Padding(2.f, 2.f, 2.f, 4.f)
         [ SNew(STextBlock).Text(LOCTEXT("Context", "Context")).ColorAndOpacity(FSlateColor(ColText2)) ]
         + SVerticalBox::Slot().AutoHeight()[ BuildRailItem(ESection::Project,  LOCTEXT("Project",  "Project")) ]
@@ -97,6 +110,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSectionContent(ESection S)
 {
     switch (S)
     {
+        case ESection::Overview: return BuildOverviewSection();
         case ESection::Stages: return SNew(SPCAPStageDatabasePanel);
         case ESection::Actors: return SNew(SPCAPActorDatabasePanel);
         case ESection::Props:  return SNew(SPCAPPropDatabasePanel);
@@ -235,6 +249,129 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShootDaySection()
                 }
             })
         ];
+}
+
+// ── Overview — the day's callout at a glance ────────────────────────────────
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildOverviewSection()
+{
+    OverviewThumbnails.Reset();
+
+    UMocapDatabase* DB = GetDB();
+    FShootDay* Day = DB ? DB->GetDay(DB->ActiveProductionCode, DB->ActiveDayID) : nullptr;
+
+    if (!DB || DB->ActiveProductionCode.IsEmpty() || !Day)
+    {
+        return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(24.f).HAlign(HAlign_Center).VAlign(VAlign_Center)
+        [
+            SNew(SVerticalBox)
+            + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
+            [ SNew(STextBlock).Text(LOCTEXT("OvEmptyHdr", "No shoot day set")).ColorAndOpacity(FSlateColor(ColGreen)) ]
+            + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0.f, 6.f, 0.f, 0.f)
+            [ SNew(STextBlock).Text(LOCTEXT("OvEmpty", "Pick a Project and Shoot day, then call actors and props — they'll show up here.")).ColorAndOpacity(FSlateColor(ColText2)) ]
+        ];
+    }
+
+    UStageConfigAsset* Stage = DB->GetActiveStageConfig();
+    const FString StageName = Stage ? Stage->ConfigName : FString(TEXT("(no stage)"));
+
+    FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+    TMap<FString, UActorRosterEntry*> ActorByID;
+    {
+        TArray<FAssetData> F;
+        ARM.Get().GetAssetsByClass(UActorRosterEntry::StaticClass()->GetClassPathName(), F, false);
+        for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) ActorByID.Add(E->ActorID, E);
+    }
+    TMap<FString, UPropRosterEntry*> PropByID;
+    {
+        TArray<FAssetData> F;
+        ARM.Get().GetAssetsByClass(UPropRosterEntry::StaticClass()->GetClassPathName(), F, false);
+        for (const FAssetData& AD : F) if (UPropRosterEntry* E = Cast<UPropRosterEntry>(AD.GetAsset())) PropByID.Add(E->PropID, E);
+    }
+
+    auto MiniCard = [this](const FString& Name, UObject* Preview) -> TSharedRef<SWidget>
+    {
+        TSharedRef<SWidget> Thumb =
+            SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).HAlign(HAlign_Center).VAlign(VAlign_Center)
+            [ SNew(STextBlock).Text(LOCTEXT("Dash", "—")).ColorAndOpacity(FSlateColor(ColText2)) ];
+        if (Preview && ThumbnailPool.IsValid())
+        {
+            TSharedPtr<FAssetThumbnail> T = MakeShared<FAssetThumbnail>(Preview, 56, 56, ThumbnailPool);
+            OverviewThumbnails.Add(T);
+            Thumb = T->MakeThumbnailWidget();
+        }
+        return SNew(SBox).WidthOverride(76.f).Padding(4.f)
+        [
+            SNew(SVerticalBox)
+            + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
+            [ SNew(SBox).WidthOverride(56.f).HeightOverride(56.f)[ Thumb ] ]
+            + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0.f, 3.f, 0.f, 0.f)
+            [ SNew(STextBlock).Text(FText::FromString(Name)).ColorAndOpacity(FSlateColor(ColText2)).AutoWrapText(true).Justification(ETextJustify::Center) ]
+        ];
+    };
+
+    TSharedRef<SWrapBox> ActorWrap = SNew(SWrapBox).UseAllottedSize(true);
+    for (const FString& ID : Day->CalledActorIDs)
+    {
+        UActorRosterEntry* E = ActorByID.FindRef(ID);
+        UObject* Preview = nullptr;
+        if (E) { Preview = E->Headshot.LoadSynchronous(); if (!Preview) Preview = E->MetaHuman.LoadSynchronous(); if (!Preview) Preview = E->FaceScan.LoadSynchronous(); }
+        ActorWrap->AddSlot()[ MiniCard(ID, Preview) ];
+    }
+
+    TSharedRef<SWrapBox> PropWrap = SNew(SWrapBox).UseAllottedSize(true);
+    for (const FString& ID : Day->CalledPropIDs)
+    {
+        UPropRosterEntry* E = PropByID.FindRef(ID);
+        PropWrap->AddSlot()[ MiniCard(ID, E ? E->PropAsset.LoadSynchronous() : nullptr) ];
+    }
+
+    const int32 NumActors = Day->CalledActorIDs.Num();
+    const int32 NumProps  = Day->CalledPropIDs.Num();
+
+    TArray<FString> Systems;
+    if (Stage)
+    {
+        if (Stage->BodySystem  != EBodySystem::None)  Systems.Add(StaticEnum<EBodySystem>()->GetDisplayNameTextByValue((int64)Stage->BodySystem).ToString());
+        if (Stage->FaceSystem  != EFaceSystem::None)  Systems.Add(StaticEnum<EFaceSystem>()->GetDisplayNameTextByValue((int64)Stage->FaceSystem).ToString());
+        if (Stage->AudioSystem != EAudioSystem::None) Systems.Add(StaticEnum<EAudioSystem>()->GetDisplayNameTextByValue((int64)Stage->AudioSystem).ToString());
+        if (Stage->VCamSystem  != EVCamSystem::None)  Systems.Add(StaticEnum<EVCamSystem>()->GetDisplayNameTextByValue((int64)Stage->VCamSystem).ToString());
+    }
+    const FString SystemsText = Systems.Num() > 0 ? FString::Join(Systems, TEXT("  ·  ")) : FString(TEXT("no systems set"));
+
+    return SNew(SScrollBox)
+    + SScrollBox::Slot()
+    [
+        SNew(SVerticalBox)
+
+        + SVerticalBox::Slot().AutoHeight()
+        [ SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
+          [ SNew(SVerticalBox)
+            + SVerticalBox::Slot().AutoHeight()
+            [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("%s   ·   %s   ·   Day_%s"), *DB->ActiveProductionCode, *StageName, *DB->ActiveDayID))).ColorAndOpacity(FSlateColor(ColGreen)) ]
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+            [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("%d actors  ·  %d props  ·  %s"), NumActors, NumProps, *SystemsText))).ColorAndOpacity(FSlateColor(ColText2)) ]
+          ]
+        ]
+
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 14.f, 0.f, 6.f)
+        [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("Called actors  (%d)"), NumActors))).ColorAndOpacity(FSlateColor(ColGreen)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [
+            (NumActors > 0)
+            ? StaticCastSharedRef<SWidget>(ActorWrap)
+            : StaticCastSharedRef<SWidget>(SNew(STextBlock).Text(LOCTEXT("NoActors", "No actors called yet — open Actors to call talent to this day.")).ColorAndOpacity(FSlateColor(ColText2)))
+        ]
+
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 14.f, 0.f, 6.f)
+        [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("Called props  (%d)"), NumProps))).ColorAndOpacity(FSlateColor(ColGreen)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [
+            (NumProps > 0)
+            ? StaticCastSharedRef<SWidget>(PropWrap)
+            : StaticCastSharedRef<SWidget>(SNew(STextBlock).Text(LOCTEXT("NoProps", "No props called yet — open Props to call props to this day.")).ColorAndOpacity(FSlateColor(ColText2)))
+        ]
+    ];
 }
 
 #undef LOCTEXT_NAMESPACE
