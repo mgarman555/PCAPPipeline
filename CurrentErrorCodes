@@ -1,1 +1,1 @@
-python -c "import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(('0.0.0.0',10001)); print('listening 10001...'); [print(s.recvfrom(4096)[0][:80]) for _ in iter(int,1)]"
+python -c "import socket,struct; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1); s.bind(('',9005)); s.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,struct.pack('4sl',socket.inet_aton('239.255.40.33'),socket.INADDR_ANY)); print('listening multicast 9005...'); [print(s.recvfrom(2048)[0].hex()[:160]) for _ in iter(int,1)]"
