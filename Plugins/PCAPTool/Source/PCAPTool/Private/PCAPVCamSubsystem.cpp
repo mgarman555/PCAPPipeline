@@ -376,11 +376,13 @@ void UPCAPVCamSubsystem::OnInputPacket(const FArrayReaderPtr& Data, const FIPv4E
     FScopeLock Lock(&InputMutex);
     LatestInput = In;
     bHasInput = true;
+    ++InputPacketCount;
 }
 
 void UPCAPVCamSubsystem::ApplyInputIntents(const FVCamInputIntents& Intents)
 {
     SetNavigateRate(Intents.NavigateRate);
+    RuntimeState.ActiveMapping = Intents.bShifted ? TEXT("SHIFTED") : TEXT("STANDARD");
 
     if (Intents.bHold != bPrevInputHold) { SetHold(Intents.bHold); bPrevInputHold = Intents.bHold; }
 
@@ -408,4 +410,16 @@ void UPCAPVCamSubsystem::ApplyInputIntents(const FVCamInputIntents& Intents)
         }
     }
     // Intents.bResetSonyXY → platform offset (deferred — platforming not modelled yet).
+}
+
+FVCamControllerInput UPCAPVCamSubsystem::GetLatestInput() const
+{
+    FScopeLock Lock(&InputMutex);
+    return LatestInput;
+}
+
+int32 UPCAPVCamSubsystem::GetInputPacketCount() const
+{
+    FScopeLock Lock(&InputMutex);
+    return InputPacketCount;
 }

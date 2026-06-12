@@ -95,6 +95,11 @@ public:
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") float GetTranslationGain() const { return RuntimeState.TranslationGain; }
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") float GetZoomGain() const        { return RuntimeState.ZoomGain; }
 
+    // Live controller-input readout for the panel's input monitor (plain C++ — FVCamControllerInput
+    // isn't BP-exposed). GetInputPacketCount rising = packets are arriving from WVCAM.
+    FVCamControllerInput GetLatestInput() const;
+    int32 GetInputPacketCount() const;
+
     UPROPERTY(BlueprintAssignable, Category="PCAP|VCam") FOnPCAPVCamStreamStatusChanged OnStreamStatusChanged;
 
 private:
@@ -111,8 +116,9 @@ private:
     // ── Controller input (WVCAM raw-broadcast UDP listener → input layer) ──────
     FVCamInputLayer InputLayer;
     FVCamControllerInput LatestInput;       // written on the receiver thread, read on tick
-    FCriticalSection InputMutex;
+    mutable FCriticalSection InputMutex;
     bool bHasInput = false;
+    int32 InputPacketCount = 0;
     bool bPrevInputHold = false;            // so SetHold only fires on change (re-solves Setup)
     FSocket* InputSocket = nullptr;
     FUdpSocketReceiver* InputReceiver = nullptr;
