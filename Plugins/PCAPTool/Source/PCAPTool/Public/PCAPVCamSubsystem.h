@@ -71,6 +71,17 @@ public:
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") float GetCurrentFocalLength() const;
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") FString GetActiveMapping() const { return RuntimeState.ActiveMapping; }
 
+    // Mode/toggle readouts — so the panel (and future controller HUD) reflects live state,
+    // not just sets it. Backed by the runtime state the processor mutates.
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") bool  IsFlightMode() const   { return RuntimeState.bFlightMode; }
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") bool  IsHeld() const         { return RuntimeState.bHold; }
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") bool  IsLockPosition() const { return RuntimeState.bLockPosition; }
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") bool  IsLockRotation() const { return RuntimeState.bLockRotation; }
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") bool  IsLockRoll() const     { return RuntimeState.bLockRoll; }
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") bool  IsKillRoll() const     { return RuntimeState.bKillRoll; }
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") float GetTranslationGain() const { return RuntimeState.TranslationGain; }
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") float GetZoomGain() const        { return RuntimeState.ZoomGain; }
+
     UPROPERTY(BlueprintAssignable, Category="PCAP|VCam") FOnPCAPVCamStreamStatusChanged OnStreamStatusChanged;
 
 private:
