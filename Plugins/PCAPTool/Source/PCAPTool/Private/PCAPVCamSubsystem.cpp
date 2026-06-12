@@ -45,6 +45,11 @@ void UPCAPVCamSubsystem::Tick(float DeltaTime)
     }
     SetStreamStatus(EStreamStatus::Connected);
 
+    // Accumulate joystick/d-pad navigation (rate * dt) before processing this frame.
+    // Uses last frame's smoothed rotation as the flight-mode basis (changes slowly vs dt).
+    FPCAPVCamProcessor::AccumulateNavigate(*ActiveConfig, RuntimeState.NavigateRate,
+        RuntimeState.SmoothedRotation, RuntimeState.bFlightMode, DeltaTime);
+
     const FTransform Out = FPCAPVCamProcessor::Process(*ActiveConfig, RuntimeState, Raw, DeltaTime);
 
     if (APCAPVCamActor* Cam = GetOrCreateVCamActor())
@@ -212,6 +217,35 @@ void UPCAPVCamSubsystem::SetZoomGain(float Gain)        { RuntimeState.ZoomGain 
 void UPCAPVCamSubsystem::SetWorldSpaceScale(FVector Scale)
 {
     if (ActiveConfig) { ActiveConfig->Scaling.WorldSpaceScale = Scale; }
+}
+
+void UPCAPVCamSubsystem::SetNavigateRate(FVector Rate)
+{
+    RuntimeState.NavigateRate = Rate;
+}
+
+void UPCAPVCamSubsystem::AddFocalLengthDelta(float DeltaMm)
+{
+    if (ActiveConfig)
+    {
+        ActiveConfig->ActiveFocalLength = FMath::Clamp(ActiveConfig->ActiveFocalLength + DeltaMm, 4.f, 1000.f);
+    }
+}
+
+void UPCAPVCamSubsystem::SelectNextWorldScale()
+{
+    if (!ActiveConfig || ActiveConfig->WorldScalePresets.Num() == 0) { return; }
+    const int32 N = ActiveConfig->WorldScalePresets.Num();
+    ActiveConfig->ActiveWorldScaleIndex = (ActiveConfig->ActiveWorldScaleIndex + 1) % N;
+    ActiveConfig->Scaling.WorldSpaceScale = ActiveConfig->WorldScalePresets[ActiveConfig->ActiveWorldScaleIndex];
+}
+
+void UPCAPVCamSubsystem::SelectPreviousWorldScale()
+{
+    if (!ActiveConfig || ActiveConfig->WorldScalePresets.Num() == 0) { return; }
+    const int32 N = ActiveConfig->WorldScalePresets.Num();
+    ActiveConfig->ActiveWorldScaleIndex = (ActiveConfig->ActiveWorldScaleIndex - 1 + N) % N;
+    ActiveConfig->Scaling.WorldSpaceScale = ActiveConfig->WorldScalePresets[ActiveConfig->ActiveWorldScaleIndex];
 }
 
 // ── Readouts ────────────────────────────────────────────────────────────────

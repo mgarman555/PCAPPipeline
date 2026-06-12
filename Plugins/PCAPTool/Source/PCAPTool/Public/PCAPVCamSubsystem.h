@@ -59,11 +59,17 @@ public:
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetFocalLength(float Millimeters);
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void CycleFocalLengthUp();
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void CycleFocalLengthDown();
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void AddFocalLengthDelta(float DeltaMm);
 
     // ── Gains / scale (joystick seam — stored now, fed by the input layer later) ──
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetTranslationGain(float Gain);
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetZoomGain(float Gain);
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetWorldSpaceScale(FVector Scale);
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SelectNextWorldScale();
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SelectPreviousWorldScale();
+
+    // Joystick/d-pad translation rate (units/sec); the tick accumulates it into Navigate.
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetNavigateRate(FVector Rate);
 
     // ── Readouts ───────────────────────────────────────────────────────────────
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") EStreamStatus GetStreamStatus() const { return StreamStatus; }

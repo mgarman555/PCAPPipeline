@@ -117,4 +117,23 @@ bool FPCAPVCamHoldReleaseTest::RunTest(const FString&)
     return true;
 }
 
+// Navigate accumulation: world-axis rate stacks into Navigate; flight-mode rate follows facing.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamNavigateAccumTest,
+    "PCAP.VCam.Processor.NavigateAccum",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPVCamNavigateAccumTest::RunTest(const FString&)
+{
+    UPCAPVCamConfig* C = NewObject<UPCAPVCamConfig>();
+    FPCAPVCamProcessor::AccumulateNavigate(*C, FVector(100.f, 0.f, 0.f), FQuat::Identity, /*flight*/false, 1.0f);
+    TestTrue(TEXT("world-axis rate accumulates into Navigate"),
+        C->Navigate.Translation.Equals(FVector(100.f, 0.f, 0.f), 0.01f));
+
+    UPCAPVCamConfig* C2 = NewObject<UPCAPVCamConfig>();
+    const FQuat Yaw90 = FRotator(0.f, 90.f, 0.f).Quaternion();   // facing +Y
+    FPCAPVCamProcessor::AccumulateNavigate(*C2, FVector(100.f, 0.f, 0.f), Yaw90, /*flight*/true, 1.0f);
+    TestTrue(TEXT("flight-mode local +X maps to world +Y at yaw 90"),
+        C2->Navigate.Translation.Equals(FVector(0.f, 100.f, 0.f), 0.1f));
+    return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

@@ -131,3 +131,13 @@ float FPCAPVCamProcessor::GetFocalLength(const UPCAPVCamConfig& Config)
 {
     return Config.ActiveFocalLength;
 }
+
+void FPCAPVCamProcessor::AccumulateNavigate(UPCAPVCamConfig& Config, const FVector& Rate,
+                                            const FQuat& CameraRot, bool bFlightMode, float DeltaSeconds)
+{
+    if (Rate.IsNearlyZero()) { return; }
+    // Flight mode: the joystick axes are relative to where the camera is facing — rotate the
+    // rate into world space by the current camera orientation. Otherwise the rate is world-axis.
+    const FVector WorldDelta = (bFlightMode ? CameraRot.RotateVector(Rate) : Rate) * DeltaSeconds;
+    Config.Navigate.Translation += WorldDelta;
+}

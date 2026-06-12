@@ -51,6 +51,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamSmoothingConfig Smoothing;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamScaleConfig     Scaling;
 
+    // World-scale presets the controller cycles through (SelectNext/PreviousWorldScale).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") TArray<FVector> WorldScalePresets = {FVector(1.f), FVector(2.f), FVector(5.f), FVector(10.f)};
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") int32 ActiveWorldScaleIndex = 0;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") TArray<float> FocalLengthPresets = {18.f, 24.f, 35.f, 50.f, 85.f};
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") float ActiveFocalLength = 35.f;
 
