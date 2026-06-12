@@ -38,6 +38,8 @@ public class PCAPTool : ModuleRules
             "PropertyEditor",       // SObjectPropertyEntryBox — asset-picker slots in DB forms
             "LiveLink",             // FLiveLinkClientReference / plugin module
             "LiveLinkInterface",    // ILiveLinkClient, transform role + frame-data types — TPVCam read
+            "Networking",           // FUdpSocketBuilder / FUdpSocketReceiver — WVCAM raw-broadcast listener
+            "Sockets",              // FSocket / ISocketSubsystem
         });
     }
 }

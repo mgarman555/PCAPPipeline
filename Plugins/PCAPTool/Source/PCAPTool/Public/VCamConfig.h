@@ -44,6 +44,9 @@ class PCAPTOOL_API UPCAPVCamConfig : public UDataAsset
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FName LiveLinkSubjectName = "TPVCam";
 
+    // UDP port the WVCAM raw-broadcast script sends controller input to (match the .py PORT).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") int32 InputBroadcastPort = 7401;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamAlignOffset AlignRigidBody; // axis correction
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamAlignOffset Setup;          // zero origin
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamAlignOffset Navigate;       // joystick stacking

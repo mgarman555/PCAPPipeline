@@ -3,12 +3,18 @@
 #include "CoreMinimal.h"
 #include "Subsystems/EngineSubsystem.h"
 #include "TickableEditorObject.h"
+#include "HAL/CriticalSection.h"
+#include "Serialization/ArrayReader.h"   // FArrayReaderPtr (input packet)
 #include "VCamProcessor.h"      // FPCAPVCamRuntimeState
+#include "VCamInputLayer.h"     // FVCamInputLayer / FVCamControllerInput / FVCamInputIntents
 #include "PCAPToolTypes.h"      // EStreamStatus
 #include "PCAPVCamSubsystem.generated.h"
 
 class UPCAPVCamConfig;
 class APCAPVCamActor;
+class FSocket;
+class FUdpSocketReceiver;
+struct FIPv4Endpoint;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPCAPVCamStreamStatusChanged, EStreamStatus, NewStatus);
 
@@ -100,4 +106,19 @@ private:
     // Reads the active config's Live Link subject transform. Returns false if unavailable.
     bool ReadLiveLinkTransform(FTransform& OutTransform) const;
     void SetStreamStatus(EStreamStatus NewStatus);
+
+    // ── Controller input (WVCAM raw-broadcast UDP listener → input layer) ──────
+    FVCamInputLayer InputLayer;
+    FVCamControllerInput LatestInput;       // written on the receiver thread, read on tick
+    FCriticalSection InputMutex;
+    bool bHasInput = false;
+    bool bPrevInputHold = false;            // so SetHold only fires on change (re-solves Setup)
+    FSocket* InputSocket = nullptr;
+    FUdpSocketReceiver* InputReceiver = nullptr;
+    int32 ActiveInputPort = 0;
+
+    void StartInputListener(int32 Port);
+    void StopInputListener();
+    void OnInputPacket(const FArrayReaderPtr& Data, const FIPv4Endpoint& From);  // receiver thread
+    void ApplyInputIntents(const FVCamInputIntents& Intents);                    // game thread
 };
