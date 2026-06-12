@@ -26,20 +26,30 @@ public:
 private:
     UPCAPVCamSubsystem* GetVCam() const;
 
-    TSharedPtr<SBox> StatusBox;   // live readout (rebuilt ~10Hz)
-    TSharedPtr<SBox> BodyBox;     // controls (rebuilt on config change)
+    TSharedPtr<SBox> StatusBox;        // live status line (rebuilt ~10Hz)
+    TSharedPtr<SBox> BodyBox;          // controls (rebuilt on config change)
+    TSharedPtr<SBox> InputMonitorBox;  // live controller-input readout (rebuilt ~10Hz)
+    int32  MonPrevPacketCount = -1;
+    double MonLastChangeTime = 0.0;
 
     void RebuildStatus();
     void RebuildBody();
+    void RebuildInputMonitor();
     EActiveTimerReturnType PollStatus(double InCurrentTime, float InDeltaTime);
 
     TSharedRef<SWidget> BuildConfigPicker();
     void OnConfigPicked(const FAssetData& Asset);
 
-    TSharedRef<SWidget> BuildTransformSection();
+    // 3D-tab layout (modernized WVCAM)
+    TSharedRef<SWidget> BuildOffsetsSection();
+    TSharedRef<SWidget> BuildOffsetBlock(const FText& Title, int32 OffsetId);  // 0=Align,1=Setup,2=Navigate
+    TSharedRef<SWidget> OffsetField(int32 OffsetId, bool bRotation, int32 Comp);
+    TSharedRef<SWidget> BuildModesSection();
     TSharedRef<SWidget> BuildLensSection();
+    TSharedRef<SWidget> BuildScalingSection();
     TSharedRef<SWidget> BuildNavigationSection();
     TSharedRef<SWidget> BuildControllerSection();
+    TSharedRef<SWidget> BuildOutputSection();
 
     TSharedRef<SWidget> MakeSection(const FText& Title, const TSharedRef<SWidget>& Content);
     TSharedRef<SWidget> MakeToggle(const FString& Label, TFunction<bool()> Get, TFunction<void(bool)> Set);
