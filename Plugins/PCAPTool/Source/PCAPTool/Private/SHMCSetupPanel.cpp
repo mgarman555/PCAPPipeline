@@ -906,6 +906,15 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCheckDot(const FString& Label, int32 Fl
         [ SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColMuted)) ];
 }
 
+bool SHMCSetupPanel::BoxCheckActive(const FString& Label, const FPipelineCheckProfile& P)
+{
+    if (Label == TEXT("Focus")) return P.bCheckFocus && P.FocusMin > 0.f;   // 0 = off until tuned
+    if (Label == TEXT("Exp"))   return P.bCheckExposure;
+    if (Label == TEXT("Light")) return P.bCheckLighting;
+    if (Label == TEXT("Frame")) return P.bCheckFraming || P.bCheckSubject;
+    return true;
+}
+
 TSharedRef<SWidget> SHMCSetupPanel::BuildCheckBox(const FString& Label, int32 FlagBit, int32 CameraIndex)
 {
     return SNew(SBox).Padding(FMargin(2.f, 0.f)).MinDesiredWidth(52.f)
@@ -914,15 +923,15 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCheckBox(const FString& Label, int32 Fl
         .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
         .Padding(FMargin(6.f, 4.f))
         .HAlign(HAlign_Center)
-        .BorderBackgroundColor_Lambda([this, FlagBit, CameraIndex]()
+        .BorderBackgroundColor_Lambda([this, Label, FlagBit, CameraIndex]()
         {
             UPCAPToolSubsystem* Sub = GetSubsystem();
             if (!Sub || ActiveDeviceName.IsEmpty()) return FSlateColor(ColGray);
-            // Grey when the device's pipeline runs no checks (e.g. Faceware until its docs).
+            // Grey when THIS check is inactive — the pipeline doesn't run it, or (focus)
+            // FocusMin is still 0/untuned. Green only means an active check is passing.
             const FPipelineCheckProfile P =
                 UPCAPToolStatics::GetPipelineProfile(Sub->GetDevicePipeline(ActiveDeviceName));
-            if (!(P.bCheckSubject || P.bCheckFraming || P.bCheckFocus || P.bCheckExposure || P.bCheckLighting))
-                return FSlateColor(ColGray);
+            if (!BoxCheckActive(Label, P)) return FSlateColor(ColGray);
             const int32 F = Sub->GetEffectiveIssueFlags(ActiveDeviceName, CameraIndex);
             return FSlateColor((F & FlagBit) ? ColRed : ColGreen);
         })
@@ -943,8 +952,12 @@ FString SHMCSetupPanel::CheckExplanation(const FString& Label, int32 FlagBit, in
     {
         const FPipelineCheckProfile P =
             UPCAPToolStatics::GetPipelineProfile(Sub->GetDevicePipeline(ActiveDeviceName));
-        if (!(P.bCheckSubject || P.bCheckFraming || P.bCheckFocus || P.bCheckExposure || P.bCheckLighting))
+        if (!BoxCheckActive(Label, P))
+        {
+            if (Label == TEXT("Focus") && P.bCheckFocus && P.FocusMin <= 0.f)
+                return TEXT("Focus: not tuned yet - set FocusMin on the rig to enable focus detection.");
             return FString::Printf(TEXT("%s: not checked by this pipeline."), *Label);
+        }
     }
     const int32 F = (Sub && !ActiveDeviceName.IsEmpty())
         ? Sub->GetEffectiveIssueFlags(ActiveDeviceName, CameraIndex) : 0;

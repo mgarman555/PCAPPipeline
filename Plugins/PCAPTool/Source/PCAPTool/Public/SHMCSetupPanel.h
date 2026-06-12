@@ -67,6 +67,9 @@ private:
     // position dropdown; its tooltip explains a red box from the pipeline docs.
     TSharedRef<SWidget> BuildCheckBox(const FString& Label, int32 FlagBit, int32 CameraIndex);
     FString CheckExplanation(const FString& Label, int32 FlagBit, int32 CameraIndex) const;
+    // Is the check behind this box actually running for the pipeline? (Focus also needs
+    // FocusMin > 0.) A box only goes green when its check is active AND passing.
+    static bool BoxCheckActive(const FString& Label, const FPipelineCheckProfile& P);
     // Aggregated red status line for the selected HMC (both cameras) — empty when good.
     FString SetupStatusText() const;
     static FString PipelineName(ECapturePipeline Pipeline);

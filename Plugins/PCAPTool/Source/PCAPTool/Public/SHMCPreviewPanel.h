@@ -55,6 +55,10 @@ private:
     // True when a connected device has no framing reference on either camera yet —
     // the automatic framing-drift check stays inactive until one is set in Setup.
     bool         FramingRefMissing(const FString& DeviceName) const;
+    // Resolve an ActorID to "First Last" via the Actor roster (falls back to the ID).
+    FString      ResolveActorName(const FString& ActorID) const;
+    // Display name of the device's capture pipeline (e.g. "MetaHuman HMC").
+    FString      PipelineLabel(const FString& DeviceName) const;
 
     static FLinearColor CardStatusColor(const FHMCDeviceStatus& Status);
     static FLinearColor VoltageColor(float V);

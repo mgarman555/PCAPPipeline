@@ -1,6 +1,9 @@
 #include "SHMCPreviewPanel.h"
 #include "PCAPToolSubsystem.h"
 #include "PCAPToolStatics.h"
+#include "PCAPToolSettings.h"
+#include "MocapDatabase.h"
+#include "ActorRosterEntry.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/Images/SImage.h"
@@ -200,7 +203,7 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName,
                         .Text_Lambda([this, DeviceName]()
                         {
                             const FString A = GetStatus(DeviceName).ActorID;
-                            return FText::FromString(A.IsEmpty() ? TEXT("No actor assigned") : A);
+                            return FText::FromString(A.IsEmpty() ? TEXT("No actor assigned") : ResolveActorName(A));
                         })
                     ]
                 ]
@@ -209,9 +212,15 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName,
                 .AutoWidth()
                 .VAlign(VAlign_Center)
                 [
-                    SNew(STextBlock)
-                    .Text(FText::FromString(Snapshot.IPAddress))
-                    .ColorAndOpacity(FSlateColor(ColMuted))
+                    SNew(SVerticalBox)
+                    + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right)
+                    [ SNew(STextBlock).Text(FText::FromString(Snapshot.IPAddress)).ColorAndOpacity(FSlateColor(ColMuted)) ]
+                    + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right)
+                    [
+                        SNew(STextBlock)
+                        .Text_Lambda([this, DeviceName]() { return FText::FromString(PipelineLabel(DeviceName)); })
+                        .ColorAndOpacity(FSlateColor(ColGray))
+                    ]
                 ]
             ]
 
@@ -364,6 +373,29 @@ FLinearColor SHMCPreviewPanel::FeedBorderColor(const FString& DeviceName, int32 
     const int32 Flags = Sub ? Sub->GetEffectiveIssueFlags(DeviceName, CameraIndex) : 0;
     return UPCAPToolStatics::GetIssueSeverity(Flags) == EHMCIssueSeverity::None
         ? ColGreen : ColRed;
+}
+
+FString SHMCPreviewPanel::ResolveActorName(const FString& ActorID) const
+{
+    if (ActorID.IsEmpty()) return ActorID;
+    if (UPCAPToolSettings* Settings = UPCAPToolSettings::Get())
+        if (UMocapDatabase* DB = Settings->GetDatabase())
+            for (const TSoftObjectPtr<UActorRosterEntry>& Ptr : DB->ActorRoster)
+                if (UActorRosterEntry* E = Ptr.LoadSynchronous())
+                    if (E->ActorID == ActorID)
+                    {
+                        const FString Name =
+                            FString::Printf(TEXT("%s %s"), *E->FirstName, *E->LastName).TrimStartAndEnd();
+                        return Name.IsEmpty() ? ActorID : Name;
+                    }
+    return ActorID;   // not in roster → show the ID
+}
+
+FString SHMCPreviewPanel::PipelineLabel(const FString& DeviceName) const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    const ECapturePipeline P = Sub ? Sub->GetDevicePipeline(DeviceName) : ECapturePipeline::MetaHumanHMC;
+    return StaticEnum<ECapturePipeline>()->GetDisplayNameTextByValue((int64)P).ToString();
 }
 
 FString SHMCPreviewPanel::DeviceErrorText(const FString& DeviceName) const
