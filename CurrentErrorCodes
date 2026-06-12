@@ -1,1 +1,1 @@
-python -c "import socket,json; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(('0.0.0.0',7401)); print('listening...'); [print(json.loads(s.recvfrom(2048)[0])) for _ in iter(int,1)]"
+python -c "import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(('0.0.0.0',10001)); print('listening 10001...'); [print(s.recvfrom(4096)[0][:80]) for _ in iter(int,1)]"
