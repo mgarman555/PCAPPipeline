@@ -5,6 +5,7 @@
 #include "SPCAPStageDatabasePanel.h"
 #include "SPCAPOperatorConsole.h"
 #include "SPCAPCallSheetPanel.h"
+#include "SPCAPVCamPanel.h"
 #include "Modules/ModuleManager.h"
 #include "Framework/Docking/TabManager.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -18,6 +19,7 @@
 const FName FPCAPToolModule::HMCTabName       = TEXT("PCAPTool_HMCMonitor");
 const FName FPCAPToolModule::ConsoleTabName   = TEXT("PCAPTool_Console");
 const FName FPCAPToolModule::CallSheetTabName = TEXT("PCAPTool_CallSheet");
+const FName FPCAPToolModule::VCamTabName      = TEXT("PCAPTool_VCam");
 const FName FPCAPToolModule::ActorDBTabName   = TEXT("PCAPTool_ActorDB");
 const FName FPCAPToolModule::PropDBTabName    = TEXT("PCAPTool_PropDB");
 const FName FPCAPToolModule::StageDBTabName   = TEXT("PCAPTool_StageDB");
@@ -57,6 +59,13 @@ void FPCAPToolModule::StartupModule()
         .SetTooltipText(LOCTEXT("HMCTabTooltip", "PCAP Tool — HMC device monitor"))
         .SetGroup(PCAPMenuGroup.ToSharedRef());
 
+    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
+        VCamTabName,
+        FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnVCamTab))
+        .SetDisplayName(LOCTEXT("VCamTabTitle", "VCam Operator"))
+        .SetTooltipText(LOCTEXT("VCamTabTooltip", "PCAP Tool — virtual camera operator (WVCAM replacement)"))
+        .SetGroup(PCAPMenuGroup.ToSharedRef());
+
     // ── Databases (the separate data setup) ────────────────────────────────
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
         ActorDBTabName,
@@ -85,6 +94,7 @@ void FPCAPToolModule::ShutdownModule()
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(CallSheetTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ConsoleTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(HMCTabName);
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(VCamTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ActorDBTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(PropDBTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(StageDBTabName);
@@ -103,6 +113,11 @@ TSharedRef<SDockTab> FPCAPToolModule::SpawnConsoleTab(const FSpawnTabArgs& Args)
 TSharedRef<SDockTab> FPCAPToolModule::SpawnCallSheetTab(const FSpawnTabArgs& Args)
 {
     return SNew(SDockTab).TabRole(ETabRole::NomadTab)[ SNew(SPCAPCallSheetPanel) ];
+}
+
+TSharedRef<SDockTab> FPCAPToolModule::SpawnVCamTab(const FSpawnTabArgs& Args)
+{
+    return SNew(SDockTab).TabRole(ETabRole::NomadTab)[ SNew(SPCAPVCamPanel) ];
 }
 
 TSharedRef<SDockTab> FPCAPToolModule::SpawnActorDBTab(const FSpawnTabArgs& Args)

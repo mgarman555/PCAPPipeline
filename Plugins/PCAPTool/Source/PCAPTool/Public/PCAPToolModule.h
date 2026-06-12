@@ -13,6 +13,7 @@ public:
     static const FName HMCTabName;
     static const FName ConsoleTabName;
     static const FName CallSheetTabName;
+    static const FName VCamTabName;
     // Databases group.
     static const FName ActorDBTabName;
     static const FName PropDBTabName;
@@ -25,6 +26,7 @@ private:
     TSharedRef<SDockTab> SpawnHMCTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnConsoleTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnCallSheetTab(const FSpawnTabArgs& Args);
+    TSharedRef<SDockTab> SpawnVCamTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnActorDBTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnPropDBTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnStageDBTab(const FSpawnTabArgs& Args);
