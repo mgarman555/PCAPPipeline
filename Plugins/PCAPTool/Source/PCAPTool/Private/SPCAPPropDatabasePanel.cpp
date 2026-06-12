@@ -61,13 +61,24 @@ void SPCAPPropDatabasePanel::Construct(const FArguments& InArgs)
                 ]
                 + SVerticalBox::Slot().FillHeight(1.f).Padding(FMargin(6.f))
                 [
-                    SAssignNew(TileView, STileView<TWeakObjectPtr<UPropRosterEntry>>)
-                    .ListItemsSource(&FilteredProps)
-                    .OnGenerateTile(this, &SPCAPPropDatabasePanel::OnGenerateTile)
-                    .OnSelectionChanged(this, &SPCAPPropDatabasePanel::OnSelectionChanged)
-                    .ItemWidth(132.f)
-                    .ItemHeight(154.f)
-                    .SelectionMode(ESelectionMode::Single)
+                    SNew(SOverlay)
+                    + SOverlay::Slot()
+                    [
+                        SAssignNew(TileView, STileView<TWeakObjectPtr<UPropRosterEntry>>)
+                        .ListItemsSource(&FilteredProps)
+                        .OnGenerateTile(this, &SPCAPPropDatabasePanel::OnGenerateTile)
+                        .OnSelectionChanged(this, &SPCAPPropDatabasePanel::OnSelectionChanged)
+                        .ItemWidth(132.f)
+                        .ItemHeight(154.f)
+                        .SelectionMode(ESelectionMode::Single)
+                    ]
+                    + SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)
+                    [
+                        SNew(STextBlock)
+                        .Text(LOCTEXT("EmptyProps", "No props yet — type an ID in the box above to create one."))
+                        .ColorAndOpacity(FSlateColor(ColText2))
+                        .Visibility_Lambda([this]() { return FilteredProps.Num() == 0 ? EVisibility::Visible : EVisibility::Collapsed; })
+                    ]
                 ]
             ]
         ]

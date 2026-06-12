@@ -76,13 +76,24 @@ void SPCAPStageDatabasePanel::Construct(const FArguments& InArgs)
                 ]
                 + SVerticalBox::Slot().FillHeight(1.f).Padding(FMargin(6.f))
                 [
-                    SAssignNew(TileView, STileView<TWeakObjectPtr<UStageConfigAsset>>)
-                    .ListItemsSource(&FilteredStages)
-                    .OnGenerateTile(this, &SPCAPStageDatabasePanel::OnGenerateTile)
-                    .OnSelectionChanged(this, &SPCAPStageDatabasePanel::OnSelectionChanged)
-                    .ItemWidth(150.f)
-                    .ItemHeight(160.f)
-                    .SelectionMode(ESelectionMode::Single)
+                    SNew(SOverlay)
+                    + SOverlay::Slot()
+                    [
+                        SAssignNew(TileView, STileView<TWeakObjectPtr<UStageConfigAsset>>)
+                        .ListItemsSource(&FilteredStages)
+                        .OnGenerateTile(this, &SPCAPStageDatabasePanel::OnGenerateTile)
+                        .OnSelectionChanged(this, &SPCAPStageDatabasePanel::OnSelectionChanged)
+                        .ItemWidth(150.f)
+                        .ItemHeight(160.f)
+                        .SelectionMode(ESelectionMode::Single)
+                    ]
+                    + SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)
+                    [
+                        SNew(STextBlock)
+                        .Text(LOCTEXT("EmptyStages", "No stages yet — type a name in the box above to create one."))
+                        .ColorAndOpacity(FSlateColor(ColText2))
+                        .Visibility_Lambda([this]() { return FilteredStages.Num() == 0 ? EVisibility::Visible : EVisibility::Collapsed; })
+                    ]
                 ]
             ]
         ]
