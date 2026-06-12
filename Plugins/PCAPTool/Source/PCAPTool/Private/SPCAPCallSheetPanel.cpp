@@ -339,10 +339,22 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildOverviewSection()
     }
     const FString SystemsText = Systems.Num() > 0 ? FString::Join(Systems, TEXT("  ·  ")) : FString(TEXT("no systems set"));
 
+    TArray<FString> ReadyIssues;
+    const bool bReady = DB->GetActiveDayReadiness(ReadyIssues);
+    const FLinearColor ColAmber = FLinearColor(0.878f, 0.627f, 0.188f);
+    const FText ReadyText = bReady
+        ? LOCTEXT("Ready", "Ready to shoot")
+        : FText::FromString(FString::Printf(TEXT("Not ready — missing: %s"), *FString::Join(ReadyIssues, TEXT(", "))));
+
     return SNew(SScrollBox)
     + SScrollBox::Slot()
     [
         SNew(SVerticalBox)
+
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)
+        [ SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 8.f))
+          [ SNew(STextBlock).Text(ReadyText).ColorAndOpacity(FSlateColor(bReady ? ColGreen : ColAmber)) ]
+        ]
 
         + SVerticalBox::Slot().AutoHeight()
         [ SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))

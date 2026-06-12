@@ -114,4 +114,31 @@ bool FPCAPDayCalloutTest::RunTest(const FString&)
     return true;
 }
 
+// Active-day readiness — lists what's missing; empty issues = ready.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPDayReadinessTest,
+    "PCAP.DataModel.DayReadiness",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPDayReadinessTest::RunTest(const FString&)
+{
+    UMocapDatabase* DB = NewObject<UMocapDatabase>();
+    TArray<FString> Issues;
+
+    // Nothing set → not ready, with project/day/stage/actors all flagged.
+    TestFalse(TEXT("empty db not ready"), DB->GetActiveDayReadiness(Issues));
+    TestTrue(TEXT("flags missing project"), Issues.Contains(TEXT("No project selected")));
+
+    // Project + day + a called actor, but no stage → still flags the stage only.
+    FProduction P; P.ProjectCode = TEXT("DA");
+    FShootDay   D; D.DayID = TEXT("001"); D.CalledActorIDs.Add(TEXT("kevinDorman"));
+    P.Days.Add(D);
+    DB->Productions.Add(P);
+    DB->ActiveProductionCode = TEXT("DA");
+    DB->ActiveDayID = TEXT("001");
+
+    TestFalse(TEXT("no stage → not ready"), DB->GetActiveDayReadiness(Issues));
+    TestTrue(TEXT("flags missing stage"), Issues.Contains(TEXT("No stage set")));
+    TestFalse(TEXT("actors not flagged"), Issues.Contains(TEXT("No actors called")));
+    return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

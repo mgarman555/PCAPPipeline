@@ -63,6 +63,9 @@ public:
     bool IsPropCalled(const FString& PropID) const;
     void SetPropCalled(const FString& PropID, bool bCalled);
 
+    // Is the active day ready to shoot? OutIssues lists what's missing (empty = ready).
+    bool GetActiveDayReadiness(TArray<FString>& OutIssues) const;
+
     // Take-id / asset-path helpers. Slot-only 3-digit ShotID (see Phase 1 spec §4.6).
     FString BuildNextTakeID() const;
     FString BuildTakeAssetPath(const FString& TakeID, const FString& ActorID, const FString& StreamSuffix) const;

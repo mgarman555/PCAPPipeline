@@ -196,3 +196,18 @@ void UMocapDatabase::SetPropCalled(const FString& PropID, bool bCalled)
         else         Day->CalledPropIDs.Remove(PropID);
     }
 }
+
+bool UMocapDatabase::GetActiveDayReadiness(TArray<FString>& OutIssues) const
+{
+    OutIssues.Reset();
+    UMocapDatabase* Self = const_cast<UMocapDatabase*>(this);
+
+    if (ActiveProductionCode.IsEmpty()) OutIssues.Add(TEXT("No project selected"));
+    if (ActiveDayID.IsEmpty())          OutIssues.Add(TEXT("No shoot day selected"));
+    if (!GetActiveStageConfig())        OutIssues.Add(TEXT("No stage set"));
+
+    const FShootDay* Day = Self->GetDay(ActiveProductionCode, ActiveDayID);
+    if (!Day || Day->CalledActorIDs.Num() == 0) OutIssues.Add(TEXT("No actors called"));
+
+    return OutIssues.Num() == 0;
+}
