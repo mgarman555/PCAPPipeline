@@ -1,6 +1,13 @@
 # PCAP Tool Suite — Status & Verify Guide
 
-**Built across this session (data model + Phase 2 + the operator tool suite). Everything is on `main`. Nothing below has been compiled yet — that's the next step on the build host.**
+> ⚠️ **Partly superseded (2026-06-10).** The Call Sheet tool, the `/Game/PCAPTool` content area, the
+> `PCAP Tools` + `Databases` menu groups, and the card-grid database UIs all landed after this guide
+> was written. Current state: `2026-06-10-call-sheet-design.md` §11 (as-built). The menu is now
+> `Window ▸ Tools ▸ PCAP Tools` (Call Sheet · Operator Console · HMC Monitor) **and Databases** (Actor ·
+> Prop · Stage); the read-only Mocap Database browser was removed from the menu. The per-tool verify
+> notes below still apply to those panels.
+
+**Built across an earlier session (data model + Phase 2 + the operator tool suite). Everything is on `main`.**
 
 ---
 

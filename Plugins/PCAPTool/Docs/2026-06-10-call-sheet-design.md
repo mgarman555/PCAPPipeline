@@ -175,3 +175,27 @@ literal alternative — a single flat folder holding all three asset types toget
 - Realtime Operator changes (own spec) — Call Sheet only guarantees the call-sheet contract in §6.
 - The Calibration tool (own spec).
 - Take recording / capture (already built — Phase 2 backend).
+
+## 11. As-built (update log)
+
+What actually shipped diverges from the original sections above — this records the final state (supersedes §8's paths and resolves §9's open decisions).
+
+**Tool content area** (one source of truth: `PCAPPaths` in `PCAPToolPaths.h`). NOTE: UE forbids spaces in package paths, so folder names are space-free:
+```
+/Game/PCAPTool/
+├── Databases/        Actors/ · Props/ · Stages/ · MasterPCAPDatabase
+├── PipelineTools/    per-tool asset areas (created on demand via PCAPPaths::ToolDir)
+└── Productions/      recorded takes
+```
+- The master database asset is **`MasterPCAPDatabase`** (the C++ class is still `UMocapDatabase` — a full class rename was deferred). It is **auto-created + self-assigned** on first tool open via `UPCAPToolSettings::GetOrCreateDatabase()` — zero manual setup.
+
+**Menu** — `Window ▸ Tools` has two sibling groups:
+- **PCAP Tools** — Call Sheet · Operator Console · HMC Monitor
+- **Databases** — Actor Database · Prop Database · Stage Database (their own setup, not folded away as §2 originally said)
+- The read-only **Mocap Database** browser was removed from the menu (its `SPCAPDatabasePanel` files are kept, unregistered).
+
+**Database UIs** — rebuilt as modern **card galleries** (`STileView`): a grid of thumbnail cards; clicking a card opens a scrim-backed **detail popup** (`SOverlay`). Actor card = headshot, Prop = mesh, Stage = stage-reference-mesh + a tool-summary subtitle. Call Sheet still hosts these same panels in its Actors/Props/Stages sections (where the per-row/detail **Call** toggle drives the day callout).
+
+**Stage** — gained a `StageReferenceMesh` (any mesh) field: the card thumbnail + the systems together let you see a stage's layout and tools at a glance.
+
+**§9 decisions, resolved:** folder = one parent + typed subfolders (`/Game/PCAPTool/Databases/{Actors,Props,Stages}`); actor sort = by `actorID`; Mocap browser = removed from tools. Alphabetical-everywhere (§7.1) is done, including the Operator Console pickers + the (now-removed) Mocap tree.
