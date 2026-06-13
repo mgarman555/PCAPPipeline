@@ -1,15 +1,84 @@
-Build started at 5:05 PM...
+Build started at 5:13 PM...
 1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
 1>Using bundled DotNet SDK version: 8.0.412 win-x64
 1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
 1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
 1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
 1>Creating makefile for PCAPPipelineEditor (.uproject file is newer)
-1>Expecting to find a type to be declared in a module rules named 'LiveLinkDataStream' in 'UE5Rules, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'.  This type must derive from the 'ModuleRules' type defined by UnrealBuildTool.
+1>UHT compiled-in object format Default
+1>Parsing headers for PCAPPipelineEditor
+1>  Running Internal UnrealHeaderTool C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject C:\Users\mocapstaff\Desktop\PCAPPipeline\Intermediate\Build\Win64\PCAPPipelineEditor\Development\PCAPPipelineEditor.uhtmanifest -WarningsAsErrors -installed
+1>UHT processed PCAPPipelineEditor in 0.9290841 seconds (22 files written)
+1>Building PCAPPipelineEditor...
+1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+1>[Adaptive Build] Excluded from LiveLinkDataStream unity file: BonjourResolver.cpp, CustomBonjourResolver.cpp, LiveLinkDataStreamModule.cpp, LiveLinkViconCameraController.cpp, LiveLinkViconDataStreamBlueprint.cpp, LiveLinkViconDataStreamSource.cpp, LiveLinkViconMarkerVisualizer.cpp, LiveLinkViconUDPSender.cpp, LiveLinkViconUtils.cpp, NSDCommon.cpp, ViconLensDistortionModelHandler.cpp, ViconLensModel.cpp, ViconStream.cpp, ViconStreamFrameReader.cpp
+1>[Adaptive Build] Excluded from LiveLinkDataStreamEditor unity file: IoContextRunner.cpp, LiveLinkDataStreamEditorModule.cpp, LiveLinkViconDataStreamNSDBrowserPanel.cpp, LiveLinkViconDataStreamNSDBrowserWin.cpp, LiveLinkViconDataStreamSourceEditor.cpp, LiveLinkViconDataStreamSourceFactory.cpp, LiveLinkViconDataStreamSourceNSDEditor.cpp, LiveLinkViconDataStreamSourceNSDFactory.cpp, LiveLinkViconDataStreamSourcePropEditor.cpp
+1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
+1>  Executing up to 32 processes, one per physical core
+1>Using Unreal Build Accelerator local executor to run 36 action(s)
+1>  Storage capacity 40Gb
+1>---- Starting trace: 260612_171343_vs25616 ----
+1>UbaServer - Listening on 0.0.0.0:1345
+1>[1/36] Resource Default.rc2
+1>[2/36] Resource Default.rc2
+1>[3/36] Compile [x64] ViconLensModel.cpp
+1>[4/36] Compile [x64] NSDCommon.cpp
+1>[5/36] Compile [x64] LiveLinkViconUtils.cpp
+1>[6/36] Compile [x64] LiveLinkDataStreamEditorModule.cpp
+1>[7/36] Compile [x64] LiveLinkViconUDPSender.cpp
+1>[8/36] Compile [x64] ViconLensDistortionModelHandler.cpp
+1>[9/36] Compile [x64] LiveLinkViconCameraController.cpp
+1>[10/36] Compile [x64] LiveLinkViconDataStreamSource.cpp
+1>[11/36] Compile [x64] LiveLinkViconDataStreamBlueprint.cpp
+1>[12/36] Compile [x64] LiveLinkDataStreamModule.cpp
+1>[13/36] Compile [x64] Module.LiveLinkDataStream.cpp
+1>[14/36] Compile [x64] ViconStream.cpp
+1>[15/36] Compile [x64] LiveLinkViconDataStreamSourceFactory.cpp
+1>[16/36] Compile [x64] Module.LiveLinkDataStreamEditor.cpp
+1>[17/36] Compile [x64] BonjourResolver.cpp
+1>[18/36] Compile [x64] ViconStreamFrameReader.cpp
+1>[19/36] Compile [x64] CustomBonjourResolver.cpp
+1>[20/36] Compile [x64] LiveLinkViconDataStreamSourcePropEditor.cpp
+1>[21/36] Compile [x64] LiveLinkViconMarkerVisualizer.cpp
+1>[22/36] Link [x64] UnrealEditor-LiveLinkDataStream.lib
+1>[23/36] Compile [x64] LiveLinkViconDataStreamSourceEditor.cpp
+1>[24/36] Compile [x64] IoContextRunner.cpp
+1>[25/36] Link [x64] UnrealEditor-LiveLinkDataStream.dll
+1>[26/36] Compile [x64] LiveLinkViconDataStreamNSDBrowserWin.cpp
+1>[27/36] Compile [x64] LiveLinkViconDataStreamSourceNSDFactory.cpp
+1>[28/36] Compile [x64] Module.PCAPTool.4.cpp
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPVCamPanel.cpp(288,49): error C3487: 'T': all return expressions must deduce to the same type: previously it was 'float'
+1>        with
+1>        [
+1>            T=double
+1>        ]
+1>            if (bRotation) { return (Comp == 0) ? O->Rotation.Pitch : (Comp == 1) ? O->Rotation.Yaw : O->Rotation.Roll; }
+1>                                                ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPVCamPanel.cpp(289,32): error C3487: 'T': all return expressions must deduce to the same type: previously it was 'float'
+1>        with
+1>        [
+1>            T=double
+1>        ]
+1>            return (Comp == 0) ? O->Translation.X : (Comp == 1) ? O->Translation.Y : O->Translation.Z;
+1>                               ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPVCamPanel.cpp(435,36): error C3487: 'T': all return expressions must deduce to the same type: previously it was 'float'
+1>        with
+1>        [
+1>            T=double
+1>        ]
+1>                return (Comp == 0) ? Vec.X : (Comp == 1) ? Vec.Y : Vec.Z;
+1>                                   ^
+1>[29/36] Compile [x64] LiveLinkViconDataStreamSourceNSDEditor.cpp
+1>[30/36] Compile [x64] LiveLinkViconDataStreamNSDBrowserPanel.cpp
+1>[31/36] Link [x64] UnrealEditor-LiveLinkDataStreamEditor.lib
+1>[32/36] Link [x64] UnrealEditor-LiveLinkDataStreamEditor.dll
+1>[33/36] Compile [x64] Module.PCAPTool.3.cpp
+1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 12.0kb
+1>Total time in Unreal Build Accelerator local executor: 6.29 seconds
 1>
-1>Result: Failed (RulesError)
-1>Total execution time: 1.91 seconds
-1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 8.
+1>Result: Failed (OtherCompilationError)
+1>Total execution time: 10.33 seconds
+1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
 1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
 ========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 5:05 PM and took 02.324 seconds ==========
+========== Build completed at 5:13 PM and took 11.658 seconds ==========
