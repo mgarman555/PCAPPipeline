@@ -281,12 +281,12 @@ TSharedRef<SWidget> SPCAPVCamPanel::OffsetField(int32 OffsetId, bool bRotation, 
     };
 
     return SNew(SSpinBox<float>).MinDesiredWidth(44.f)
-        .Value_Lambda([Resolve, bRotation, Comp]()
+        .Value_Lambda([Resolve, bRotation, Comp]() -> float
         {
             FPCAPVCamAlignOffset* O = Resolve();
             if (!O) { return 0.f; }
-            if (bRotation) { return (Comp == 0) ? O->Rotation.Pitch : (Comp == 1) ? O->Rotation.Yaw : O->Rotation.Roll; }
-            return (Comp == 0) ? O->Translation.X : (Comp == 1) ? O->Translation.Y : O->Translation.Z;
+            if (bRotation) { return (float)((Comp == 0) ? O->Rotation.Pitch : (Comp == 1) ? O->Rotation.Yaw : O->Rotation.Roll); }
+            return (float)((Comp == 0) ? O->Translation.X : (Comp == 1) ? O->Translation.Y : O->Translation.Z);
         })
         .OnValueChanged_Lambda([Resolve, bRotation, Comp](float NewVal)
         {
@@ -427,12 +427,12 @@ TSharedRef<SWidget> SPCAPVCamPanel::BuildScalingSection()
     auto ScaleField = [this](bool bWorld, int32 Comp) -> TSharedRef<SWidget>
     {
         return SNew(SSpinBox<float>).MinValue(0.01f).MaxValue(100.f).MinDesiredWidth(44.f)
-            .Value_Lambda([this, bWorld, Comp]()
+            .Value_Lambda([this, bWorld, Comp]() -> float
             {
                 UPCAPVCamSubsystem* S = GetVCam(); UPCAPVCamConfig* C = S ? S->GetActiveConfig() : nullptr;
                 if (!C) { return 1.f; }
                 const FVector& Vec = bWorld ? C->Scaling.WorldSpaceScale : C->Scaling.CameraSpaceScale;
-                return (Comp == 0) ? Vec.X : (Comp == 1) ? Vec.Y : Vec.Z;
+                return (float)((Comp == 0) ? Vec.X : (Comp == 1) ? Vec.Y : Vec.Z);
             })
             .OnValueChanged_Lambda([this, bWorld, Comp](float NewVal)
             {
