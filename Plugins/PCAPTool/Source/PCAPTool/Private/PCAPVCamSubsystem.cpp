@@ -12,6 +12,10 @@
 #include "ILiveLinkClient.h"
 #include "Roles/LiveLinkTransformRole.h"
 #include "Roles/LiveLinkTransformTypes.h"
+#include "Roles/LiveLinkCameraRole.h"
+#include "Roles/LiveLinkCameraTypes.h"
+#include "Roles/LiveLinkAnimationRole.h"
+#include "Roles/LiveLinkAnimationTypes.h"
 
 #include "Common/UdpSocketBuilder.h"
 #include "Common/UdpSocketReceiver.h"
@@ -102,19 +106,45 @@ bool UPCAPVCamSubsystem::ReadLiveLinkTransform(FTransform& OutTransform) const
     if (!MF.IsModularFeatureAvailable(ILiveLinkClient::ModularFeatureName)) { return false; }
 
     ILiveLinkClient& Client = MF.GetModularFeature<ILiveLinkClient>(ILiveLinkClient::ModularFeatureName);
+    const FName Subject = ActiveConfig->LiveLinkSubjectName;
+    FLiveLinkSubjectFrameData Frame;
 
-    FLiveLinkSubjectFrameData FrameData;
-    const bool bOk = Client.EvaluateFrame_AnyThread(
-        ActiveConfig->LiveLinkSubjectName,
-        ULiveLinkTransformRole::StaticClass(),
-        FrameData);
-    if (!bOk) { return false; }
+    // Vicon/Shogun can publish the camera rigid body under different Live Link roles —
+    // Transform, Camera, or (commonly) a single-bone Animation subject. Try each so the
+    // read works regardless of how the stage streams it.
 
-    if (const FLiveLinkTransformFrameData* T = FrameData.FrameData.Cast<FLiveLinkTransformFrameData>())
+    if (Client.EvaluateFrame_AnyThread(Subject, ULiveLinkTransformRole::StaticClass(), Frame))
     {
-        OutTransform = T->Transform;
-        return true;
+        if (const FLiveLinkTransformFrameData* T = Frame.FrameData.Cast<FLiveLinkTransformFrameData>())
+        {
+            OutTransform = T->Transform;
+            return true;
+        }
     }
+
+    if (Client.EvaluateFrame_AnyThread(Subject, ULiveLinkCameraRole::StaticClass(), Frame))
+    {
+        if (const FLiveLinkCameraFrameData* C = Frame.FrameData.Cast<FLiveLinkCameraFrameData>())
+        {
+            OutTransform = C->Transform;
+            return true;
+        }
+    }
+
+    if (Client.EvaluateFrame_AnyThread(Subject, ULiveLinkAnimationRole::StaticClass(), Frame))
+    {
+        if (const FLiveLinkAnimationFrameData* A = Frame.FrameData.Cast<FLiveLinkAnimationFrameData>())
+        {
+            if (A->Transforms.Num() > 0)
+            {
+                // Single-bone rigid body → root transform is the camera pose. (If a stage ever
+                // streams the vcam as a multi-bone skeleton, this would need a named-bone lookup.)
+                OutTransform = A->Transforms[0];
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 
