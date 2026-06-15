@@ -116,6 +116,25 @@ UTextRenderComponent* APCAPVolumeVisualizer::GetOrCreateLabel(FName Subject)
     return Label;
 }
 
+void APCAPVolumeVisualizer::UpdateInstances(UInstancedStaticMeshComponent* ISM, const TArray<FTransform>& Xforms)
+{
+    if (!ISM) { return; }
+    // Update in place when the count is stable (no per-tick clear → no flicker);
+    // only rebuild when the number of points changes.
+    if (ISM->GetInstanceCount() == Xforms.Num())
+    {
+        if (Xforms.Num() > 0)
+        {
+            ISM->BatchUpdateInstancesTransforms(0, Xforms, /*bWorldSpace*/true, /*bMarkRenderStateDirty*/true, /*bTeleport*/true);
+        }
+    }
+    else
+    {
+        ISM->ClearInstances();
+        for (const FTransform& T : Xforms) { ISM->AddInstance(T, /*bWorldSpace*/true); }
+    }
+}
+
 void APCAPVolumeVisualizer::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
@@ -126,23 +145,24 @@ void APCAPVolumeVisualizer::Tick(float DeltaSeconds)
 
     const FVector DotScale(MarkerSize / 100.f);   // engine sphere is 100cm dia → cm-ish
 
-    // Labeled subjects → per-subject ISM + centroid label.
     TSet<FName> Seen;
+    TArray<FTransform> Xforms;
     for (const FVizMarkerGroup& G : Frame.Labeled)
     {
         Seen.Add(G.SubjectName);
 
         UInstancedStaticMeshComponent* ISM = GetOrCreateSubjectISM(G.SubjectName);
         ISM->SetVisibility(bShowLabeled);
-        ISM->ClearInstances();
 
+        Xforms.Reset();
         FVector Centroid = FVector::ZeroVector;
         for (FVector P : G.Points)
         {
             ApplyAlignment(P);
             Centroid += P;
-            ISM->AddInstance(FTransform(FRotator::ZeroRotator, P, DotScale), /*bWorldSpace*/true);
+            Xforms.Add(FTransform(FRotator::ZeroRotator, P, DotScale));
         }
+        UpdateInstances(ISM, Xforms);
 
         UTextRenderComponent* Label = GetOrCreateLabel(G.SubjectName);
         const bool bHasPts = G.Points.Num() > 0;
@@ -155,10 +175,10 @@ void APCAPVolumeVisualizer::Tick(float DeltaSeconds)
         }
     }
 
-    // Stale subjects (gone this frame) → clear + hide.
+    // Subjects gone this frame → empty them out + hide labels.
     for (const TPair<FName, TObjectPtr<UInstancedStaticMeshComponent>>& Pair : SubjectISMs)
     {
-        if (!Seen.Contains(Pair.Key) && Pair.Value) { Pair.Value->ClearInstances(); }
+        if (!Seen.Contains(Pair.Key) && Pair.Value && Pair.Value->GetInstanceCount() > 0) { Pair.Value->ClearInstances(); }
     }
     for (const TPair<FName, TObjectPtr<UTextRenderComponent>>& Pair : SubjectLabels)
     {
@@ -169,11 +189,12 @@ void APCAPVolumeVisualizer::Tick(float DeltaSeconds)
     if (UnlabeledISM)
     {
         UnlabeledISM->SetVisibility(bShowUnlabeled);
-        UnlabeledISM->ClearInstances();
+        Xforms.Reset();
         for (FVector P : Frame.Unlabeled)
         {
             ApplyAlignment(P);
-            UnlabeledISM->AddInstance(FTransform(FRotator::ZeroRotator, P, DotScale), /*bWorldSpace*/true);
+            Xforms.Add(FTransform(FRotator::ZeroRotator, P, DotScale));
         }
+        UpdateInstances(UnlabeledISM, Xforms);
     }
 }

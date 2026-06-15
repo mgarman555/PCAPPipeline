@@ -38,7 +38,7 @@ public:
     float Yaw = 0.f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Display", meta=(ClampMin="0.1"))
-    float MarkerSize = 3.f;   // approx cm diameter
+    float MarkerSize = 1.f;   // approx cm diameter (Vicon markers ~0.4–1.4cm)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Display")
     bool bShowLabeled = true;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Display")
@@ -71,4 +71,5 @@ private:
     void ApplyAlignment(FVector& P) const;
     UInstancedStaticMeshComponent* GetOrCreateSubjectISM(FName Subject);
     UTextRenderComponent* GetOrCreateLabel(FName Subject);
+    void UpdateInstances(UInstancedStaticMeshComponent* ISM, const TArray<FTransform>& Xforms);
 };
