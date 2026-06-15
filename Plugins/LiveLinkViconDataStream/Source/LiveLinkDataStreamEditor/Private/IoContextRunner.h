@@ -2,8 +2,16 @@
 
 #include "HAL/Runnable.h"
 #include "Templates/SharedPointer.h"
+
+// Asio uses Win32 types/atomics (TRUE/FALSE, Interlocked*) that UE hides by default.
+// Wrap the includes the same way this plugin's NSDBrowserWin.h already does, or the
+// bundled Asio fails to compile in UE 5.7's environment.
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include "Windows/AllowWindowsPlatformAtomics.h"
 #include "asio/executor_work_guard.hpp"
 #include "asio/io_context.hpp"
+#include "Windows/HideWindowsPlatformAtomics.h"
+#include "Windows/HideWindowsPlatformTypes.h"
 
 class FRunnableThread;
 
