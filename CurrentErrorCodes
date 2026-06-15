@@ -1,209 +1,66 @@
-Build started at 12:45 PM...
-1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
-1>Using bundled DotNet SDK version: 8.0.412 win-x64
-1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
-1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
-1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
-1>Building PCAPPipelineEditor...
-1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
-1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
-1>  Executing up to 32 processes, one per physical core
-1>Using Unreal Build Accelerator local executor to run 4 action(s)
-1>  Storage capacity 40Gb
-1>---- Starting trace: 260615_124531_vs62280 ----
-1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
-1>[1/4] Compile [x64] Module.LiveLinkDataStreamEditor.cpp
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_static_mutex.ipp(55,36): error C2065: 'TRUE': undeclared identifier
-1>  HANDLE mutex = ::CreateMutexW(0, TRUE, mutex_name);
-1>                                   ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_thread.ipp(45,40): error C2065: 'FALSE': undeclared identifier
-1>  ::WaitForMultipleObjects(2, handles, FALSE, INFINITE);
-1>                                       ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_thread.ipp(130,23): error C2065: 'TRUE': undeclared identifier
-1>  ::SleepEx(INFINITE, TRUE);
-1>                      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(35,9): error C2039: 'InterlockedIncrement': is not a member of '`global namespace''
-1>  if (::InterlockedIncrement(&d.init_count_) == 1)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(35,9): error C3861: 'InterlockedIncrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(39,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>    ::InterlockedExchange(&d.result_, result);
-1>      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(39,7): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(45,9): error C2039: 'InterlockedIncrement': is not a member of '`global namespace''
-1>  if (::InterlockedIncrement(&d.init_count_) == 1)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(45,9): error C3861: 'InterlockedIncrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(47,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>    ::InterlockedExchange(&d.result_, 0);
-1>      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(47,7): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(53,9): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
-1>  if (::InterlockedDecrement(&d.init_count_) == 0)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(53,9): error C3861: 'InterlockedDecrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(61,5): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
-1>  ::InterlockedDecrement(&d.init_count_);
-1>    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(61,5): error C3861: 'InterlockedDecrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(66,19): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>  long result = ::InterlockedExchangeAdd(&d.result_, 0);
-1>                  ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(66,19): error C3861: 'InterlockedExchangeAdd': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(89,14): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>    return ::InterlockedExchangeAdd(&stopped_, 0) != 0;
-1>             ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(89,14): error C3861: 'InterlockedExchangeAdd': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(95,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>    ::InterlockedExchange(&stopped_, 0);
-1>      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(95,7): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(101,7): error C2039: 'InterlockedIncrement': is not a member of '`global namespace''
-1>    ::InterlockedIncrement(&outstanding_work_);
-1>      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(101,7): error C3861: 'InterlockedIncrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(107,11): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
-1>    if (::InterlockedDecrement(&outstanding_work_) == 0)
-1>          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(107,11): error C3861: 'InterlockedDecrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.hpp(53,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>  if (::InterlockedExchangeAdd(&shutdown_, 0) != 0)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(192,8): note: This diagnostic occurred in the compiler generated function 'void asio::detail::win_iocp_io_context::schedule_timer(asio::detail::timer_queue<Time_Traits> &,const Time_Traits::time_type &,timer_queue<Time_Traits>::per_timer_data &,asio::detail::wait_op *)'
-1>  void schedule_timer(timer_queue<Time_Traits>& queue,
-1>       ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.hpp(73,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>  if (::InterlockedExchangeAdd(&shutdown_, 0) != 0)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(199,15): note: This diagnostic occurred in the compiler generated function 'size_t asio::detail::win_iocp_io_context::cancel_timer(asio::detail::timer_queue<Time_Traits> &,timer_queue<Time_Traits>::per_timer_data &,size_t)'
-1>  std::size_t cancel_timer(timer_queue<Time_Traits>& queue,
-1>              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(66,14): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>    while (::InterlockedExchangeAdd(&io_context_->shutdown_, 0) == 0)
-1>             ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(66,14): error C3861: 'InterlockedExchangeAdd': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(71,11): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>        ::InterlockedExchange(&io_context_->dispatch_required_, 1);
-1>          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(71,11): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(107,7): error C2039: 'InterlockedIncrement': is not a member of '`global namespace''
-1>    ::InterlockedIncrement(&outstanding_work_);
-1>      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(107,7): error C3861: 'InterlockedIncrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(124,5): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>  ::InterlockedExchange(&shutdown_, 1);
-1>    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(124,5): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(130,67): error C2065: 'FALSE': undeclared identifier
-1>    ::SetWaitableTimer(waitable_timer_.handle, &timeout, 1, 0, 0, FALSE);
-1>                                                                  ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(138,7): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
-1>    ::InterlockedDecrement(&outstanding_work_);
-1>      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(138,7): error C3861: 'InterlockedDecrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(141,12): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>  while (::InterlockedExchangeAdd(&outstanding_work_, 0) > 0)
-1>           ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(141,12): error C3861: 'InterlockedExchangeAdd': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(151,11): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
-1>        ::InterlockedDecrement(&outstanding_work_);
-1>          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(151,11): error C3861: 'InterlockedDecrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(164,11): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
-1>        ::InterlockedDecrement(&outstanding_work_);
-1>          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(164,11): error C3861: 'InterlockedDecrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(192,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>  if (::InterlockedExchangeAdd(&outstanding_work_, 0) == 0)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(192,9): error C3861: 'InterlockedExchangeAdd': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(211,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>  if (::InterlockedExchangeAdd(&outstanding_work_, 0) == 0)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(211,9): error C3861: 'InterlockedExchangeAdd': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(226,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>  if (::InterlockedExchangeAdd(&outstanding_work_, 0) == 0)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(226,9): error C3861: 'InterlockedExchangeAdd': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(241,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>  if (::InterlockedExchangeAdd(&outstanding_work_, 0) == 0)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(241,9): error C3861: 'InterlockedExchangeAdd': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(260,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>  if (::InterlockedExchangeAdd(&outstanding_work_, 0) == 0)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(260,9): error C3861: 'InterlockedExchangeAdd': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(275,9): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>  if (::InterlockedExchange(&stopped_, 1) == 0)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(275,9): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(277,11): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>    if (::InterlockedExchange(&stop_event_posted_, 1) == 0)
-1>          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(277,11): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(307,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>    ::InterlockedExchange(&dispatch_required_, 1);
-1>      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(307,7): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(328,9): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>      ::InterlockedExchange(&dispatch_required_, 1);
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(328,9): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(339,7): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
-1>    ::InterlockedDecrement(&outstanding_work_);
-1>      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(339,7): error C3861: 'InterlockedDecrement': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(346,9): error C2039: 'InterlockedCompareExchange': is not a member of '`global namespace''
-1>  if (::InterlockedCompareExchange(&op->ready_, 1, 0) == 1)
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(346,9): error C3861: 'InterlockedCompareExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(355,9): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>      ::InterlockedExchange(&dispatch_required_, 1);
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(355,9): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(379,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>    ::InterlockedExchange(&dispatch_required_, 1);
-1>      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(379,7): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(401,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>    ::InterlockedExchange(&dispatch_required_, 1);
-1>      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(401,7): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(411,11): error C2039: 'InterlockedCompareExchange': is not a member of '`global namespace''
-1>    if (::InterlockedCompareExchange(&dispatch_required_, 0, 1) == 1)
-1>          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(411,11): error C3861: 'InterlockedCompareExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(461,13): error C2039: 'InterlockedCompareExchange': is not a member of '`global namespace''
-1>      if (::InterlockedCompareExchange(&op->ready_, 1, 0) == 1)
-1>            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(461,13): error C3861: 'InterlockedCompareExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(498,9): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>      ::InterlockedExchange(&stop_event_posted_, 0);
-1>        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(498,9): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(502,13): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
-1>      if (::InterlockedExchangeAdd(&stopped_, 0) != 0)
-1>            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(502,13): error C3861: 'InterlockedExchangeAdd': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(505,15): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
-1>        if (::InterlockedExchange(&stop_event_posted_, 1) == 0)
-1>              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(505,15): error C3861: 'InterlockedExchange': identifier not found
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(547,55): error C2065: 'FALSE': undeclared identifier
-1>    waitable_timer_.handle = ::CreateWaitableTimer(0, FALSE, 0);
-1>                                                      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(560,43): error C2065: 'FALSE': undeclared identifier
-1>        &timeout, max_timeout_msec, 0, 0, FALSE);
-1>                                          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(591,45): error C2065: 'FALSE': undeclared identifier
-1>          &timeout, max_timeout_msec, 0, 0, FALSE);
-1>                                            ^
-1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 14.9kb
-1>Total time in Unreal Build Accelerator local executor: 3.16 seconds
-1>
-1>Result: Failed (OtherCompilationError)
-1>Total execution time: 4.05 seconds
-1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
-1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
-========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 12:45 PM and took 04.345 seconds ==========
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_1' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_2' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_3' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_4' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_5' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_6' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_7' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_8' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_9' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_10' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_11' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_12' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_13' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_14' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_15' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_16' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_17' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_18' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_19' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_20' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_21' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_22' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_23' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_24' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_25' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_26' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_27' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_28' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_29' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_30' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_31' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_32' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_33' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_34' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_35' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_36' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_37' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_38' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_39' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_40' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_41' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_42' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_43' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_44' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_45' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_46' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_47' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_48' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_49' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_50' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_51' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_52' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_53' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_54' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_55' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_56' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_57' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_58' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_59' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_60' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_61' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_62' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_63' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_64' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
+[M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_65' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
