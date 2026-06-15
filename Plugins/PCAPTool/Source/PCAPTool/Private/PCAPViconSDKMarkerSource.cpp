@@ -4,11 +4,17 @@
 #include "Misc/ScopeLock.h"
 
 #if WITH_VICON_SDK
-#include "Windows/AllowWindowsPlatformTypes.h"
+// UE #defines a `CPP` macro that collides with the SDK's ViconDataStreamSDK::CPP namespace.
+// Undef it for this whole translation unit (mirrors the plugin's own ViconStream.h guard);
+// it must stay undefined through Run() below, so it is restored at the very end of the file.
+#ifdef CPP
+  #pragma push_macro("CPP")
+  #undef CPP
+  #define PCAP_RESTORE_CPP
+#endif
 THIRD_PARTY_INCLUDES_START
 #include "DataStreamClient.h"
 THIRD_PARTY_INCLUDES_END
-#include "Windows/HideWindowsPlatformTypes.h"
 #endif
 
 FViconSDKMarkerSource::FViconSDKMarkerSource() {}
@@ -126,3 +132,10 @@ uint32 FViconSDKMarkerSource::Run()
 #endif
     return 0;
 }
+
+#if WITH_VICON_SDK
+#ifdef PCAP_RESTORE_CPP
+  #pragma pop_macro("CPP")
+  #undef PCAP_RESTORE_CPP
+#endif
+#endif
