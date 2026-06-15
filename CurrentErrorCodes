@@ -1,1633 +1,283 @@
-LogWindows: Failed to load 'aqProf.dll' (GetLastError=126)
-LogWindows: File 'aqProf.dll' does not exist
-LogProfilingDebugging: Loading WinPixEventRuntime.dll for PIX profiling (from ../../../Engine/Binaries/ThirdParty/Windows/WinPixEventRuntime/x64).
-LogWindows: Failed to load 'VtuneApi.dll' (GetLastError=126)
-LogWindows: File 'VtuneApi.dll' does not exist
-LogWindows: Failed to load 'VtuneApi32e.dll' (GetLastError=126)
-LogWindows: File 'VtuneApi32e.dll' does not exist
-LogWindows: Started CrashReportClient (pid=20488)
-LogWindows: Custom abort handler registered for crash reporting.
-LogInit: Display: Running engine for game: PCAPPipeline
-LogCore: UTS: Unreal Trace Server launched successfully
-LogTrace: Initializing trace...
-LogCore: Display: Requested channels: 'cpu,gpu,frame,log,bookmark,screenshot,region'
-LogCore: No trace connection. Tracing to in-memory cache.
-LogTrace: Display: Control listening on port 1985
-LogTrace: Finished trace initialization.
-LogCsvProfiler: Display: Metadata set : platform="Windows"
-LogCsvProfiler: Display: Metadata set : config="Development"
-LogCsvProfiler: Display: Metadata set : buildversion="++UE5+Release-5.7-CL-51494982"
-LogCsvProfiler: Display: Metadata set : engineversion="5.7.4-51494982+++UE5+Release-5.7"
-LogCsvProfiler: Display: Metadata set : enginereleaseversion="5.7.4"
-LogCsvProfiler: Display: Metadata set : os="Windows 11 (24H2) [10.0.26100.8390] "
-LogCsvProfiler: Display: Metadata set : cpu="AuthenticAMD|AMD Ryzen Threadripper PRO 7975WX 32-Cores"
-LogCsvProfiler: Display: Metadata set : pgoenabled="0"
-LogCsvProfiler: Display: Metadata set : pgoprofilingenabled="0"
-LogCsvProfiler: Display: Metadata set : ltoenabled="0"
-LogCsvProfiler: Display: Metadata set : asan="0"
-LogCsvProfiler: Display: Metadata set : mergedmodules="0"
-LogCsvProfiler: Display: Metadata set : commandline="" C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject""
-LogCsvProfiler: Display: Metadata set : loginid="2a2a62574469048b207301b13d8bf6aa"
-LogCsvProfiler: Display: Metadata set : llm="0"
-LogStats: Stats thread started at 0.296044
-LogPluginManager: Display: By default, prioritizing project plugin (../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Plugins/LiveLinkViconDataStream/LiveLinkViconDataStream.uplugin) over the corresponding engine version (../../../Engine/Plugins/LiveLinkViconDataStream/LiveLinkViconDataStream.uplugin).
-LogCsvProfiler: Display: Metadata set : systemresolution.resx="1280"
-LogCsvProfiler: Display: Metadata set : systemresolution.resy="720"
-LogICUInternationalization: ICU TimeZone Detection - Raw Offset: -8:00, Platform Override: ''
-LogInit: Session CrashGUID >====================================================
-         Session CrashGUID >   UECC-Windows-15D32111494364CE4FC2D7B46EF35E56
-         Session CrashGUID >====================================================
-LogConfig: No local boot hotfix file found at: [../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/PersistentDownloadDir/HotfixForNextBoot.txt]
-LogAudio: Display: Pre-Initializing Audio Device Manager...
-LogAudio: Display: AudioInfo: 'OPUS' Registered
-LogAudioDebug: Display: Lib vorbis DLL was dynamically loaded.
-LogAudio: Display: AudioInfo: 'OGG' Registered
-LogAudio: Display: AudioInfo: 'ADPCM' Registered
-LogAudio: Display: AudioInfo: 'PCM' Registered
-LogAudio: Display: AudioInfo: 'BINKA' Registered
-LogAudio: Display: AudioInfo: 'RADA' Registered
-LogAudio: Display: Audio Device Manager Pre-Initialized
-LogPluginManager: Looking for build plugins target receipt
-LogPluginManager: Found matching target receipt: ../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Binaries/Win64/PCAPPipelineEditor.target
-LogPluginManager: Looking for enabled plugins target receipt
-LogPluginManager: Found matching target receipt: ../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Binaries/Win64/PCAPPipelineEditor.target
-LogConfig: Display: Loading IOS ini files took 0.05 seconds
-LogConfig: Display: Loading Android ini files took 0.05 seconds
-LogAssetRegistry: Display: Asset registry cache read as 68.3 MiB from ../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/CachedAssetRegistry_0.bin.
-LogConfig: Display: Loading VulkanPC ini files took 0.05 seconds
-LogConfig: Display: Loading Mac ini files took 0.05 seconds
-LogConfig: Display: Loading TVOS ini files took 0.06 seconds
-LogConfig: Display: Loading VisionOS ini files took 0.06 seconds
-LogConfig: Display: Loading Windows ini files took 0.06 seconds
-LogConfig: Display: Loading Unix ini files took 0.06 seconds
-LogConfig: Display: Loading Linux ini files took 0.06 seconds
-LogPluginManager: Mounting Engine plugin AudioInsights
-LogPluginManager: Mounting Engine plugin BaseMaterial
-LogPluginManager: Mounting Engine plugin ChaosCloth
-LogPluginManager: Mounting Engine plugin ChaosInsights
-LogPluginManager: Mounting Engine plugin ChaosVD
-LogPluginManager: Mounting Engine plugin CmdLinkServer
-LogPluginManager: Mounting Engine plugin EnhancedInput
-LogPluginManager: Mounting Engine plugin IoStoreInsights
-LogPluginManager: Mounting Project plugin LiveLinkViconDataStream
-LogPluginManager: Mounting Engine plugin MeshPainting
-LogPluginManager: Mounting Engine plugin MassInsights
-LogPluginManager: Mounting Engine plugin RenderGraphInsights
-LogPluginManager: Mounting Engine plugin UbaController
-LogPluginManager: Mounting Engine plugin TraceUtilities
-LogPluginManager: Mounting Engine plugin WorldMetrics
-LogPluginManager: Mounting Engine plugin XGEController
-LogPluginManager: Mounting Engine plugin OodleNetwork
-LogPluginManager: Mounting Engine plugin AlembicImporter
-LogPluginManager: Mounting Engine plugin LauncherChunkInstaller
-LogPluginManager: Mounting Engine plugin DatasmithContent
-LogPluginManager: Mounting Engine plugin VariantManager
-LogPluginManager: Mounting Engine plugin GLTFExporter
-LogPluginManager: Mounting Engine plugin VariantManagerContent
-LogPluginManager: Mounting Engine plugin Cascade
-LogPluginManager: Mounting Engine plugin Niagara
-LogPluginManager: Mounting Engine plugin NiagaraSimCaching
-LogPluginManager: Mounting Engine plugin NiagaraPreviewContent
-LogPluginManager: Mounting Engine plugin TcpMessaging
-LogPluginManager: Mounting Engine plugin UdpMessaging
-LogPluginManager: Mounting Engine plugin EOSShared
-LogPluginManager: Mounting Engine plugin OnlineServices
-LogPluginManager: Mounting Engine plugin OnlineBase
-LogPluginManager: Mounting Engine plugin OnlineSubsystem
-LogPluginManager: Mounting Engine plugin OnlineSubsystemNull
-LogPluginManager: Mounting Engine plugin OnlineSubsystemUtils
-LogPluginManager: Mounting Engine plugin AndroidMedia
-LogPluginManager: Mounting Engine plugin AvfMedia
-LogPluginManager: Mounting Engine plugin ImgMedia
-LogPluginManager: Mounting Engine plugin MediaCompositing
-LogPluginManager: Mounting Engine plugin MediaPlate
-LogPluginManager: Mounting Engine plugin MediaPlayerEditor
-LogPluginManager: Mounting Engine plugin MediaIOFramework
-LogPluginManager: Mounting Engine plugin WebMMedia
-LogPluginManager: Mounting Engine plugin WmfMedia
-LogPluginManager: Mounting Engine plugin MetaHumanCoreTech
-LogPluginManager: Mounting Engine plugin MetaHuman
-LogPluginManager: Mounting Engine plugin MetaHumanSDK
-LogPluginManager: Mounting Engine plugin InterchangeTests
-LogPluginManager: Mounting Engine plugin CameraCalibrationCore
-LogPluginManager: Mounting Engine plugin CaptureData
-LogPluginManager: Mounting Engine plugin LensComponent
-LogPluginManager: Mounting Engine plugin LiveLinkCamera
-LogPluginManager: Mounting Engine plugin LiveLinkLens
-LogPluginManager: Mounting Engine plugin Takes
-LogPluginManager: Mounting Engine plugin AISupport
-LogPluginManager: Mounting Engine plugin Paper2D
-LogPluginManager: Mounting Engine plugin EnvironmentQueryEditor
-LogPluginManager: Mounting Engine plugin ACLPlugin
-LogPluginManager: Mounting Engine plugin AnimationData
-LogPluginManager: Mounting Engine plugin AnimationModifierLibrary
-LogPluginManager: Mounting Engine plugin EaseCurveTool
-LogPluginManager: Mounting Engine plugin ControlRigModules
-LogPluginManager: Mounting Engine plugin BlendSpaceMotionAnalysis
-LogPluginManager: Mounting Engine plugin ControlRig
-LogPluginManager: Mounting Engine plugin DNACalib
-LogPluginManager: Mounting Engine plugin ControlRigSpline
-LogPluginManager: Mounting Engine plugin IKRig
-LogPluginManager: Mounting Engine plugin GameplayInsights
-LogPluginManager: Mounting Engine plugin DeformerGraph
-LogPluginManager: Mounting Engine plugin LiveLink
-LogPluginManager: Mounting Engine plugin LiveLinkHub
-LogPluginManager: Mounting Engine plugin SkeletalMeshModelingTools
-LogPluginManager: Mounting Engine plugin TweeningUtils
-LogPluginManager: Mounting Engine plugin RigLogic
-LogPluginManager: Mounting Engine plugin EngineCameras
-LogPluginManager: Mounting Engine plugin AnimationSharing
-LogPluginManager: Mounting Engine plugin GameplayCameras
-LogPluginManager: Mounting Engine plugin CompositeCore
-LogPluginManager: Mounting Engine plugin OpenColorIO
-LogPluginManager: Mounting Engine plugin CLionSourceCodeAccess
-LogPluginManager: Mounting Engine plugin CodeLiteSourceCodeAccess
-LogPluginManager: Mounting Engine plugin CameraShakePreviewer
-LogPluginManager: Mounting Engine plugin DumpGPUServices
-LogPluginManager: Mounting Engine plugin GitSourceControl
-LogPluginManager: Mounting Engine plugin KDevelopSourceCodeAccess
-LogPluginManager: Mounting Engine plugin N10XSourceCodeAccess
-LogPluginManager: Mounting Engine plugin ProjectLauncher
-LogPluginManager: Mounting Engine plugin NullSourceCodeAccess
-LogPluginManager: Mounting Engine plugin GPUReshape
-LogPluginManager: Mounting Engine plugin NamingTokens
-LogPluginManager: Mounting Engine plugin PluginUtils
-LogPluginManager: Mounting Engine plugin PixWinPlugin
-LogPluginManager: Mounting Engine plugin PropertyAccessNode
-LogPluginManager: Mounting Engine plugin PlasticSourceControl
-LogPluginManager: Mounting Engine plugin PerforceSourceControl
-LogPluginManager: Mounting Engine plugin RenderDocPlugin
-LogPluginManager: Mounting Engine plugin SubversionSourceControl
-LogPluginManager: Mounting Engine plugin RiderSourceCodeAccess
-LogPluginManager: Mounting Engine plugin TextureFormatOodle
-LogPluginManager: Mounting Engine plugin UObjectPlugin
-LogPluginManager: Mounting Engine plugin VisualStudioCodeSourceCodeAccess
-LogPluginManager: Mounting Engine plugin XCodeSourceCodeAccess
-LogPluginManager: Mounting Engine plugin VisualStudioSourceCodeAccess
-LogPluginManager: Mounting Engine plugin AssetManagerEditor
-LogPluginManager: Mounting Engine plugin ChangelistReview
-LogPluginManager: Mounting Engine plugin BlueprintHeaderView
-LogPluginManager: Mounting Engine plugin ColorGrading
-LogPluginManager: Mounting Engine plugin CurveEditorTools
-LogPluginManager: Mounting Engine plugin MacGraphicsSwitching
-LogPluginManager: Mounting Engine plugin MobileLauncherProfileWizard
-LogPluginManager: Mounting Engine plugin CryptoKeys
-LogPluginManager: Mounting Engine plugin GameplayTagsEditor
-LogPluginManager: Mounting Engine plugin MaterialAnalyzer
-LogPluginManager: Mounting Engine plugin MeshLODToolset
-LogPluginManager: Mounting Engine plugin DataValidation
-LogPluginManager: Mounting Engine plugin FacialAnimation
-LogPluginManager: Mounting Engine plugin EditorDebugTools
-LogPluginManager: Mounting Engine plugin ProxyLODPlugin
-LogPluginManager: Mounting Engine plugin EngineAssetDefinitions
-LogPluginManager: Mounting Engine plugin ModelingToolsEditorMode
-LogPluginManager: Mounting Engine plugin PluginBrowser
-LogPluginManager: Mounting Engine plugin GeometryMode
-LogPluginManager: Mounting Engine plugin EditorScriptingUtilities
-LogPluginManager: Mounting Engine plugin SequencerAnimTools
-LogPluginManager: Mounting Engine plugin SpeedTreeImporter
-LogPluginManager: Mounting Engine plugin UVEditor
-LogPluginManager: Mounting Engine plugin StylusInput
-LogPluginManager: Mounting Engine plugin UMGWidgetPreview
-LogPluginManager: Mounting Engine plugin WorldPartitionHLODUtilities
-LogPluginManager: Mounting Engine plugin AdvancedRenamer
-LogPluginManager: Mounting Engine plugin ChaosEditor
-LogPluginManager: Mounting Engine plugin BackChannel
-LogPluginManager: Mounting Engine plugin AutomationUtils
-LogPluginManager: Mounting Engine plugin CharacterAI
-LogPluginManager: Mounting Engine plugin ChaosUserDataPT
-LogPluginManager: Mounting Engine plugin ChaosCaching
-LogPluginManager: Mounting Engine plugin ChaosNiagara
-LogPluginManager: Mounting Engine plugin ChaosSolverPlugin
-LogPluginManager: Mounting Engine plugin Dataflow
-LogPluginManager: Mounting Engine plugin EditorDataStorage
-LogPluginManager: Mounting Engine plugin EditorPerformance
-LogPluginManager: Mounting Engine plugin EditorDataStorageFeatures
-LogPluginManager: Mounting Engine plugin EditorTelemetry
-LogPluginManager: Mounting Engine plugin Fracture
-LogPluginManager: Mounting Engine plugin FullBodyIK
-LogPluginManager: Mounting Engine plugin GeometryFlow
-LogPluginManager: Mounting Engine plugin GeometryCollectionPlugin
-LogPluginManager: Mounting Engine plugin GlobalConfigurationData
-LogPluginManager: Mounting Engine plugin GeometryDataflow
-LogPluginManager: Mounting Engine plugin LevelSequenceNavigatorBridge
-LogPluginManager: Mounting Engine plugin LiveLinkControlRig
-LogPluginManager: Mounting Engine plugin LocalizableMessage
-LogPluginManager: Mounting Engine plugin LowLevelNetTrace
-LogPluginManager: Mounting Engine plugin MeshModelingToolsetExp
-LogPluginManager: Mounting Engine plugin NFORDenoise
-LogPluginManager: Mounting Engine plugin PlanarCut
-LogPluginManager: Mounting Engine plugin PlatformCrypto
-LogPluginManager: Mounting Engine plugin PythonScriptPlugin
-LogPluginManager: Mounting Engine plugin RuntimeTelemetry
-LogPluginManager: Mounting Engine plugin SequenceNavigator
-LogPluginManager: Mounting Engine plugin SkeletalReduction
-LogPluginManager: Mounting Engine plugin ToolPresets
-LogPluginManager: Mounting Engine plugin InterchangeAssets
-LogPluginManager: Mounting Engine plugin ActorSequence
-LogPluginManager: Mounting Engine plugin NNEDenoiser
-LogPluginManager: Mounting Engine plugin SequenceValidator
-LogPluginManager: Mounting Engine plugin ActorLayerUtilities
-LogPluginManager: Mounting Engine plugin TemplateSequence
-LogPluginManager: Mounting Engine plugin LevelSequenceEditor
-LogPluginManager: Mounting Engine plugin SequencerScripting
-LogPluginManager: Mounting Engine plugin NNERuntimeORT
-LogPluginManager: Mounting Engine plugin InterchangeEditor
-LogPluginManager: Mounting Engine plugin ExampleDeviceProfileSelector
-LogPluginManager: Mounting Engine plugin CableComponent
-LogPluginManager: Mounting Engine plugin AudioCapture
-LogPluginManager: Mounting Engine plugin AudioSynesthesia
-LogPluginManager: Mounting Engine plugin AssetTags
-LogPluginManager: Mounting Engine plugin AndroidDeviceProfileSelector
-LogPluginManager: Mounting Engine plugin ArchVisCharacter
-LogPluginManager: Mounting Engine plugin AppleMoviePlayer
-LogPluginManager: Mounting Engine plugin Interchange
-LogPluginManager: Mounting Engine plugin AndroidMoviePlayer
-LogPluginManager: Mounting Engine plugin ComputeFramework
-LogPluginManager: Mounting Engine plugin GeometryCache
-LogPluginManager: Mounting Engine plugin AudioWidgets
-LogPluginManager: Mounting Engine plugin GoogleCloudMessaging
-LogPluginManager: Mounting Engine plugin CustomMeshComponent
-LogPluginManager: Mounting Engine plugin AppleImageUtils
-LogPluginManager: Mounting Engine plugin AndroidFileServer
-LogPluginManager: Mounting Engine plugin GeometryProcessing
-LogPluginManager: Mounting Engine plugin AndroidPermission
-LogPluginManager: Mounting Engine plugin GooglePAD
-LogPluginManager: Mounting Engine plugin ChunkDownloader
-LogPluginManager: Mounting Engine plugin HairStrands
-LogPluginManager: Mounting Engine plugin InputDebugging
-LogPluginManager: Mounting Engine plugin IOSDeviceProfileSelector
-LogPluginManager: Mounting Engine plugin LinuxDeviceProfileSelector
-LogPluginManager: Mounting Engine plugin MeshModelingToolset
-LogPluginManager: Mounting Engine plugin LocationServicesBPLibrary
-LogPluginManager: Mounting Engine plugin Metasound
-LogPluginManager: Mounting Engine plugin MobilePatchingUtils
-LogPluginManager: Mounting Engine plugin MsQuic
-LogPluginManager: Mounting Engine plugin ProceduralMeshComponent
-LogPluginManager: Mounting Engine plugin PropertyAccessEditor
-LogPluginManager: Mounting Engine plugin PropertyBindingUtils
-LogPluginManager: Mounting Engine plugin SignificanceManager
-LogPluginManager: Mounting Engine plugin ResonanceAudio
-LogPluginManager: Mounting Engine plugin RigVM
-LogPluginManager: Mounting Engine plugin StateTree
-LogPluginManager: Mounting Engine plugin SoundFields
-LogPluginManager: Mounting Engine plugin Synthesis
-LogPluginManager: Mounting Engine plugin WaveTable
-LogPluginManager: Mounting Engine plugin WebMMoviePlayer
-LogPluginManager: Mounting Engine plugin WindowsDeviceProfileSelector
-LogPluginManager: Mounting Engine plugin WindowsMoviePlayer
-LogPluginManager: Mounting Engine plugin OnlineSubsystemGooglePlay
-LogPluginManager: Mounting Engine plugin LightMixer
-LogPluginManager: Mounting Engine plugin ObjectMixer
-LogPluginManager: Mounting Engine plugin CaptureManagerCore
-LogPluginManager: Mounting Engine plugin PortableObjectFileDataSource
-LogPluginManager: Mounting Engine plugin CaptureManagerEditor
-LogPluginManager: Mounting Engine plugin BaseCharacterFXEditor
-LogPluginManager: Mounting Engine plugin ConcertMain
-LogPluginManager: Mounting Engine plugin ContentBrowserFileDataSource
-LogPluginManager: Mounting Engine plugin ContentBrowserAssetDataSource
-LogPluginManager: Mounting Engine plugin ContentBrowserClassDataSource
-LogPluginManager: Mounting Engine plugin SQLiteCore
-LogPluginManager: Mounting Engine plugin OnlineSubsystemIOS
-LogPluginManager: Mounting Engine plugin XInputDevice
-LogPluginManager: Mounting Engine plugin ConcertSyncClient
-LogPluginManager: Mounting Engine plugin ConcertSyncCore
-LogPluginManager: Mounting Project plugin PCAPTool
-SourceControl: Revision control is disabled
-SourceControl: Revision control is disabled
-SourceControl: Revision control is disabled
-LogEOSShared: Loaded "C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/Win64/EOSSDK-Win64-Shipping.dll"
-LogEOSShared: FEOSSDKManager::Initialize Initializing EOSSDK Version:1.19.0.3-49960398
-LogInit: Using libcurl 8.12.1
-LogInit:  - built for Windows
-LogInit:  - supports SSL with OpenSSL/1.1.1t
-LogInit:  - supports HTTP deflate (compression) using libz 1.3
-LogInit:  - other features:
-LogInit:      CURL_VERSION_SSL
-LogInit:      CURL_VERSION_LIBZ
-LogInit:      CURL_VERSION_IPV6
-LogInit:      CURL_VERSION_ASYNCHDNS
-LogInit:      CURL_VERSION_LARGEFILE
-LogInit:      CURL_VERSION_TLSAUTH_SRP
-LogInit:      CURL_VERSION_HTTP2
-LogInit:  CurlRequestOptions (configurable via config and command line):
-LogInit:  - bVerifyPeer = true  - Libcurl will verify peer certificate
-LogInit:  - bUseHttpProxy = false  - Libcurl will NOT use HTTP proxy
-LogInit:  - CVarHttpCurlReuseConnectionEnabled = true  - Libcurl will reuse connections
-LogInit:  - MaxHostConnections = 16  - Libcurl will limit the number of connections to a host
-LogInit:  - LocalHostAddr = Default
-LogInit:  - BufferSize = 65536
-LogInit: CreateHttpThread using FCurlMultiPollEventLoopHttpThread
-LogInit: Creating http thread with maximum 256 concurrent requests
-LogInit: WinSock: version 1.1 (2.2), MaxSocks=32767, MaxUdp=65467
-LogOnline: OSS: Created online subsystem instance for: NULL
-LogOnline: OSS: TryLoadSubsystemAndSetDefault: Loaded subsystem for type [NULL]
-LogConfig: Applying CVar settings from Section [/Script/CompositeCore.CompositeCorePluginSettings] File [Engine]
-LogWindows: Failed to load 'WinPixGpuCapturer.dll' (GetLastError=126)
-LogWindows: File 'WinPixGpuCapturer.dll' does not exist
-PixWinPlugin: PIX capture plugin failed to initialize! Check that the process is launched from PIX.
-LogConfig: Applying CVar settings from Section [/Script/RenderDocPlugin.RenderDocPluginSettings] File [Engine]
-RenderDocPlugin: Display: RenderDoc plugin will not be loaded. Use '-AttachRenderDoc' on the cmd line or enable 'renderdoc.AutoAttach' in the plugin settings.
-LogStudioTelemetry: Started StudioTelemetry Session
-LogNFORDenoise: NFORDenoise function starting up
-LogStudioTelemetry: Started StudioTelemetry Session
-LogInit: ExecutableName: UnrealEditor.exe
-LogInit: Build: ++UE5+Release-5.7-CL-51494982
-LogInit: Platform=WindowsEditor
-LogInit: MachineId=2a2a62574469048b207301b13d8bf6aa
-LogInit: DeviceId=
-LogInit: Engine Version: 5.7.4-51494982+++UE5+Release-5.7
-LogInit: Compatible Engine Version: 5.7.0-47537391+++UE5+Release-5.7
-LogInit: Net CL: 47537391
-LogInit: OS: Windows 11 (24H2) [10.0.26100.8390] (), CPU: AMD Ryzen Threadripper PRO 7975WX 32-Cores     , GPU: NVIDIA GeForce RTX 4090
-LogInit: CPU Model ID: 19181, microcode revision: a10810c
-LogInit: Compiled (64-bit): Mar  6 2026 12:43:05
-LogInit: Architecture: x64
-LogInit: Compiled with Visual C++: 19.44.35223.00
-LogInit: Build Configuration: Development
-LogInit: Branch Name: ++UE5+Release-5.7
-LogInit: Command Line: 
-LogInit: Base Directory: C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/Win64/
-LogInit: Allocator: Mimalloc
-LogInit: Installed Engine Build: 1
-LogInit: This binary is optimized with LTO: no, PGO: no, instrumented for PGO data collection: no
-LogDevObjectVersion: Number of dev versions registered: 37
-LogDevObjectVersion:   Dev-Blueprints (B0D832E4-1F89-4F0D-ACCF-7EB736FD4AA2): 10
-LogDevObjectVersion:   Dev-Build (E1C64328-A22C-4D53-A36C-8E866417BD8C): 0
-LogDevObjectVersion:   Dev-Core (375EC13C-06E4-48FB-B500-84F0262A717E): 4
-LogDevObjectVersion:   Dev-Editor (E4B068ED-F494-42E9-A231-DA0B2E46BB41): 40
-LogDevObjectVersion:   Dev-Framework (CFFC743F-43B0-4480-9391-14DF171D2073): 37
-LogDevObjectVersion:   Dev-Mobile (B02B49B5-BB20-44E9-A304-32B752E40360): 3
-LogDevObjectVersion:   Dev-Networking (A4E4105C-59A1-49B5-A7C5-40C4547EDFEE): 0
-LogDevObjectVersion:   Dev-Online (39C831C9-5AE6-47DC-9A44-9C173E1C8E7C): 0
-LogDevObjectVersion:   Dev-Physics (78F01B33-EBEA-4F98-B9B4-84EACCB95AA2): 20
-LogDevObjectVersion:   Dev-Platform (6631380F-2D4D-43E0-8009-CF276956A95A): 0
-LogDevObjectVersion:   Dev-Rendering (12F88B9F-8875-4AFC-A67C-D90C383ABD29): 49
-LogDevObjectVersion:   Dev-Sequencer (7B5AE74C-D270-4C10-A958-57980B212A5A): 13
-LogDevObjectVersion:   Dev-VR (D7296918-1DD6-4BDD-9DE2-64A83CC13884): 3
-LogDevObjectVersion:   Dev-LoadTimes (C2A15278-BFE7-4AFE-6C17-90FF531DF755): 1
-LogDevObjectVersion:   Private-Geometry (6EACA3D4-40EC-4CC1-B786-8BED09428FC5): 3
-LogDevObjectVersion:   Dev-AnimPhys (29E575DD-E0A3-4627-9D10-D276232CDCEA): 17
-LogDevObjectVersion:   Dev-Anim (AF43A65D-7FD3-4947-9873-3E8ED9C1BB05): 15
-LogDevObjectVersion:   Dev-ReflectionCapture (6B266CEC-1EC7-4B8F-A30B-E4D90942FC07): 1
-LogDevObjectVersion:   Dev-Automation (0DF73D61-A23F-47EA-B727-89E90C41499A): 1
-LogDevObjectVersion:   FortniteMain (601D1886-AC64-4F84-AA16-D3DE0DEAC7D6): 225
-LogDevObjectVersion:   FortniteValkyrie (8DBC2C5B-54A7-43E0-A768-FCBB7DA29060): 8
-LogDevObjectVersion:   FortniteSeason (5B4C06B7-2463-4AF8-805B-BF70CDF5D0DD): 15
-LogDevObjectVersion:   FortniteRelease (E7086368-6B23-4C58-8439-1B7016265E91): 17
-LogDevObjectVersion:   Dev-Enterprise (9DFFBCD6-494F-0158-E221-12823C92A888): 11
-LogDevObjectVersion:   Dev-Niagara (F2AED0AC-9AFE-416F-8664-AA7FFA26D6FC): 1
-LogDevObjectVersion:   Dev-Destruction (174F1F0B-B4C6-45A5-B13F-2EE8D0FB917D): 10
-LogDevObjectVersion:   Dev-Physics-Ext (35F94A83-E258-406C-A318-09F59610247C): 41
-LogDevObjectVersion:   Dev-PhysicsMaterial-Chaos (B68FC16E-8B1B-42E2-B453-215C058844FE): 1
-LogDevObjectVersion:   Dev-CineCamera (B2E18506-4273-CFC2-A54E-F4BB758BBA07): 1
-LogDevObjectVersion:   Dev-VirtualProduction (64F58936-FD1B-42BA-BA96-7289D5D0FA4E): 1
-LogDevObjectVersion:   UE5-Main (697DD581-E64F-41AB-AA4A-51ECBEB7B628): 121
-LogDevObjectVersion:   UE5-Release (D89B5E42-24BD-4D46-8412-ACA8DF641779): 61
-LogDevObjectVersion:   UE5-SpecialProject (59DA5D52-1232-4948-B878-597870B8E98B): 9
-LogDevObjectVersion:   Dev-MediaFramework (6F0ED827-A609-4895-9C91-998D90180EA4): 2
-LogDevObjectVersion:   Dev-NaniteResearch (30D58BE3-95EA-4282-A6E3-B159D8EBB06A): 1
-LogDevObjectVersion:   LensFileVersion (8652A554-966A-466C-9FD7-1C6DD61B1ADB): 1
-LogDevObjectVersion:   Dev-ComputeFramework (6304A3E7-0059-4F59-8CFC-21BD7721FD4E): 0
-LogInit: Presizing for max 25165824 objects, including 0 objects not considered by GC.
-LogInit: Object subsystem initialized
-LogConfig: Set CVar [[con.DebugEarlyDefault:1]]
-LogConfig: CVar [[con.DebugLateDefault:1]] deferred - dummy variable created
-LogConfig: CVar [[con.DebugLateCheat:1]] deferred - dummy variable created
-LogConfig: CVar [[LogNamedEventFilters:Frame *]] deferred - dummy variable created
-LogConfig: Set CVar [[r.setres:1280x720]]
-LogConfig: CVar [[framepro.ScopeMinTimeMicroseconds:10]] deferred - dummy variable created
-LogConfig: Set CVar [[fx.NiagaraAllowRuntimeScalabilityChanges:1]]
-LogConfig: CVar [[QualityLevelMapping:high]] deferred - dummy variable created
-LogConfig: CVar [[r.Occlusion.SingleRHIThreadStall:1]] deferred - dummy variable created
-LogConfig: Set CVar [[r.Nanite.Streaming.ReservedResources:1]]
-LogConfig: CVar [[D3D12.Bindless.ResourceDescriptorHeapSize:32768]] deferred - dummy variable created
-LogConfig: CVar [[D3D12.Bindless.SamplerDescriptorHeapSize:2048]] deferred - dummy variable created
-LogConfig: Set CVar [[r.PSOPrecache.GlobalShaders:1]]
-LogConfig: Set CVar [[r.VRS.EnableSoftware:1]]
-LogConfig: Set CVar [[r.VRS.ContrastAdaptiveShading:1]]
-LogConfig: Set CVar [[r.VSync:0]]
-LogConfig: Applying CVar settings from Section [/Script/Engine.RendererSettings] File [Engine]
-LogConfig: CVar [[VisualizeCalibrationColorMaterialPath:/Engine/EngineMaterials/PPM_DefaultCalibrationColor.PPM_DefaultCalibrationColor]] deferred - dummy variable created
-LogConfig: CVar [[VisualizeCalibrationGrayscaleMaterialPath:/Engine/EngineMaterials/PPM_DefaultCalibrationGrayscale.PPM_DefaultCalibrationGrayscale]] deferred - dummy variable created
-LogConfig: Set CVar [[r.GPUCrashDebugging:0]]
-LogConfig: CVar [[MaxSkinBones:(Default=65536,PerPlatform=(("Mobile", 256)))]] deferred - dummy variable created
-LogConfig: Set CVar [[r.Shaders.RemoveUnusedInterpolators:1]]
-LogConfig: Set CVar [[r.Shadow.DetectVertexShaderLayerAtRuntime:1]]
-LogConfig: Set CVar [[r.Substrate.RoughDiffuse:1]]
-LogConfig: Set CVar [[r.Substrate.SheenQuality:1]]
-LogConfig: Set CVar [[r.Substrate.ShadingQuality:1]]
-LogConfig: Set CVar [[r.Substrate.TileCoord8bits:0]]
-LogConfig: Set CVar [[r.Substrate.Glints:1]]
-LogConfig: Set CVar [[r.Substrate.ClosuresPerPixel:4]]
-LogConfig: Set CVar [[r.Refraction.Blur:1]]
-LogConfig: Applying CVar settings from Section [/Script/Engine.RendererOverrideSettings] File [Engine]
-LogConfig: Applying CVar settings from Section [/Script/Engine.StreamingSettings] File [Engine]
-LogConfig: Set CVar [[s.MinBulkDataSizeForAsyncLoading:131072]]
-LogConfig: Set CVar [[s.AsyncLoadingThreadEnabled:1]]
-LogConfig: Set CVar [[s.EventDrivenLoaderEnabled:1]]
-LogConfig: Set CVar [[s.WarnIfTimeLimitExceeded:0]]
-LogConfig: Set CVar [[s.TimeLimitExceededMultiplier:1.5]]
-LogConfig: Set CVar [[s.TimeLimitExceededMinTime:0.005]]
-LogConfig: Set CVar [[s.UseBackgroundLevelStreaming:1]]
-LogConfig: Set CVar [[s.PriorityAsyncLoadingExtraTime:15.0]]
-LogConfig: Set CVar [[s.LevelStreamingActorsUpdateTimeLimit:5.0]]
-LogConfig: Set CVar [[s.PriorityLevelStreamingActorsUpdateExtraTime:5.0]]
-LogConfig: Set CVar [[s.LevelStreamingComponentsRegistrationGranularity:10]]
-LogConfig: Set CVar [[s.UnregisterComponentsTimeLimit:1.0]]
-LogConfig: Set CVar [[s.LevelStreamingComponentsUnregistrationGranularity:5]]
-LogConfig: CVar [[s.MaxPackageSummarySize:16384]] deferred - dummy variable created
-LogConfig: Set CVar [[s.FlushStreamingOnExit:1]]
-LogConfig: CVar [[FixedBootOrder:/Script/Engine/Default__SoundBase]] deferred - dummy variable created
-LogConfig: CVar [[FixedBootOrder:/Script/Engine/Default__MaterialInterface]] deferred - dummy variable created
-LogConfig: CVar [[FixedBootOrder:/Script/Engine/Default__DeviceProfileManager]] deferred - dummy variable created
-LogConfig: Applying CVar settings from Section [/Script/Engine.GarbageCollectionSettings] File [Engine]
-LogConfig: Set CVar [[gc.MaxObjectsNotConsideredByGC:1]]
-LogConfig: Set CVar [[gc.FlushStreamingOnGC:0]]
-LogConfig: Set CVar [[gc.NumRetriesBeforeForcingGC:10]]
-LogConfig: Set CVar [[gc.AllowParallelGC:1]]
-LogConfig: Set CVar [[gc.TimeBetweenPurgingPendingKillObjects:61.1]]
-LogConfig: Set CVar [[gc.MaxObjectsInEditor:25165824]]
-LogConfig: Set CVar [[gc.IncrementalBeginDestroyEnabled:1]]
-LogConfig: Set CVar [[gc.CreateGCClusters:1]]
-LogConfig: Set CVar [[gc.MinGCClusterSize:5]]
-LogConfig: Set CVar [[gc.AssetClustreringEnabled:0]]
-LogConfig: Set CVar [[gc.ActorClusteringEnabled:0]]
-LogConfig: Set CVar [[gc.VerifyUObjectsAreNotFGCObjects:0]]
-LogConfig: Set CVar [[gc.GarbageEliminationEnabled:1]]
-LogConfig: Applying CVar settings from Section [/Script/Engine.NetworkSettings] File [Engine]
-LogConfig: CVar [[NetworkEmulationProfiles:(ProfileName="Average",ToolTip="Simulates average internet conditions")]] deferred - dummy variable created
-LogConfig: CVar [[NetworkEmulationProfiles:(ProfileName="Bad",ToolTip="Simulates laggy internet conditions")]] deferred - dummy variable created
-LogConfig: CVar [[NetworkEmulationProfiles:(ProfileName="BufferBloat",ToolTip="Simulates a connection affected by buffer bloat (in and out)")]] deferred - dummy variable created
-LogConfig: Applying CVar settings from Section [/Script/UnrealEd.CookerSettings] File [Engine]
-LogConfig: CVar [[DefaultASTCQualityBySpeed:2]] deferred - dummy variable created
-LogConfig: CVar [[DefaultASTCQualityBySize:3]] deferred - dummy variable created
-LogConfig: CVar [[DefaultASTCQualityBySizeHQ:4]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:WidgetBlueprint]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:GroupActor]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:MetaData]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:ObjectRedirector]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:NavMeshRenderingComponent]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:ReflectionCaptureComponent]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:TextRenderComponent]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:Font]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:InterpCurveEdSetup]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:MaterialExpression]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:NiagaraEmitter]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:NiagaraScript]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:ParticleEmitter]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:ParticleLODLevel]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:ParticleModule]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:SubUVAnimation]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:SoundNode]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:GameplayEffectUIData]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedServer:AmbientSound]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedClient:WidgetBlueprint]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedClient:GroupActor]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedClient:MetaData]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedClient:ObjectRedirector]] deferred - dummy variable created
-LogConfig: CVar [[ClassesExcludedOnDedicatedClient:InterpCurveEdSetup]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.AllowStaticLighting]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.MaterialEditor.LWCTruncateMode]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.VelocityOutputPass]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.SelectiveBasePassOutputs]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.DBuffer]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.Mobile.DBuffer]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.Shaders.Symbols]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.Shaders.GenerateSymbols]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.Shaders.WriteSymbols]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.Shaders.AllowUniqueSymbols]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.Shaders.ExtraData]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.Shaders.Optimize]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.CompileShadersForDevelopment]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.MobileHDR]] deferred - dummy variable created
-LogConfig: CVar [[VersionedIntRValues:r.UsePreExposure]] deferred - dummy variable created
-LogCsvProfiler: Display: Metadata set : systemresolution.resx="1920"
-LogCsvProfiler: Display: Metadata set : systemresolution.resy="1200"
-LogConfig: Applying CVar settings from Section [ViewDistanceQuality@3] File [Scalability]
-LogConfig: Set CVar [[r.SkeletalMeshLODBias:0]]
-LogConfig: Set CVar [[r.ViewDistanceScale:1.0]]
-LogConfig: Applying CVar settings from Section [AntiAliasingQuality@3] File [Scalability]
-LogConfig: Set CVar [[r.FXAA.Quality:4]]
-LogConfig: Set CVar [[r.TemporalAA.Quality:2]]
-LogConfig: Set CVar [[r.TSR.History.R11G11B10:1]]
-LogConfig: Set CVar [[r.TSR.History.ScreenPercentage:200]]
-LogConfig: Set CVar [[r.TSR.History.UpdateQuality:3]]
-LogConfig: Set CVar [[r.TSR.ShadingRejection.Flickering:1]]
-LogConfig: Set CVar [[r.TSR.RejectionAntiAliasingQuality:2]]
-LogConfig: Set CVar [[r.TSR.ReprojectionField:1]]
-LogConfig: Set CVar [[r.TSR.Resurrection:1]]
-LogConfig: Applying CVar settings from Section [ShadowQuality@3] File [Scalability]
-LogConfig: Set CVar [[r.LightFunctionQuality:1]]
-LogConfig: Set CVar [[r.ShadowQuality:5]]
-LogConfig: Set CVar [[r.Shadow.CSM.MaxCascades:10]]
-LogConfig: Set CVar [[r.Shadow.MaxResolution:2048]]
-LogConfig: Set CVar [[r.Shadow.MaxCSMResolution:2048]]
-LogConfig: Set CVar [[r.Shadow.RadiusThreshold:0.01]]
-LogConfig: Set CVar [[r.Shadow.DistanceScale:1.0]]
-LogConfig: Set CVar [[r.Shadow.CSM.TransitionScale:1.0]]
-LogConfig: Set CVar [[r.Shadow.PreShadowResolutionFactor:1.0]]
-LogConfig: Set CVar [[r.DistanceFieldShadowing:1]]
-LogConfig: Set CVar [[r.VolumetricFog:1]]
-LogConfig: Set CVar [[r.VolumetricFog.GridPixelSize:8]]
-LogConfig: Set CVar [[r.VolumetricFog.GridSizeZ:128]]
-LogConfig: Set CVar [[r.VolumetricFog.HistoryMissSupersampleCount:4]]
-LogConfig: Set CVar [[r.LightMaxDrawDistanceScale:1]]
-LogConfig: Set CVar [[r.CapsuleShadows:1]]
-LogConfig: Set CVar [[r.Shadow.Virtual.MaxPhysicalPages:4096]]
-LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasDirectional:-1.5]]
-LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasDirectionalMoving:-1.5]]
-LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasLocal:0.0]]
-LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasLocalMoving:1.0]]
-LogConfig: Set CVar [[r.Shadow.Virtual.SMRT.RayCountDirectional:8]]
-LogConfig: Set CVar [[r.Shadow.Virtual.SMRT.SamplesPerRayDirectional:4]]
-LogConfig: Set CVar [[r.Shadow.Virtual.SMRT.RayCountLocal:8]]
-LogConfig: Set CVar [[r.Shadow.Virtual.SMRT.SamplesPerRayLocal:4]]
-LogConfig: Set CVar [[r.Shadow.Virtual.MarkCoarsePagesLocal:1]]
-LogConfig: Applying CVar settings from Section [GlobalIlluminationQuality@3] File [Scalability]
-LogConfig: Set CVar [[r.DistanceFieldAO:1]]
-LogConfig: Set CVar [[r.SkylightIntensityMultiplier:1.0]]
-LogConfig: Set CVar [[r.AOQuality:2]]
-LogConfig: Set CVar [[r.Lumen.DiffuseIndirect.Allow:1]]
-LogConfig: Set CVar [[r.LumenScene.DirectLighting.MaxLightsPerTile:8]]
-LogConfig: Set CVar [[r.LumenScene.DirectLighting.UpdateFactor:32]]
-LogConfig: Set CVar [[r.LumenScene.Radiosity.UpdateFactor:64]]
-LogConfig: Set CVar [[r.LumenScene.Radiosity.ProbeSpacing:4]]
-LogConfig: Set CVar [[r.LumenScene.Radiosity.HemisphereProbeResolution:4]]
-LogConfig: Set CVar [[r.Lumen.TraceMeshSDFs.Allow:1]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.RadianceCache.ProbeResolution:32]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.RadianceCache.NumProbesToTraceBudget:100]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.DownsampleFactor:16]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.NumAdaptiveProbes:8]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.TracingOctahedronResolution:8]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.IrradianceFormat:0]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.StochasticInterpolation:0]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.FullResolutionJitterWidth:1]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.TwoSidedFoliageBackfaceDiffuse:1]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ScreenTraces.HZBTraversal.FullResDepth:1]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ShortRangeAO.BentNormal:1]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ShortRangeAO.HorizonSearch.HZB:0]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ShortRangeAO.HorizonSearch.ForegroundSampleRejectPower:1]]
-LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.GridPixelSize:32]]
-LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.TraceFromVolume:1]]
-LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.TracingOctahedronResolution:3]]
-LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.RadianceCache.ProbeResolution:8]]
-LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.RadianceCache.NumProbesToTraceBudget:70]]
-LogConfig: Set CVar [[r.RayTracing.Scene.BuildMode:1]]
-LogConfig: Applying CVar settings from Section [ReflectionQuality@3] File [Scalability]
-LogConfig: Set CVar [[r.SSR.Quality:3]]
-LogConfig: Set CVar [[r.SSR.HalfResSceneColor:0]]
-LogConfig: Set CVar [[r.Lumen.Reflections.Allow:1]]
-LogConfig: Set CVar [[r.Lumen.Reflections.DownsampleFactor:1]]
-LogConfig: Set CVar [[r.Lumen.Reflections.MaxRoughnessToTraceForFoliage:0.4]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.MaxRoughnessToEvaluateRoughSpecularForFoliage:0.8]]
-LogConfig: Set CVar [[r.Lumen.Reflections.ScreenSpaceReconstruction.NumSamples:5]]
-LogConfig: Set CVar [[r.Lumen.Reflections.ScreenSpaceReconstruction.MinWeight:0]]
-LogConfig: Set CVar [[r.Lumen.TranslucencyReflections.FrontLayer.Allow:1]]
-LogConfig: Set CVar [[r.Lumen.TranslucencyReflections.FrontLayer.Enable:0]]
-LogConfig: Applying CVar settings from Section [PostProcessQuality@3] File [Scalability]
-LogConfig: Set CVar [[r.MotionBlurQuality:4]]
-LogConfig: Set CVar [[r.MotionBlur.HalfResGather:0]]
-LogConfig: Set CVar [[r.AmbientOcclusionMipLevelFactor:0.4]]
-LogConfig: Set CVar [[r.AmbientOcclusionMaxQuality:100]]
-LogConfig: Set CVar [[r.AmbientOcclusionLevels:-1]]
-LogConfig: Set CVar [[r.AmbientOcclusionRadiusScale:1.0]]
-LogConfig: Set CVar [[r.DepthOfFieldQuality:2]]
-LogConfig: Set CVar [[r.RenderTargetPoolMin:400]]
-LogConfig: Set CVar [[r.LensFlareQuality:2]]
-LogConfig: Set CVar [[r.SceneColorFringeQuality:1]]
-LogConfig: Set CVar [[r.EyeAdaptationQuality:2]]
-LogConfig: Set CVar [[r.BloomQuality:5]]
-LogConfig: Set CVar [[r.Bloom.ScreenPercentage:50.000]]
-LogConfig: Set CVar [[r.FastBlurThreshold:100]]
-LogConfig: Set CVar [[r.Upscale.Quality:3]]
-LogConfig: Set CVar [[r.LightShaftQuality:1]]
-LogConfig: Set CVar [[r.Filter.SizeScale:1]]
-LogConfig: Set CVar [[r.Tonemapper.Quality:5]]
-LogConfig: Set CVar [[r.DOF.Gather.ResolutionDivisor:2         ; lower gathering resolution]]
-LogConfig: Set CVar [[r.DOF.Gather.AccumulatorQuality:1        ; higher gathering accumulator quality]]
-LogConfig: Set CVar [[r.DOF.Gather.PostfilterMethod:1          ; Median3x3 postfilering method]]
-LogConfig: Set CVar [[r.DOF.Gather.EnableBokehSettings:0       ; no bokeh simulation when gathering]]
-LogConfig: Set CVar [[r.DOF.Gather.RingCount:4                 ; medium number of samples when gathering]]
-LogConfig: Set CVar [[r.DOF.Scatter.ForegroundCompositing:1    ; additive foreground scattering]]
-LogConfig: Set CVar [[r.DOF.Scatter.BackgroundCompositing:2    ; additive background scattering]]
-LogConfig: Set CVar [[r.DOF.Scatter.EnableBokehSettings:1      ; bokeh simulation when scattering]]
-LogConfig: Set CVar [[r.DOF.Scatter.MaxSpriteRatio:0.1         ; only a maximum of 10% of scattered bokeh]]
-LogConfig: Set CVar [[r.DOF.Recombine.Quality:1                ; cheap slight out of focus]]
-LogConfig: Set CVar [[r.DOF.Recombine.EnableBokehSettings:0    ; no bokeh simulation on slight out of focus]]
-LogConfig: Set CVar [[r.DOF.TemporalAAQuality:1                ; more stable temporal accumulation]]
-LogConfig: Set CVar [[r.DOF.Kernel.MaxForegroundRadius:0.025]]
-LogConfig: Set CVar [[r.DOF.Kernel.MaxBackgroundRadius:0.025]]
-LogConfig: Applying CVar settings from Section [TextureQuality@3] File [Scalability]
-LogConfig: Set CVar [[r.Streaming.MipBias:0]]
-LogConfig: Set CVar [[r.Streaming.AmortizeCPUToGPUCopy:0]]
-LogConfig: Set CVar [[r.Streaming.MaxNumTexturesToStreamPerFrame:0]]
-LogConfig: Set CVar [[r.Streaming.Boost:1]]
-LogConfig: Set CVar [[r.MaxAnisotropy:8]]
-LogConfig: Set CVar [[r.VT.MaxAnisotropy:8]]
-LogConfig: Set CVar [[r.Streaming.LimitPoolSizeToVRAM:0]]
-LogConfig: Set CVar [[r.Streaming.PoolSize:1000]]
-LogConfig: Set CVar [[r.Streaming.MaxEffectiveScreenSize:0]]
-LogConfig: Applying CVar settings from Section [EffectsQuality@3] File [Scalability]
-LogConfig: Set CVar [[r.TranslucencyLightingVolume.Dim:64]]
-LogConfig: Set CVar [[r.RefractionQuality:2]]
-LogConfig: Set CVar [[r.SceneColorFormat:4]]
-LogConfig: Set CVar [[r.DetailMode:3]]
-LogConfig: Set CVar [[r.TranslucencyLightingVolume.Blur:1]]
-LogConfig: Set CVar [[r.MaterialQualityLevel:1 ; High quality]]
-LogConfig: Set CVar [[r.SSS.Scale:1]]
-LogConfig: Set CVar [[r.SSS.SampleSet:2]]
-LogConfig: Set CVar [[r.SSS.Quality:1]]
-LogConfig: Set CVar [[r.SSS.HalfRes:0]]
-LogConfig: Set CVar [[r.SSGI.Quality:3]]
-LogConfig: Set CVar [[r.EmitterSpawnRateScale:1.0]]
-LogConfig: Set CVar [[r.ParticleLightQuality:2]]
-LogConfig: Set CVar [[r.SkyAtmosphere.AerialPerspectiveLUT.FastApplyOnOpaque:1 ; Always have FastSkyLUT 1 in this case to avoid wrong sky]]
-LogConfig: Set CVar [[r.SkyAtmosphere.AerialPerspectiveLUT.SampleCountMaxPerSlice:4]]
-LogConfig: Set CVar [[r.SkyAtmosphere.AerialPerspectiveLUT.DepthResolution:16.0]]
-LogConfig: Set CVar [[r.SkyAtmosphere.FastSkyLUT:1]]
-LogConfig: Set CVar [[r.SkyAtmosphere.FastSkyLUT.SampleCountMin:4.0]]
-LogConfig: Set CVar [[r.SkyAtmosphere.FastSkyLUT.SampleCountMax:128.0]]
-LogConfig: Set CVar [[r.SkyAtmosphere.SampleCountMin:4.0]]
-LogConfig: Set CVar [[r.SkyAtmosphere.SampleCountMax:128.0]]
-LogConfig: Set CVar [[r.SkyAtmosphere.TransmittanceLUT.UseSmallFormat:0]]
-LogConfig: Set CVar [[r.SkyAtmosphere.TransmittanceLUT.SampleCount:10.0]]
-LogConfig: Set CVar [[r.SkyAtmosphere.MultiScatteringLUT.SampleCount:15.0]]
-LogConfig: Set CVar [[fx.Niagara.QualityLevel:3]]
-LogConfig: Set CVar [[r.Refraction.OffsetQuality:1]]
-LogConfig: Set CVar [[r.HeterogeneousVolumes.DownsampleFactor:2]]
-LogConfig: Set CVar [[r.HeterogeneousVolumes.MaxStepCount:256]]
-LogConfig: Set CVar [[r.HeterogeneousVolumes.Shadows.Resolution:512]]
-LogConfig: Set CVar [[r.HeterogeneousVolumes.Shadows.Precision:0]]
-LogConfig: Set CVar [[r.HeterogeneousVolumes.UseExistenceMask:0]]
-LogConfig: Applying CVar settings from Section [FoliageQuality@3] File [Scalability]
-LogConfig: Set CVar [[foliage.DensityScale:1.0]]
-LogConfig: Set CVar [[grass.DensityScale:1.0]]
-LogConfig: Applying CVar settings from Section [ShadingQuality@3] File [Scalability]
-LogConfig: Set CVar [[r.HairStrands.SkyLighting.IntegrationType:2]]
-LogConfig: Set CVar [[r.HairStrands.SkyAO.SampleCount:4]]
-LogConfig: Set CVar [[r.HairStrands.Visibility.MSAA.SamplePerPixel:4]]
-LogConfig: Set CVar [[r.AnisotropicMaterials:1]]
-LogConfig: Applying CVar settings from Section [LandscapeQuality@3] File [Scalability]
-LogRHI: Using Default RHI: D3D12
-LogRHI: Using Highest Feature Level of D3D12: SM5
-LogRHI: Loading RHI module D3D12RHI
-LogD3D12RHI: Loading WinPixEventRuntime.dll for PIX profiling (from ../../../Engine/Binaries/ThirdParty/Windows/WinPixEventRuntime/x64).
-LogRHI: Checking if RHI D3D12 with Feature Level SM5 is supported by your system.
-LogD3D12RHI: Found D3D12 adapter 0: NVIDIA GeForce RTX 4090 (VendorId: 10de, DeviceId: 2684, SubSysId: 51071028, Revision: 00a1
-LogD3D12RHI:   Max supported Feature Level 12_2, shader model 6.7, binding tier 3, wave ops supported, atomic64 supported
-LogD3D12RHI:   Adapter has 24142MB of dedicated video memory, 0MB of dedicated system memory, and 65104MB of shared system memory, 1 output[s], UMA:false
-LogD3D12RHI:   Driver Version: 581.95 (internal:32.0.15.8195, unified:581.95)
-LogD3D12RHI:      Driver Date: 11-18-2025
-LogD3D12RHI: Found D3D12 adapter 1: Microsoft Basic Render Driver (VendorId: 1414, DeviceId: 008c, SubSysId: 0000, Revision: 0000
-LogD3D12RHI:   Max supported Feature Level 12_1, shader model 6.7, binding tier 3, wave ops supported, atomic64 supported
-LogD3D12RHI:   Adapter has 0MB of dedicated video memory, 0MB of dedicated system memory, and 65104MB of shared system memory, 0 output[s], UMA:true
-LogD3D12RHI:   D3D10Warp Version: 10.0.26100.8246
-LogD3D12RHI: DirectX Agility SDK runtime found.
-LogD3D12RHI: Chosen D3D12 Adapter Id = 0
-LogRHI: RHI D3D12 with Feature Level SM5 is supported and will be used.
-LogInit: Selected Device Profile: [WindowsEditor]
-LogHAL: Display: Platform has ~ 128 GB [136533307392 / 137438953472 / 128], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
-LogDeviceProfileManager: Going up to parent DeviceProfile [Windows]
-LogDeviceProfileManager: Going up to parent DeviceProfile []
-LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.RasterizationMode:Bitmap -> Msdf]]
-LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.ResolutionLevel:2 -> 2]]
-LogConfig: Applying CVar settings from Section [ViewDistanceQuality@2] File [Scalability]
-LogConfig: Set CVar [[r.ViewDistanceScale:0.8]]
-LogConfig: Applying CVar settings from Section [AntiAliasingQuality@2] File [Scalability]
-LogConfig: Set CVar [[r.FXAA.Quality:3]]
-LogConfig: Set CVar [[r.TemporalAA.Quality:1]]
-LogConfig: Set CVar [[r.TSR.History.ScreenPercentage:100]]
-LogConfig: Set CVar [[r.TSR.History.UpdateQuality:2]]
-LogConfig: Set CVar [[r.TSR.RejectionAntiAliasingQuality:1]]
-LogConfig: Applying CVar settings from Section [ShadowQuality@2] File [Scalability]
-LogConfig: Set CVar [[r.Shadow.CSM.MaxCascades:4]]
-LogConfig: Set CVar [[r.Shadow.MaxResolution:1024]]
-LogConfig: Set CVar [[r.Shadow.RadiusThreshold:0.04]]
-LogConfig: Set CVar [[r.Shadow.DistanceScale:0.85]]
-LogConfig: Set CVar [[r.Shadow.CSM.TransitionScale:0.8]]
-LogConfig: Set CVar [[r.Shadow.PreShadowResolutionFactor:0.5]]
-LogConfig: Set CVar [[r.VolumetricFog.GridPixelSize:16]]
-LogConfig: Set CVar [[r.VolumetricFog.GridSizeZ:64]]
-LogConfig: Set CVar [[r.Shadow.Virtual.MaxPhysicalPages:2048]]
-LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasDirectional:0.0]]
-LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasDirectionalMoving:0.0]]
-LogConfig: Set CVar [[r.Shadow.Virtual.SMRT.RayCountLocal:4]]
-LogConfig: Applying CVar settings from Section [GlobalIlluminationQuality@2] File [Scalability]
-LogConfig: Set CVar [[r.AOQuality:1]]
-LogConfig: Set CVar [[r.LumenScene.DirectLighting.MaxLightsPerTile:4]]
-LogConfig: Set CVar [[r.LumenScene.DirectLighting.UpdateFactor:64]]
-LogConfig: Set CVar [[r.LumenScene.Radiosity.UpdateFactor:128]]
-LogConfig: Set CVar [[r.LumenScene.Radiosity.ProbeSpacing:8]]
-LogConfig: Set CVar [[r.LumenScene.Radiosity.HemisphereProbeResolution:3]]
-LogConfig: Set CVar [[r.Lumen.TraceMeshSDFs.Allow:0]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.RadianceCache.ProbeResolution:16]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.DownsampleFactor:32]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.NumAdaptiveProbes:16]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.IrradianceFormat:1]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.StochasticInterpolation:1]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.TwoSidedFoliageBackfaceDiffuse:0]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ShortRangeAO.BentNormal:0]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ShortRangeAO.HorizonSearch.HZB:1]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ShortRangeAO.HorizonSearch.ForegroundSampleRejectPower:1.5]]
-LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.GridPixelSize:64]]
-LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.TraceFromVolume:0]]
-LogConfig: Set CVar [[r.RayTracing.Scene.BuildMode:0]]
-LogConfig: Applying CVar settings from Section [ReflectionQuality@2] File [Scalability]
-LogConfig: Set CVar [[r.SSR.Quality:2]]
-LogConfig: Set CVar [[r.SSR.HalfResSceneColor:1]]
-LogConfig: Set CVar [[r.Lumen.Reflections.DownsampleFactor:2]]
-LogConfig: Set CVar [[r.Lumen.Reflections.MaxRoughnessToTraceForFoliage:0.2]]
-LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.MaxRoughnessToEvaluateRoughSpecularForFoliage:0.4]]
-LogConfig: Set CVar [[r.Lumen.Reflections.ScreenSpaceReconstruction.NumSamples:3]]
-LogConfig: Set CVar [[r.Lumen.Reflections.ScreenSpaceReconstruction.MinWeight:1]]
-LogConfig: Set CVar [[r.Lumen.TranslucencyReflections.FrontLayer.Allow:0]]
-LogConfig: Applying CVar settings from Section [PostProcessQuality@2] File [Scalability]
-LogConfig: Set CVar [[r.MotionBlurQuality:3]]
-LogConfig: Set CVar [[r.AmbientOcclusionMipLevelFactor:0.6]]
-LogConfig: Set CVar [[r.AmbientOcclusionRadiusScale:1.5]]
-LogConfig: Set CVar [[r.FastBlurThreshold:3]]
-LogConfig: Set CVar [[r.Upscale.Quality:2]]
-LogConfig: Set CVar [[r.Filter.SizeScale:0.8]]
-LogConfig: Set CVar [[r.DOF.Gather.AccumulatorQuality:0        ; lower gathering accumulator quality]]
-LogConfig: Set CVar [[r.DOF.Gather.PostfilterMethod:2          ; Max3x3 postfilering method]]
-LogConfig: Set CVar [[r.DOF.Scatter.BackgroundCompositing:1    ; no background occlusion]]
-LogConfig: Set CVar [[r.DOF.Scatter.EnableBokehSettings:0      ; no bokeh simulation when scattering]]
-LogConfig: Set CVar [[r.DOF.Scatter.MaxSpriteRatio:0.04        ; only a maximum of 4% of scattered bokeh]]
-LogConfig: Set CVar [[r.DOF.Recombine.Quality:0                ; no slight out of focus]]
-LogConfig: Set CVar [[r.DOF.TemporalAAQuality:0                ; faster temporal accumulation]]
-LogConfig: Set CVar [[r.DOF.Kernel.MaxForegroundRadius:0.012   ; required because of AccumulatorQuality=0]]
-LogConfig: Set CVar [[r.DOF.Kernel.MaxBackgroundRadius:0.012   ; required because of AccumulatorQuality=0]]
-LogConfig: Applying CVar settings from Section [TextureQuality@2] File [Scalability]
-LogConfig: Set CVar [[r.MaxAnisotropy:4]]
-LogConfig: Set CVar [[r.Streaming.LimitPoolSizeToVRAM:1]]
-LogConfig: Set CVar [[r.Streaming.PoolSize:800]]
-LogConfig: Applying CVar settings from Section [EffectsQuality@2] File [Scalability]
-LogConfig: Set CVar [[r.TranslucencyLightingVolume.Dim:48]]
-LogConfig: Set CVar [[r.SceneColorFormat:3]]
-LogConfig: Set CVar [[r.DetailMode:1]]
-LogConfig: Set CVar [[r.SSS.SampleSet:1]]
-LogConfig: Set CVar [[r.SSS.Quality:-1]]
-LogConfig: Set CVar [[r.SSS.HalfRes:1]]
-LogConfig: Set CVar [[r.SSGI.Quality:2]]
-LogConfig: Set CVar [[r.EmitterSpawnRateScale:0.5]]
-LogConfig: Set CVar [[r.ParticleLightQuality:1]]
-LogConfig: Set CVar [[r.SkyAtmosphere.AerialPerspectiveLUT.SampleCountMaxPerSlice:2]]
-LogConfig: Set CVar [[r.SkyAtmosphere.FastSkyLUT.SampleCountMax:64.0]]
-LogConfig: Set CVar [[r.SkyAtmosphere.SampleCountMax:64.0]]
-LogConfig: Set CVar [[fx.Niagara.QualityLevel:2]]
-LogConfig: Set CVar [[r.HeterogeneousVolumes.MaxStepCount:96]]
-LogConfig: Set CVar [[r.HeterogeneousVolumes.Shadows.Resolution:256]]
-LogConfig: Applying CVar settings from Section [FoliageQuality@2] File [Scalability]
-LogConfig: Set CVar [[foliage.DensityScale:0.8]]
-LogConfig: Set CVar [[grass.DensityScale:0.8]]
-LogConfig: Applying CVar settings from Section [ShadingQuality@2] File [Scalability]
-LogConfig: Applying CVar settings from Section [LandscapeQuality@2] File [Scalability]
-LogConfig: Applying CVar settings from Section [Startup] File [../../../Engine/Config/ConsoleVariables.ini]
-LogConfig: Set CVar [[r.DumpShaderDebugInfo:2]]
-LogConfig: Set CVar [[p.chaos.AllowCreatePhysxBodies:1]]
-LogConfig: Set CVar [[fx.SkipVectorVMBackendOptimizations:1]]
-LogConfig: Applying CVar settings from Section [Startup_Windows] File [../../../Engine/Config/ConsoleVariables.ini]
-LogConfig: Applying CVar settings from Section [ConsoleVariables] File [Engine]
-LogConfig: Set CVar [[WindowsApplication.UseWorkerThreadForRawInput:0]]
-LogConfig: Applying CVar settings from Section [ConsoleVariables] File [C:/Users/mocapstaff/Desktop/PCAPPipeline/Saved/Config/WindowsEditor/Editor.ini]
-LogInit: Computer: RSPN-RTEAST
-LogInit: User: mocapstaff
-LogInit: CPU Page size=4096, Cores=32
-LogInit: High frequency timer resolution =10.000000 MHz
-LogInit: Handheld Device: 0
-LogMemory: Process is running as part of a Windows Job with separate resource limits
-LogMemory: Memory total: Physical=127.2GB (128GB approx) Virtual=315.1GB
-LogMemory: Platform Memory Stats for WindowsEditor
-LogMemory: Process Physical Memory: 738.49 MB used, 790.65 MB peak
-LogMemory: Process Virtual Memory: 830.98 MB used, 838.39 MB peak
-LogMemory: Physical Memory: 31901.15 MB used,  98307.16 MB free, 130208.31 MB total
-LogMemory: Virtual Memory: 33625.75 MB used,  289049.44 MB free, 322675.19 MB total
-LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
-LogWindows: WindowsPlatformFeatures enabled
-LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
-LogChaosDD: Chaos Debug Draw Startup
-LogInit: Physics initialised using underlying interface: Chaos
-LogInit: Using OS detected language (en-US).
-LogInit: Using OS detected locale (en-US).
-LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
-LogInit: Setting process to per monitor DPI aware
-LogWindowsTextInputMethodSystem: Available input methods:
-LogWindowsTextInputMethodSystem:   - English (United States) - (Keyboard).
-LogWindowsTextInputMethodSystem:   - English (United States) - Touch Input Correction (TSF IME).
-LogWindowsTextInputMethodSystem: Activated input method: English (United States) - (Keyboard).
-LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
-LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
-LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
-LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
-LogRHI: Using Default RHI: D3D12
-LogRHI: Using Highest Feature Level of D3D12: SM5
-LogRHI: Loading RHI module D3D12RHI
-LogRHI: Checking if RHI D3D12 with Feature Level SM5 is supported by your system.
-LogRHI: RHI D3D12 with Feature Level SM5 is supported and will be used.
-LogD3D12RHI: Integrated GPU (iGPU): false
-LogD3D12RHI: Display: Creating D3D12 RHI with Max Feature Level SM5
-LogWindows: Attached monitors:
-LogWindows:     resolution: 1920x1200, work area: (0, 0) -> (1920, 1152), device: '\\.\DISPLAY1' [PRIMARY]
-LogWindows: Found 1 attached monitors.
-LogWindows: Gathering driver information using Windows Setup API
-LogRHI: RHI Adapter Info:
-LogRHI:             Name: NVIDIA GeForce RTX 4090
-LogRHI:   Driver Version: 581.95 (internal:32.0.15.8195, unified:581.95)
-LogRHI:      Driver Date: 11-18-2025
-LogD3D12RHI:     GPU DeviceId: 0x2684 (for the marketing name, search the web for "GPU Device Id")
-LogD3D12RHI: InitD3DDevice: -D3DDebug = off -D3D12GPUValidation = off
-LogNvidiaAftermath: Aftermath initialized
-LogD3D12RHI: Emitting draw events for PIX profiling.
-LogNvidiaAftermath: Aftermath enabled. Active feature flags: 
-LogNvidiaAftermath:  - Feature: EnableResourceTracking
-LogD3D12RHI: ID3D12Device1 is supported.
-LogD3D12RHI: ID3D12Device2 is supported.
-LogD3D12RHI: ID3D12Device3 is supported.
-LogD3D12RHI: ID3D12Device4 is supported.
-LogD3D12RHI: ID3D12Device5 is supported.
-LogD3D12RHI: ID3D12Device6 is supported.
-LogD3D12RHI: ID3D12Device7 is supported.
-LogD3D12RHI: ID3D12Device8 is supported.
-LogD3D12RHI: ID3D12Device9 is supported.
-LogD3D12RHI: ID3D12Device10 is supported.
-LogD3D12RHI: ID3D12Device11 is supported.
-LogD3D12RHI: ID3D12Device12 is supported.
-LogD3D12RHI: Bindless is supported. MaxNonSamplerDescriptors: 1000000, MaxSamplerDescriptors: 2048
-LogD3D12RHI: Stencil ref from pixel shader is not supported
-LogD3D12RHI: Raster order views are supported
-LogD3D12RHI: Wave Operations are supported (wave size: min=32 max=32).
-LogD3D12RHI:      Legacy Barriers Present in Build: Yes
-LogD3D12RHI:    Enhanced Barriers Present in Build: Yes
-LogD3D12RHI:      Enhanced Barriers Driver Support: Yes
-LogD3D12RHI: Preferred Barrier Implementation Type: Legacy
-LogD3D12RHI:         Chosen Barrier Implementation: D3D12LegacyBarriers
-LogD3D12RHI: Mesh shader tier 1.0 is supported
-LogD3D12RHI: AtomicInt64OnTypedResource is supported
-LogD3D12RHI: AtomicInt64OnGroupShared is supported
-LogD3D12RHI: AtomicInt64OnDescriptorHeapResource is supported
-LogD3D12RHI: Shader Model 6.6 atomic64 is supported
-LogD3D12RHI: Work Graphs are supported
-LogD3D12RHI: [GPUBreadCrumb] Successfully setup breadcrumb resource for DiagnosticBuffer (Queue: 0x00000185999A6B80)
-LogD3D12RHI: [GPUBreadCrumb] Successfully setup breadcrumb resource for DiagnosticBuffer (Queue: 0x00000185999A6E40)
-LogD3D12RHI: [GPUBreadCrumb] Successfully setup breadcrumb resource for DiagnosticBuffer (Queue: 0x00000185999A7100)
-LogD3D12RHI: Display: Not using pipeline state disk cache per r.D3D12.PSO.DiskCache=0
-LogD3D12RHI: Display: Not using driver-optimized pipeline state disk cache per r.D3D12.PSO.DriverOptimizedDiskCache=0
-LogD3D12RHI: NVIDIA Shader Execution Reordering interface supported!
-LogD3D12RHI: NVIDIA Ray Tracing Cluster Operations supported and enabled
-LogRHI: Texture pool is 14725 MB (70% of 21036 MB)
-LogD3D12RHI: Async texture creation enabled
-LogD3D12RHI: RHI has support for 64 bit atomics
-LogVRS: Current RHI supports per-draw and screenspace Variable Rate Shading
-LogCsvProfiler: Display: Metadata set : verbatimrhiname="D3D12"
-LogCsvProfiler: Display: Metadata set : rhiname="D3D12"
-LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM5"
-LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM5"
-LogInit: Initializing FReadOnlyCVARCache
-LogTurnkeySupport: Running Turnkey SDK detection: ' -ScriptsForProject="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject" Turnkey -utf8output -WaitForUATMutex -command=VerifySdk -ReportFilename="C:/Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/TurnkeyReport_0.log" -log="C:/Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/TurnkeyLog_0.log" -project="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject"  -platform=all'
-LogMonitoredProcess: Running Serialized UAT: [ cmd.exe /c ""C:/Program Files/Epic Games/UE_5.7/Engine/Build/BatchFiles/RunUAT.bat"  -ScriptsForProject="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject" Turnkey -utf8output -WaitForUATMutex -command=VerifySdk -ReportFilename="C:/Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/TurnkeyReport_0.log" -log="C:/Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/TurnkeyLog_0.log" -project="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject"  -platform=all" ]
-LogTextureFormatASTC: Display: ASTCEnc version 5.0.1 library loaded
-LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatASTC
-LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatDXT
-LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatETC2
-LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatIntelISPCTexComp
-LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatUncompressed
-LogTextureFormatOodle: Display: Oodle Texture TFO init; latest sdk version = 2.9.14
-LogTextureFormatOodle: Display: Oodle Texture loading DLL: oo2tex_win64_2.9.14.dll
-LogTextureFormatOodle: Display: Oodle Texture loading DLL: oo2tex_win64_2.9.5.dll
-LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatOodle
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android_ASTC'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android_DXT'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android_ETC2'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android_OpenXR'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'AndroidClient'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android_ASTCClient'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android_DXTClient'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android_ETC2Client'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android_OpenXRClient'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android_Multi'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Android_MultiClient'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'IOS'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'IOSClient'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Linux'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'LinuxEditor'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'LinuxServer'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'LinuxClient'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Mac'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'MacEditor'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'MacServer'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'MacClient'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'TVOS'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'TVOSClient'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'Windows'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsEditor'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsServer'
-LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsClient'
-LogTargetPlatformManager: Display: Building Assets For WindowsEditor
-LogTargetPlatformManager: Unable to find shader format SF_METAL_ES3_1_IOS from hinted modules, loading all potential format modules to find it
-LogTargetPlatformManager: Loaded format module MetalShaderFormat
-LogTargetPlatformManager:   SF_METAL_ES3_1_IOS
-LogTargetPlatformManager:   SF_METAL_SM5_IOS
-LogTargetPlatformManager:   SF_METAL_ES3_1_TVOS
-LogTargetPlatformManager:   SF_METAL_SM5_TVOS
-LogTargetPlatformManager:   SF_METAL_SM5
-LogTargetPlatformManager:   SF_METAL_SM6
-LogTargetPlatformManager:   SF_METAL_SIM
-LogTargetPlatformManager:   SF_METAL_ES3_1
-LogTargetPlatformManager: Loaded format module ShaderFormatD3D
-LogTargetPlatformManager:   PCD3D_SM6
-LogTargetPlatformManager:   PCD3D_SM5
-LogTargetPlatformManager:   PCD3D_ES31
-LogTargetPlatformManager: Loaded format module ShaderFormatOpenGL
-LogTargetPlatformManager:   GLSL_150_ES31
-LogTargetPlatformManager:   GLSL_ES3_1_ANDROID
-LogTargetPlatformManager: Loaded format module ShaderFormatVectorVM
-LogTargetPlatformManager:   VVM_1_0
-LogTargetPlatformManager: Loaded format module VulkanShaderFormat
-LogTargetPlatformManager:   SF_VULKAN_SM5
-LogTargetPlatformManager:   SF_VULKAN_ES31_ANDROID
-LogTargetPlatformManager:   SF_VULKAN_ES31
-LogTargetPlatformManager:   SF_VULKAN_SM5_ANDROID
-LogTargetPlatformManager:   SF_VULKAN_SM6
-LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
-LogDerivedDataCache: Display: Memory: Max Cache Size: -1 MB
-LogDerivedDataCache: FDerivedDataBackendGraph: Pak pak cache file ../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/DerivedDataCache/DDC.ddp not found, will not use a pak cache.
-LogDerivedDataCache: Unable to find inner node Pak for hierarchy Hierarchy.
-LogDerivedDataCache: FDerivedDataBackendGraph: CompressedPak pak cache file ../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/DerivedDataCache/Compressed.ddp not found, will not use a pak cache.
-LogDerivedDataCache: Unable to find inner node CompressedPak for hierarchy Hierarchy.
-LogDerivedDataCache: Display: ../../../Engine/DerivedDataCache/Compressed.ddp: Opened pak cache for reading. (1729 MiB)
-LogDerivedDataCache: FDerivedDataBackendGraph: EnterprisePak pak cache file ../../../Enterprise/DerivedDataCache/Compressed.ddp not found, will not use a pak cache.
-LogDerivedDataCache: Unable to find inner node EnterprisePak for hierarchy Hierarchy.
-LogZenServiceInstance: Found Zen config default=C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/Zen/Data
-LogZenServiceInstance: Display: Launching zen utility 'C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/Win64/zen.exe service status'.
-LogZenServiceInstance: Display: Launching zen utility 'C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/Win64/zen.exe service status'.
-LogZenServiceInstance: Display: Read zen version cache file from 'C:/Users/mocapstaff/AppData/Local/UnrealEngine/5.7/Saved/Zen/zen.version', version: '5.7.6-202510061608-windows-x64-release-9a1ebb9'
-LogZenServiceInstance: InTree version at 'C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/Win64/zenserver.exe' is '5.7.6-202510061608-windows-x64-release-9a1ebb9'
-LogZenServiceInstance: Display: Read zen version cache file from 'C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/Zen/Install/zen.version', version: '5.7.6-202510061608-windows-x64-release-9a1ebb9'
-LogZenServiceInstance: Installed version at 'C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/Zen/Install/zenserver.exe' is '5.7.6-202510061608-windows-x64-release-9a1ebb9'
-LogZenServiceInstance: Display: Installed service at 'C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/Zen/Install/zenserver.exe' is up to date
-LogZenServiceInstance: No current process using the data dir found, launching a new instance
-LogZenServiceInstance: Display: Launching executable 'C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/Zen/Install/zenserver.exe', working dir 'C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/Zen/Install', data dir 'C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/Zen/Data', args '--port 8558 --data-dir C:\Users\mocapstaff\AppData\Local\UnrealEngine\Common\Zen\Data --http asio --gc-cache-duration-seconds 1209600 --gc-interval-seconds 21600 --gc-low-diskspace-threshold 2147483648 --cache-bucket-limit-overwrites --quiet --http-forceloopback --owner-pid 61516  --child-id Zen_61516
-_Startup'
-LogTurnkeySupport: Completed SDK detection: ExitCode = 0
-LogZenServiceInstance: Display: Unreal Zen Storage Server HTTP service at http://[::1]:8558 status: OK!.
-LogZenServiceInstance: Local ZenServer AutoLaunch initialization completed in 0.084 seconds
-LogDerivedDataCache: Display: ZenLocal: Using ZenServer HTTP service at [::1] with namespace ue.ddc status: OK!.
-LogDerivedDataCache: C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/DerivedDataCache: Speed tests took 0.01 seconds.
-LogDerivedDataCache: Display: C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/DerivedDataCache: Performance: Latency=0.03ms. RandomReadSpeed=1293.21MBs, RandomWriteSpeed=120.94MBs. Assigned SpeedClass 'Local'
-LogDerivedDataCache: Local: Using data cache path C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/DerivedDataCache: DeleteOnly
-LogDerivedDataCache: ZenShared: Disabled because Host is set to 'None'
-LogDerivedDataCache: Unable to find inner node ZenShared for hierarchy Hierarchy.
-LogDerivedDataCache: Shared: Disabled because no path is configured.
-LogDerivedDataCache: Unable to find inner node Shared for hierarchy Hierarchy.
-LogDerivedDataCache: Cloud: Disabled because Host is set to 'None'
-LogDerivedDataCache: Unable to find inner node Cloud for hierarchy Hierarchy.
-LogShaderCompilers: Guid format shader working directory is -3 characters bigger than the processId version (../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/Shaders/WorkingDirectory/61516/).
-LogShaderCompilers: Cleaned the shader compiler working directory 'C:/Users/mocapstaff/AppData/Local/Temp/1/UnrealShaderWorkingDir/C0E23A634B7C87921A2F6F99A0F38FC4/'.
-LogXGEController: Cannot use XGE Controller as Incredibuild is not installed on this machine.
-LogUbaHorde: Display: UBA/Horde Configuration [Uba.Provider.Horde]: Not Enabled
-LogShaderCompilers: Display: No distributed shader compiler controller found
-LogShaderCompilers: Display: Using 32 local workers for shader compilation
-LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
-LogShaderCompilers: Display: Autogen file is unchanged, skipping write.
-LogSlate: Using FreeType 2.10.0
-LogSlate: SlateFontServices - WITH_FREETYPE: 1, WITH_HARFBUZZ: 1
-LogStreaming: Warning: Failed to read file '../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_24x.png' error.
-LogStreaming: Warning: Failed to read file '../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_128x.png' error.
-LogSlate: Could not load file for Slate resource: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_24x.png] file: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_24x.png]
-LogSlate: Could not load file for Slate resource: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_128x.png] file: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_128x.png]
-LogAssetRegistry: FAssetRegistry took 0.0019 seconds to start up
-LogEditorDomain: Display: EditorDomain is Disabled
-LogAssetRegistry: Display: AssetDataGatherer spent 0.000s loading caches ../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/CachedAssetRegistry_*.bin.
-LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
-LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
-LogDeviceProfileManager: Active device profile: [00000185DB542300][00000185CDCF7800 82] WindowsEditor
-LogCsvProfiler: Display: Metadata set : deviceprofile="WindowsEditor"
-LogStreaming: Display: FlushAsyncLoading(1): 1 QueuedPackages, 0 AsyncPackages
-LogTextureEncodingSettings: Display: Texture Encode Speed: FinalIfAvailable (editor).
-LogTextureEncodingSettings: Display: Oodle Texture Encode Speed settings: Fast: RDO Off Lambda=0, Effort=Normal Final: RDO Off Lambda=0, Effort=Normal
-LogTextureEncodingSettings: Display: Shared linear texture encoding: Disabled
-LogTurnkeySupport: Turnkey Platform: Win64: (Status=Valid, MinAllowed_Sdk=10.0.19041.0, MaxAllowed_Sdk=10.9.99999.0, Current_Sdk=10.0.22621.0, Allowed_AutoSdk=10.0.22621.0, Current_AutoSdk=, Flags="InstalledSdk_ValidVersionExists, Sdk_HasBestVersion")
-LogTurnkeySupport: Running Turnkey device detection: ' -ScriptsForProject="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject" Turnkey -utf8output -WaitForUATMutex -command=VerifySdk -ReportFilename="C:/Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/TurnkeyReport_1.log" -log="C:/Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/TurnkeyLog_1.log" -project="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject"  -Device=Win64@RSPN-RTEAST'
-LogMonitoredProcess: Running Serialized UAT: [ cmd.exe /c ""C:/Program Files/Epic Games/UE_5.7/Engine/Build/BatchFiles/RunUAT.bat"  -ScriptsForProject="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject" Turnkey -utf8output -WaitForUATMutex -command=VerifySdk -ReportFilename="C:/Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/TurnkeyReport_1.log" -log="C:/Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/TurnkeyLog_1.log" -project="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject"  -Device=Win64@RSPN-RTEAST" -nocompile -nocompileuat ]
-LogStreaming: Display: Flushing package /Engine/Functions/Engine_MaterialFunctions01/Shading/PowerToRoughness (state: WaitingForIo) recursively from another package /Engine/EngineMaterials/DefaultTextMaterialOpaque (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Package /Engine/EngineMaterials/DefaultTextMaterialOpaque is adding a dynamic import to package /Engine/Functions/Engine_MaterialFunctions01/Shading/PowerToRoughness because of a recursive sync load
-LogStreaming: Display: Flushing package /Engine/Functions/Engine_MaterialFunctions01/Shading/PowerToRoughness (state: DeferredPostLoad) recursively from another package /Engine/EngineMaterials/DefaultTextMaterialOpaque (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Flushing package /Engine/Functions/Engine_MaterialFunctions01/Shading/ConvertFromDiffSpec (state: WaitingForIo) recursively from another package /Engine/EngineMaterials/DefaultTextMaterialOpaque (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Package /Engine/EngineMaterials/DefaultTextMaterialOpaque is adding a dynamic import to package /Engine/Functions/Engine_MaterialFunctions01/Shading/ConvertFromDiffSpec because of a recursive sync load
-LogStreaming: Display: Flushing package /Engine/Functions/Engine_MaterialFunctions01/Shading/ConvertFromDiffSpec (state: DeferredPostLoad) recursively from another package /Engine/EngineMaterials/DefaultTextMaterialOpaque (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Flushing package /Engine/EngineMaterials/WorldGridMaterial (state: WaitingForIo) recursively from another package /Engine/EngineMaterials/DefaultTextMaterialOpaque (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Flushing package /Engine/EngineMaterials/DefaultDeferredDecalMaterial (state: WaitingForIo) recursively from another package /Engine/EngineMaterials/WorldGridMaterial (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Flushing package /Engine/EngineMaterials/DefaultLightFunctionMaterial (state: WaitingForIo) recursively from another package /Engine/EngineMaterials/DefaultDeferredDecalMaterial (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Flushing package /Engine/EngineMaterials/DefaultPostProcessMaterial (state: WaitingForIo) recursively from another package /Engine/EngineMaterials/DefaultLightFunctionMaterial (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Package /Engine/EngineMaterials/DefaultLightFunctionMaterial is adding a dynamic import to package /Engine/EngineMaterials/DefaultPostProcessMaterial because of a recursive sync load
-LogStreaming: Display: Flushing package /Engine/EngineMaterials/DefaultPostProcessMaterial (state: DeferredPostLoad) recursively from another package /Engine/EngineMaterials/DefaultLightFunctionMaterial (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Package /Engine/EngineMaterials/DefaultDeferredDecalMaterial is adding a dynamic import to package /Engine/EngineMaterials/DefaultLightFunctionMaterial because of a recursive sync load
-LogStreaming: Display: Flushing package /Engine/EngineMaterials/DefaultLightFunctionMaterial (state: DeferredPostLoad) recursively from another package /Engine/EngineMaterials/DefaultDeferredDecalMaterial (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Package /Engine/EngineMaterials/WorldGridMaterial is adding a dynamic import to package /Engine/EngineMaterials/DefaultDeferredDecalMaterial because of a recursive sync load
-LogStreaming: Display: Flushing package /Engine/EngineMaterials/DefaultDeferredDecalMaterial (state: DeferredPostLoad) recursively from another package /Engine/EngineMaterials/WorldGridMaterial (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogStreaming: Display: Package /Engine/EngineMaterials/DefaultTextMaterialOpaque is adding a dynamic import to package /Engine/EngineMaterials/WorldGridMaterial because of a recursive sync load
-LogStreaming: Display: Flushing package /Engine/EngineMaterials/WorldGridMaterial (state: DeferredPostLoad) recursively from another package /Engine/EngineMaterials/DefaultTextMaterialOpaque (state: CreateLinkerLoadExports) will result in a partially loaded package to avoid a deadlock.
-LogMeshReduction: Display: Using QuadricMeshReduction for automatic static mesh reduction
-LogMeshReduction: Display: Using SkeletalMeshReduction for automatic skeletal mesh reduction
-LogMeshReduction: Display: Using ProxyLODMeshReduction for automatic mesh merging
-LogMeshReduction: Display: No distributed automatic mesh merging module available
-LogMeshMerging: No distributed automatic mesh merging module available
-LogConfig: Applying CVar settings from Section [/Script/CQTest.CQTestSettings] File [Engine]
-LogStats: UGameplayTagsManager::InitializeManager -  0.000 s
-LogVirtualization: Display: VirtualizationSystem name found in ini file: None
-LogVirtualization: Display: FNullVirtualizationSystem mounted, virtualization will be disabled
-LogLiveCoding: Display: Starting LiveCoding
-LogLiveCoding: Display: LiveCodingConsole Arguments: UnrealEditor Win64 Development
-LogLiveCoding: Display: First instance in process group "UE_PCAPPipeline_0x50eb25cc", spawning console
-LogLiveCoding: Display: Waiting for server
-LogSlate: Border
-LogSlate: BreadcrumbButton
-LogSlate: Brushes.Title
-LogSlate: ColorPicker.ColorThemes
-LogSlate: Default
-LogSlate: Icons.Save
-LogSlate: Icons.Toolbar.Settings
-LogSlate: ListView
-LogSlate: SoftwareCursor_CardinalCross
-LogSlate: SoftwareCursor_Grab
-LogSlate: TableView.DarkRow
-LogSlate: TableView.Row
-LogSlate: TreeView
-LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize started...
-LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize took 1.913 ms
-LogInit: XR: Instanced Stereo Rendering is Disabled
-LogInit: XR: MultiViewport is Disabled
-LogInit: XR: Mobile Multiview is Disabled
-LogNiagaraDebuggerClient: Niagara Debugger Client Initialized | Session: DD94410A7804482F8000000000009800 | Instance: B6F4A0FF48431A257F42C59F0D47E08E (RSPN-RTEAST-61516).
-LogTcpMessaging: Initializing TcpMessaging bridge
-LogUdpMessaging: Display: Work queue size set to 1024.
-LogUdpMessaging: Initializing bridge on interface 0.0.0.0:0 to multicast group 230.0.0.1:6666.
-LogUdpMessaging: Display: Unicast socket bound to '0.0.0.0:63991'.
-LogUdpMessaging: Display: Added local interface '10.56.1.60' to multicast group '230.0.0.1:6666'
-LogUdpMessaging: Display: Added local interface '192.168.50.10' to multicast group '230.0.0.1:6666'
-LogUdpMessaging: Display: Added local interface '127.0.0.1' to multicast group '230.0.0.1:6666'
-LogUdpMessaging: Display: Using asynchronous task graph for message deserialization.
-LogLiveLinkHub: Display: LiveLinkHubModule::StartupModule - LiveLinkHub instance will not be created. (Config: 0)
-LogTurnkeySupport: Completed device detection: Code = 0
-LogNNERuntimeORT: No NPU adapter found with attributes (!GRAPHICS && (GENERIC_ML || CORE_COMPUTE)) (Windows 11 Version 24H2 or newer)!
-LogNNERuntimeORT: Available graphics and compute adapters:
-LogNNERuntimeORT: 0: NVIDIA GeForce RTX 4090 (Compute, Graphics)
-LogNNERuntimeORT: 1: Microsoft Basic Render Driver (Compute, Graphics)
-LogNNERuntimeORT: No NPU adapter found!
-LogNNERuntimeORT: MakeRuntimeORTDml:
-LogNNERuntimeORT:   DirectML:  yes
-LogNNERuntimeORT:   RHI D3D12: yes
-LogNNERuntimeORT:   D3D12:     yes
-LogNNERuntimeORT:   NPU:       no
-LogNNERuntimeORT: Interface availability:
-LogNNERuntimeORT:   GPU: yes
-LogNNERuntimeORT:   RDG: yes
-LogNNERuntimeORT:   NPU: no
-LogNNERuntimeORT: No NPU adapter found with attributes (!GRAPHICS && (GENERIC_ML || CORE_COMPUTE)) (Windows 11 Version 24H2 or newer)!
-LogNNERuntimeORT: Available graphics and compute adapters:
-LogNNERuntimeORT: 0: NVIDIA GeForce RTX 4090 (Compute, Graphics)
-LogNNERuntimeORT: 1: Microsoft Basic Render Driver (Compute, Graphics)
-LogNNERuntimeORT: No NPU adapter found!
-LogMetaSound: Display: MetaSound Page Target Initialized to 'Default'
-LogAudio: Display: Registering Engine Module Parameter Interfaces...
-LogMetaSound: MetaSound Engine Initialized
-LogLiveCoding: Display: Successfully initialized, removing startup thread
-LogChaosVDEditor: [FChaosVDExtensionsManager::RegisterExtension] Registering CVD Extension [FChaosVDGenericDebugDrawExtension] ...
-LogChaosVDEditor: [FChaosVDExtensionsManager::RegisterExtension] Registering CVD Extension [FChaosVDAccelerationStructuresExtension] ...
-LogTimingProfiler: Initialize
-LogTimingProfiler: OnSessionChanged
-LoadingProfiler: Initialize
-LoadingProfiler: OnSessionChanged
-LogNetworkingProfiler: Initialize
-LogNetworkingProfiler: OnSessionChanged
-LogMemoryProfiler: Initialize
-LogMemoryProfiler: OnSessionChanged
-LogWindows: Attached monitors:
-LogWindows:     resolution: 1920x1200, work area: (0, 0) -> (1920, 1152), device: '\\.\DISPLAY1' [PRIMARY]
-LogWindows: Found 1 attached monitors.
-LogWindows: Gathering driver information using Windows Setup API
-LogTurnkeySupport: Turnkey Device: Win64@RSPN-RTEAST: (Name=RSPN-RTEAST, Type=Computer, Status=Valid, MinAllowed=10.0.19041.0, MaxAllowed=, Current=10.0.26100.0, Flags="Device_InstallSoftwareValid")
-LogStreaming: Warning: Failed to read file '../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_128x.png' error.
-LogStreaming: Warning: Failed to read file '../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_24x.png' error.
-LogSlate: Could not load file for Slate resource: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_128x.png] file: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_128x.png]
-LogSlate: Could not load file for Slate resource: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_24x.png] file: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_24x.png]
-LogStreaming: Warning: Failed to read file '../../../Engine/Plugins/Animation/EaseCurveTool/Resources/Common/ButtonHoverHint.png' error.
-LogSlate: Could not load file for Slate resource: [../../../Engine/Plugins/Animation/EaseCurveTool/Resources/Common/ButtonHoverHint.png] file: [../../../Engine/Plugins/Animation/EaseCurveTool/Resources/Common/ButtonHoverHint.png]
-SourceControl: Revision control is disabled
-LogStreaming: Warning: Failed to read file '../../../Engine/Content/Slate/Common/ButtonHoverHint.png' error.
-LogStreaming: Warning: Failed to read file '../../../Engine/Content/Slate/./Editor/Slate/Icons/doc_16x.png' error.
-LogSlate: Could not load file for Slate resource: [../../../Engine/Content/Slate/./Editor/Slate/Icons/doc_16x.png] file: [../../../Engine/Content/Slate/./Editor/Slate/Icons/doc_16x.png]
-LogSlate: Could not load file for Slate resource: [../../../Engine/Content/Slate/Common/ButtonHoverHint.png] file: [../../../Engine/Content/Slate/Common/ButtonHoverHint.png]
-SourceControl: Revision control is disabled
-LogConfig: Applying CVar settings from Section [/Script/NNEDenoiser.NNEDenoiserSettings] File [Engine]
-LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
-LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
-LogAndroidPermission: UAndroidPermissionCallbackProxy::GetInstance
-LogStreaming: Warning: Failed to read file '../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_128x.png' error.
-LogSlate: Could not load file for Slate resource: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_128x.png] file: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_128x.png]
-LogStreaming: Warning: Failed to read file '../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_24x.png' error.
-LogSlate: Could not load file for Slate resource: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_24x.png] file: [../../../Engine/Platforms/VisionOS/Content/Editor/Slate/Launcher/Platform_VisionOS_24x.png]
-LogStreaming: Warning: Failed to read file '../../../Engine/Plugins/Animation/EaseCurveTool/Resources/Common/ButtonHoverHint.png' error.
-LogSlate: Could not load file for Slate resource: [../../../Engine/Plugins/Animation/EaseCurveTool/Resources/Common/ButtonHoverHint.png] file: [../../../Engine/Plugins/Animation/EaseCurveTool/Resources/Common/ButtonHoverHint.png]
-LogStreaming: Warning: Failed to read file '../../../Engine/Content/Slate/./Editor/Slate/Icons/doc_16x.png' error.
-LogSlate: Could not load file for Slate resource: [../../../Engine/Content/Slate/./Editor/Slate/Icons/doc_16x.png] file: [../../../Engine/Content/Slate/./Editor/Slate/Icons/doc_16x.png]
-LogStreaming: Warning: Failed to read file '../../../Engine/Content/Slate/Common/ButtonHoverHint.png' error.
-LogSlate: Could not load file for Slate resource: [../../../Engine/Content/Slate/Common/ButtonHoverHint.png] file: [../../../Engine/Content/Slate/Common/ButtonHoverHint.png]
-LogCollectionManager: Loaded 0 collections in 0.001438 seconds
-LogFileCache: Scanning file cache for directory 'C:/Users/mocapstaff/Desktop/PCAPPipeline/Saved/Collections/' took 0.00s
-LogFileCache: Scanning file cache for directory 'C:/Users/mocapstaff/Desktop/PCAPPipeline/Content/Developers/mocapstaff/Collections/' took 0.00s
-LogFileCache: Scanning file cache for directory 'C:/Users/mocapstaff/Desktop/PCAPPipeline/Content/Collections/' took 0.00s
-LogWindows: Failed to load 'Wintab32.dll' (GetLastError=126)
-LogWindows: File 'Wintab32.dll' does not exist
-LogStylusInput: Wintab driver is not available; Wintab interface will be not be initialized.
-LogUObjectArray: 45390 objects as part of root set at end of initial load.
-LogUObjectArray: CloseDisregardForGC: 0/0 objects in disregard for GC pool
-LogEngine: Initializing Engine...
-LogTedsSettings: UTedsSettingsEditorSubsystem::Initialize
-LogTextureFormatOodle: Display: Oodle Texture loading DLL: oo2tex_win64_2.9.11.dll
-LogTextureFormatOodle: Display: Oodle Texture loading DLL: oo2tex_win64_2.9.12.dll
-LogChaosDD: Creating Chaos Debug Draw Scene for world Untitled
-LogNetVersion: Set ProjectVersion to 1.0.0.0. Version Checksum will be recalculated on next use.
-LogInit: Texture streaming: Enabled
-LogAnalytics: Display: [UEEditor.Rocket.Release] AnalyticsET::StartSession ( APIServer = https://datarouter.ol.epicgames.com/datarouter/api/v1/public/data. AppVersion = 5.7.4-51494982+++UE5+Release-5.7 )
-LogAudio: Display: Initializing Audio Device Manager...
-LogAudio: Display: Loading Default Audio Settings Objects...
-LogAudio: Display: No default SoundConcurrencyObject specified (or failed to load).
-LogAudio: Display: Audio Device Manager Initialized
-LogAudio: Display: Creating Audio Device:                 Id: 1, Scope: Shared, Realtime: True
-LogAudioMixer: Display: Audio Mixer Platform Settings:
-LogAudioMixer: Display:     Sample Rate:                          48000
-LogAudioMixer: Display:     Callback Buffer Frame Size Requested: 1024
-LogAudioMixer: Display:     Callback Buffer Frame Size To Use:    1024
-LogAudioMixer: Display:     Number of buffers to queue:           1
-LogAudioMixer: Display:     Max Channels (voices):                32
-LogAudioMixer: Display:     Number of Async Source Workers:       4
-LogAudio: Display: AudioDevice MaxSources: 32
-LogAudio: Display: Audio Spatialization Plugin: None (built-in).
-LogAudio: Display: Audio Reverb Plugin: None (built-in).
-LogAudio: Display: Audio Occlusion Plugin: None (built-in).
-LogAudioMixer: Display: Initializing audio mixer using platform API: 'XAudio2'
-LogAudioEnumeration: Display: FWindowsMMDeviceCache: Default Render Role='Console', Device='Speakers (Realtek(R) Audio)'
-LogAudioEnumeration: Display: FWindowsMMDeviceCache: Default Capture Role='Console', Device='Digital-In (2- Sound Blaster Z SE)'
-LogAudioEnumeration: Display: FWindowsMMDeviceCache: Default Render Role='Multimedia', Device='Speakers (Realtek(R) Audio)'
-LogAudioEnumeration: Display: FWindowsMMDeviceCache: Default Capture Role='Multimedia', Device='Digital-In (2- Sound Blaster Z SE)'
-LogAudioEnumeration: Display: FWindowsMMDeviceCache: Default Render Role='Communications', Device='Speakers (2- Sound Blaster Z SE)'
-LogAudioEnumeration: Display: FWindowsMMDeviceCache: Default Capture Role='Communications', Device='Digital-In (2- Sound Blaster Z SE)'
-LogAudioMixer: Display: Using Audio Hardware Device Speakers (Realtek(R) Audio)
-LogAudioMixer: Display: Initializing Sound Submixes...
-LogAudioMixer: Display: Creating Master Submix 'MasterSubmixDefault'
-LogAudioMixer: Display: Creating Master Submix 'MasterReverbSubmixDefault'
-LogAudioMixer: FMixerPlatformXAudio2::StartAudioStream() called. InstanceID=1
-LogAudioMixer: Display: Output buffers initialized: Frames=1024, Channels=2, Samples=2048, InstanceID=1
-LogAudioMixer: Display: Starting AudioMixerPlatformInterface::RunInternal(), InstanceID=1
-LogAudioMixer: Display: FMixerPlatformXAudio2::SubmitBuffer() called for the first time. InstanceID=1
-LogInit: FAudioDevice initialized with ID 1.
-LogAudio: Display: Audio Device (ID: 1) registered with world 'Untitled'.
-LogAudioMixer: Initializing Audio Bus Subsystem for audio device with ID 1
-LogCsvProfiler: Display: Metadata set : largeworldcoordinates="1"
-LogInit: Undo buffer set to 256 MB
-LogInit: Transaction tracking system initialized
-LogSourceControl: Display: Uncontrolled Changelist persistency file loaded ../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/SourceControl/UncontrolledChangelists.json
-LocalizationService: Localization service is disabled
-LogTextureFormatOodle: Display: Oodle Texture loading DLL: oo2tex_win64_2.9.13.dll
-LogContentValidation: Adding native validator /Script/DataValidation.DirtyFilesChangelistValidator
-LogContentValidation: Adding native validator /Script/DataValidation.EditorValidator_Localization
-LogContentValidation: Adding native validator /Script/DataValidation.EditorValidator_Material
-LogContentValidation: Adding native validator /Script/DataValidation.PackageFileValidator
-LogContentValidation: Adding native validator /Script/DataValidation.WorldPartitionChangelistValidator
-LogContentValidation: Adding native validator /Script/InputBlueprintNodes.EnhancedInputUserWidgetValidator
-LogFileCache: Scanning file cache for directory 'C:/Users/mocapstaff/Desktop/PCAPPipeline/Content/' took 0.01s
-LogNNEDenoiser: Ray Tracing is not enabled, therefore NNEDenoiser is not registered!
-LogPython: Python enabled via CVar 'Engine.Python.IsEnabledByDefault'
-LogPython: Using Python 3.11.8
-LogPython: Display: No pip-enabled plugins with python dependencies found, skipping
-LogLevelSequenceEditor: LevelSequenceEditor subsystem initialized.
-LogEditorDataStorage: Initializing
-LogEditorDataStorage: Initialized
-LogCore: Display: InsightsEditor module auto-connecting to local trace server...
-LogInit: Display: Engine is initialized. Leaving FEngineLoop::Init()
-SourceControl: Revision control is disabled
-LogUnrealEdMisc: Loading editor; pre map load, took 7.334
-Cmd: MAP LOAD FILE="../../../Engine/Content/Maps/Templates/OpenWorld.umap" TEMPLATE=1 SHOWPROGRESS=1 FEATURELEVEL=3
-LogWorld: UWorld::CleanupWorld for Untitled, bSessionEnded=true, bCleanupResources=true
-LogSlate: InvalidateAllWidgets triggered.  All widgets were invalidated
-LogAudio: Display: Audio Device unregistered from world 'None'.
-LogUObjectHash: Compacting FUObjectHashTables data took   0.47ms
-LogAudio: Display: Audio Device (ID: 1) registered with world 'Untitled_1'.
-LogChaosDD: Creating Chaos Debug Draw Scene for world Untitled_1
-LogWorldPartition: ULevel::OnLevelLoaded(Untitled_1)(bIsOwningWorldGameWorld=0, bIsOwningWorldPartitioned=1, InitializeForMainWorld=1, InitializeForEditor=1, InitializeForGame=0)
-LogWorldPartition: Display: WorldPartition initialize started...
-LogWorldPartition: UWorldPartition::Initialize : World = /Temp/Untitled_1.Untitled_1, World Type = Editor, IsMainWorldPartition = 1, Location = V(0), Rotation = R(0), IsEditor = 1, IsGame = 0, IsPIEWorldTravel = 0, IsCooking = 0
-LogWorldPartition: Display: WorldPartition initialize took 163.273 ms
-LogEditorServer: Finished looking for orphan Actors (0.000 secs)
-LogUObjectHash: Compacting FUObjectHashTables data took   0.44ms
-Cmd: MAP CHECKDEP NOCLEARLOG
-MapCheck: Map check complete: 0 Error(s), 0 Warning(s), took 1.055ms to complete.
-LogUnrealEdMisc: Total Editor Startup Time, took 7.711
-LogWebBrowser: Loaded CEF3 version 128.4.13.3057 from C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/ThirdParty/CEF3/Win64/128.4.13+ge76af7e+chromium-128.0.6613.138
-LogCEFBrowser: CEF GPU acceleration enabled
-LogDesktopPlatform: Enumerating Projects From Engine Ver: 5.7
-LogDesktopPlatform: Looking for directories to scan from : C:/Users/mocapstaff/AppData/Local/UnrealEngine/5.7/Saved/Config/WindowsEditor
-LogDesktopPlatform: Searching for previously created project directories...
-LogDesktopPlatform: Found directory: "C:/Users/mocapstaff/Documents/Unreal Projects"
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/MyProject/MyProject.uproject",LastOpenTime=2025.06.30-17.31.53)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="E:/production/R5/reference/RealTime/UnReal/Respawn/Respawn.uproject",LastOpenTime=2025.07.03-22.09.36)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="E:/production/R5/APEX UE/R5/r5.uproject",LastOpenTime=2025.07.17-23.14.11)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/MyProject2.uproject",LastOpenTime=2026.01.06-23.00.22)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/CDVcamTEST.uproject",LastOpenTime=2026.01.07-19.26.39)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/PCAPPineline_Test/PCAPPineline_Test.uproject",LastOpenTime=2026.05.11-18.44.40)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/PCAP_Pipeline/PCAP_Pipeline.uproject",LastOpenTime=2026.05.11-18.45.54)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/PCAPPipeline/PCAPPipeline.uproject",LastOpenTime=2026.06.02-18.01.30)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject",LastOpenTime=2026.06.15-20.15.15)" in recently opened files
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/MyProject/MyProject.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/CDVcamTEST.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/PCAPPipeline/PCAPPipeline.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/R5/r5.uproject" in previously created project directory
-LogDesktopPlatform: Searching for projects in .uprojectdirs
-LogProjectBrowser: Looking for projects...
-LogProjectBrowser: Found Engine Installation "5.5"(C:/Program Files/Epic Games/UE_5.5)
-LogDesktopPlatform: Enumerating Projects From Engine Ver: 5.5
-LogDesktopPlatform: Looking for directories to scan from : C:/Users/mocapstaff/AppData/Local/UnrealEngine/5.5/Saved/Config/WindowsEditor
-LogDesktopPlatform: Searching for previously created project directories...
-LogDesktopPlatform: Found directory: "C:/Users/mocapstaff/Documents/Unreal Projects"
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/MyProject/MyProject.uproject",LastOpenTime=2025.06.30-17.31.53)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="E:/production/R5/reference/RealTime/UnReal/Respawn/Respawn.uproject",LastOpenTime=2025.07.03-22.09.36)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="E:/production/R5/APEX UE/R5/r5.uproject",LastOpenTime=2025.07.17-23.14.11)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/MyProject2.uproject",LastOpenTime=2026.01.06-23.00.22)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/CDVcamTEST.uproject",LastOpenTime=2026.01.07-19.26.39)" in recently opened files
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/MyProject/MyProject.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/CDVcamTEST.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/PCAPPipeline/PCAPPipeline.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/R5/r5.uproject" in previously created project directory
-LogDesktopPlatform: Searching for projects in .uprojectdirs
-LogProjectBrowser: Found Engine Installation "5.7"(C:/Program Files/Epic Games/UE_5.7)
-LogDesktopPlatform: Enumerating Projects From Engine Ver: 5.7
-LogDesktopPlatform: Looking for directories to scan from : C:/Users/mocapstaff/AppData/Local/UnrealEngine/5.7/Saved/Config/WindowsEditor
-LogDesktopPlatform: Searching for previously created project directories...
-LogDesktopPlatform: Found directory: "C:/Users/mocapstaff/Documents/Unreal Projects"
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/MyProject/MyProject.uproject",LastOpenTime=2025.06.30-17.31.53)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="E:/production/R5/reference/RealTime/UnReal/Respawn/Respawn.uproject",LastOpenTime=2025.07.03-22.09.36)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="E:/production/R5/APEX UE/R5/r5.uproject",LastOpenTime=2025.07.17-23.14.11)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/MyProject2.uproject",LastOpenTime=2026.01.06-23.00.22)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/CDVcamTEST.uproject",LastOpenTime=2026.01.07-19.26.39)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/PCAPPineline_Test/PCAPPineline_Test.uproject",LastOpenTime=2026.05.11-18.44.40)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/PCAP_Pipeline/PCAP_Pipeline.uproject",LastOpenTime=2026.05.11-18.45.54)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/PCAPPipeline/PCAPPipeline.uproject",LastOpenTime=2026.06.02-18.01.30)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Desktop/PCAPPipeline/PCAPPipeline.uproject",LastOpenTime=2026.06.15-20.15.15)" in recently opened files
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/MyProject/MyProject.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/CDVcamTEST.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/PCAPPipeline/PCAPPipeline.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/R5/r5.uproject" in previously created project directory
-LogDesktopPlatform: Searching for projects in .uprojectdirs
-LogProjectBrowser: Found Engine Installation "5.3"(C:/Program Files/Epic Games/UE_5.3)
-LogDesktopPlatform: Enumerating Projects From Engine Ver: 5.3
-LogDesktopPlatform: Looking for directories to scan from : C:/Users/mocapstaff/AppData/Local/UnrealEngine/5.3/Saved/Config/WindowsEditor
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/MyProject/MyProject.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/CDVcamTEST.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/PCAPPipeline/PCAPPipeline.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/R5/r5.uproject" in previously created project directory
-LogDesktopPlatform: Searching for projects in .uprojectdirs
-LogProjectBrowser: Found Engine Installation "5.4"(C:/Program Files/Epic Games/UE_5.4)
-LogDesktopPlatform: Enumerating Projects From Engine Ver: 5.4
-LogDesktopPlatform: Looking for directories to scan from : C:/Users/mocapstaff/AppData/Local/UnrealEngine/5.4/Saved/Config/WindowsEditor
-LogDesktopPlatform: Searching for previously created project directories...
-LogDesktopPlatform: Found directory: "C:/Users/mocapstaff/Documents/Unreal Projects"
-LogDesktopPlatform: Found project "(ProjectName="E:/production/R5/reference/RealTime/UnReal/Respawn/Respawn.uproject",LastOpenTime=2025.07.03-22.09.36)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/MyProject/MyProject.uproject",LastOpenTime=2025.11.13-21.55.06)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="E:/production/R5/APEX UE/R5/r5.uproject",LastOpenTime=2025.12.01-18.41.22)" in recently opened files
-LogDesktopPlatform: Found project "(ProjectName="C:/Users/mocapstaff/Documents/Unreal Projects/R5/r5.uproject",LastOpenTime=2026.04.28-23.32.37)" in recently opened files
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/MyProject/MyProject.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/MyProject2/CDVcamTEST.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/PCAPPipeline/PCAPPipeline.uproject" in previously created project directory
-LogDesktopPlatform: Found project "C:/Users/mocapstaff/Documents/Unreal Projects/R5/r5.uproject" in previously created project directory
-LogDesktopPlatform: Searching for projects in .uprojectdirs
-LogProjectBrowser: Enumerating Launcher Sample Projects...
-LogPlacementMode: Display: The Asset Registry is not yet fully loaded so some placeable classes might be missing.
-LogSlate: The tab "Unknown" attempted to spawn in layout 'LevelEditor_Layout_v1.8' but failed for some reason. It will not be displayed.
-LogSlate: The tab "Unknown" attempted to spawn in layout 'LevelEditor_Layout_v1.8' but failed for some reason. It will not be displayed.
-LogSlate: Updating window title bar state: overlay mode, drag disabled, window buttons hidden, title bar hidden
-LogSlate: Updating window title bar state: overlay mode, drag disabled, window buttons hidden, title bar hidden
-LogSlate: Updating window title bar state: overlay mode, drag disabled, window buttons hidden, title bar hidden
-LogSlate: Updating window title bar state: overlay mode, drag disabled, window buttons hidden, title bar hidden
-LogPakFile: Initializing PakPlatformFile
-LogPakFile: Display: Mounted Pak file 'C:/Program Files/Epic Games/UE_5.7/FeaturePacks/TP_FirstPerson.upack', mount point: 'root:/'
-LogPakFile: Initializing PakPlatformFile
-LogPakFile: Display: Mounted Pak file 'C:/Program Files/Epic Games/UE_5.7/FeaturePacks/TP_FirstPersonBP.upack', mount point: 'root:/'
-LogPakFile: Initializing PakPlatformFile
-LogPakFile: Display: Mounted Pak file 'C:/Program Files/Epic Games/UE_5.7/FeaturePacks/TP_HandheldARBP.upack', mount point: 'root:/'
-LogPakFile: Initializing PakPlatformFile
-LogPakFile: Display: Mounted Pak file 'C:/Program Files/Epic Games/UE_5.7/FeaturePacks/TP_ThirdPerson.upack', mount point: 'root:/'
-LogPakFile: Initializing PakPlatformFile
-LogPakFile: Display: Mounted Pak file 'C:/Program Files/Epic Games/UE_5.7/FeaturePacks/TP_ThirdPersonBP.upack', mount point: 'root:/'
-LogPakFile: Initializing PakPlatformFile
-LogPakFile: Display: Mounted Pak file 'C:/Program Files/Epic Games/UE_5.7/FeaturePacks/TP_TopDown.upack', mount point: 'root:/'
-LogPakFile: Initializing PakPlatformFile
-LogPakFile: Display: Mounted Pak file 'C:/Program Files/Epic Games/UE_5.7/FeaturePacks/TP_TopDownBP.upack', mount point: 'root:/'
-LogPakFile: Initializing PakPlatformFile
-LogPakFile: Display: Mounted Pak file 'C:/Program Files/Epic Games/UE_5.7/FeaturePacks/TP_VehicleAdvBP.upack', mount point: 'root:/'
-LogPakFile: Initializing PakPlatformFile
-LogPakFile: Display: Mounted Pak file 'C:/Program Files/Epic Games/UE_5.7/FeaturePacks/TP_VirtualRealityBP.upack', mount point: 'root:/'
-LogToolMenus: Warning: Menu section not found: 'Compile' for insert: 'EditorPerf'
-LogSlate: Took 0.000202 seconds to synchronously load lazily loaded font '../../../Engine/Content/Slate/Fonts/Roboto-Regular.ttf' (155K)
-LogSlate: Took 0.000136 seconds to synchronously load lazily loaded font '../../../Engine/Content/Slate/Fonts/Roboto-Bold.ttf' (160K)
-LogSlate: Took 0.000137 seconds to synchronously load lazily loaded font '../../../Engine/Content/Slate/Fonts/Roboto-Italic.ttf' (157K)
-LogSlate: Took 0.000099 seconds to synchronously load lazily loaded font '../../../Engine/Content/Slate/Fonts/DroidSansMono.ttf' (77K)
-LogPSOHitching: Encountered 50 PSO creation hitches so far (30 graphics, 20 compute). 0 of them were precached.
-LogStall: Startup...
-LogStall: Startup complete.
-LogGameProjectGeneration: Project PCAPPipeline requires update. Plugin MetaHuman SupportedTargetPlatforms value in project descriptor () differs from value in plugin descriptor (Win64, Linux) 
-LogLoad: (Engine Initialization) Total time: 8.85 seconds
-LogAssetRegistry: AssetRegistryGather time 0.0934s: AssetDataDiscovery 0.0096s, AssetDataGather 0.0439s, StoreResults 0.0399s. Wall time 5.5110s.
-    NumCachedDirectories 1743. NumUncachedDirectories 27. NumCachedFiles 7572. NumUncachedFiles 0.
-    BackgroundTickInterruptions 6.
-LogAssetRegistry: Display: Starting OnFilesLoaded.Broadcast
-LogPlacementMode: Display: The Asset Registry is done with its initial scan, the list of placeable classes has been updated.
-LogCollectionManager: Fixed up redirectors for 0 collections in 0.000001 seconds (updated 0 objects)
-LogAssetRegistry: Display: Completed OnFilesLoaded.Broadcast: 0.895s
-LogSourceControl: Uncontrolled asset discovery started...
-LogContentStreaming: Texture pool size now 800 MB
-LogCsvProfiler: Display: Metadata set : streamingpoolsizemb="800"
-LogZenServiceInstance: Display: Launching zen utility 'C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/Win64/zen.exe service status'.
-LogZenServiceInstance: Display: Launching zen utility 'C:/Program Files/Epic Games/UE_5.7/Engine/Binaries/Win64/zen.exe service status'.
-LogSourceControl: Uncontrolled asset discovery finished in 0.401013 seconds (Found 7548 uncontrolled assets)
-LogAssetRegistry: Display: Asset registry cache written as 68.3 MiB to ../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Intermediate/CachedAssetRegistry_*.bin
-LogSlate: InvalidateAllWidgets triggered.  All widgets were invalidated
-LogPython: Display: Running start-up script C:/Program Files/Epic Games/UE_5.7/Engine/Plugins/Animation/IKRig/Content/Python/init_unreal.py... started...
-LogPython: Display: Running start-up script C:/Program Files/Epic Games/UE_5.7/Engine/Plugins/Animation/IKRig/Content/Python/init_unreal.py... took 18.265 ms
-LogPython: Display: Running start-up script C:/Program Files/Epic Games/UE_5.7/Engine/Plugins/Animation/ControlRig/Content/Python/init_unreal.py... started...
-LogPython: registering <class 'ControlRigWorkflows.workflow_deformation_rig_preset.provider'>
-LogPython: Display: Running start-up script C:/Program Files/Epic Games/UE_5.7/Engine/Plugins/Animation/ControlRig/Content/Python/init_unreal.py... took 20.403 ms (total: 38.669 ms)
-LogLiveCoding: Display: LiveCodingConsole Arguments: PCAPPipelineEditor Win64 Development
-Cmd: py "../../../../../../Users/mocapstaff/Downloads/import_pcap_stage.py"
-LogStreaming: Display: FlushAsyncLoading(481): 1 QueuedPackages, 0 AsyncPackages
-LogInterchangeEngine: Display: Interchange import: Using stack [OverridePipeline] to import.
-LogInterchangeEngine: Display: Interchange start importing source [M:/TEMP/For_Madi/MOBU/PcapStage.fbx]
-LogInterchangeImport: Translation (FBXSDK) of PcapStage.fbx in [0 min 0.463 s]
-LogStaticMesh: Display: Building static mesh SM_LAEastPCAPStage (Required Memory Estimate: 102.987911 MB)...
-LogStaticMesh: Built static mesh [0.62s] /Game/PCAP/Stage/SM_LAEastPCAPStage.SM_LAEastPCAPStage
-LogInterchangeImport: Imported (FBXSDK) of PcapStage.fbx in [0 min 1.758 s]
-LogInterchangeImport: MeshPayload (FBXSDK) of PcapStage.fbx, [66 61488 35173], in [0 min 0.113 s]
-LogInterchangeEngine: Display: Interchange import completed [M:/TEMP/For_Madi/MOBU/PcapStage.fbx]
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_1' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_2' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_3' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_4' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_5' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_6' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_7' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_8' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_9' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_10' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_11' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_12' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_13' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_14' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_15' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_16' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_17' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_18' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_19' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_20' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_21' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_22' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_23' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_24' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_25' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_26' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_27' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_28' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_29' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_30' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_31' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_32' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_33' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_34' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_35' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_36' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_37' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_38' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_39' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_40' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_41' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_42' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_43' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_44' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_45' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_46' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_47' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_48' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_49' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_50' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_51' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_52' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_53' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_54' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_55' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_56' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_57' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_58' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_59' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_60' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_61' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_62' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_63' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_64' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogInterchangeEngine: Warning: [M:/TEMP/For_Madi/MOBU/PcapStage.fbx : 'SM_LAEastPCAPStage', StaticMesh] No smoothing group information was found for this mesh 'Mesh_ncl_65' in the FBX file. Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter before exporting the file.
-LogFileHelpers: InternalPromptForCheckoutAndSave started...
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/BLUE_TRANSPARENT
-OBJ SavePackage: Generating thumbnails for [1] asset(s) in package [/Game/PCAP/Stage/BLUE_TRANSPARENT] ([1] browsable assets)...
-OBJ SavePackage:     Rendered thumbnail for [MaterialInstanceConstant /Game/PCAP/Stage/BLUE_TRANSPARENT.BLUE_TRANSPARENT]
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/BLUE_TRANSPARENT]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/BLUE_TRANSPARENT" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/BLUE_TRANSPARENT.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/BLUE_TRANSPARENT
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/BLUE_TRANSPARENTCAA6BCDF4BE4C7514840579572AE8054.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/BLUE_TRANSPARENT.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert10
-OBJ SavePackage: Generating thumbnails for [1] asset(s) in package [/Game/PCAP/Stage/lambert10] ([1] browsable assets)...
-OBJ SavePackage:     Rendered thumbnail for [MaterialInstanceConstant /Game/PCAP/Stage/lambert10.lambert10]
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert10]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert10" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert10.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert10
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert1022E7766245B186FC93EEF4923992B979.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert10.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert11
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert11] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert11]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert11" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert11.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert11
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert119B8FD57C4CAA45BE766C4AA3A8FF4C3E.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert11.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert12
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert12] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert12]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert12" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert12.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert12
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert1287EA4BB942126ED9BEE71F95328ED57B.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert12.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert13
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert13] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert13]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert13" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert13.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert13
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert136E1F811B4325644B657E638E294942D4.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert13.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert14
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert14] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert14]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert14" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert14.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert14
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert14D080AD9B479A52E94AFD0EBAB922B349.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert14.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert15
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert15] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert15]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert15" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert15.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert15
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert15B9594A55472B015E6FDAB28106F1EB20.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert15.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert16
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert16] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert16]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert16" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert16.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert16
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert1667AA78244A232320607026BD464A1FB0.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert16.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert17
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert17] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert17]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert17" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert17.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert17
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert1708865FEA4EC6450E8478C69F587C26DC.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert17.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert18
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert18] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert18]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert18" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert18.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert18
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert18DF545D984329C9311E705781D9C34BCB.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert18.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert19
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert19] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert19]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert19" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert19.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert19
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert19E3045AEA4A7D145CCC44EFB7849A5DA8.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert19.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert20
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert20] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert20]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert20" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert20.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert20
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert20F666530A4749D175490581A85EA279C6.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert20.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert21
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert21] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert21]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert21" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert21.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert21
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert2158E60EBE4FBE82127257C493A9D1622B.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert21.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert22
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert22] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert22]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert22" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert22.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert22
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert224F8D23334AF5421EC54874ADE3EC2B40.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert22.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert23
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert23] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert23]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert23" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert23.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert23
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert23335F991A469A5E19D7122AB2D907DC15.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert23.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert24
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert24] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert24]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert24" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert24.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert24
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert241E07AE0A4F4DF34434D39ABB99B5C0C3.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert24.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert25
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert25] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert25]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert25" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert25.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert25
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert25A89EDF8F40763385B0B4D68C54D2DE1F.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert25.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert26
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert26] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert26]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert26" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert26.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert26
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert26343EA85F4AEBA5F13BA556A180048F2B.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert26.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert27
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert27] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert27]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert27" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert27.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert27
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert27AB5D47224A73F75C1D23CF8EBF407411.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert27.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert6
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert6] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert6]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert6" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert6.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert6
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert6DD3384354A4D6B4741C73EA70E070D9F.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert6.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert7
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert7] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert7]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert7" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert7.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert7
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert765CEFEAA4F5DAD2F2BFA5B8346F373C9.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert7.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert8
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert8] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert8]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert8" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert8.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert8
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert81ACDB2D14C8B3F65C891C2911BAE624F.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert8.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/lambert9
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/lambert9] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/lambert9]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/lambert9" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert9.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/lambert9
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/lambert98D3B83EC4E23FBB452B6109BA387951A.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/lambert9.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/RED
-OBJ SavePackage: Generating thumbnails for [0] asset(s) in package [/Game/PCAP/Stage/RED] ([1] browsable assets)...
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/RED]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/RED" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/RED.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/RED
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/REDF1E3367B4D3FB0E5D6EF39AB6E015483.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/RED.uasset'
-LogFileHelpers: Saving Package: /Game/PCAP/Stage/SM_LAEastPCAPStage
-OBJ SavePackage: Generating thumbnails for [1] asset(s) in package [/Game/PCAP/Stage/SM_LAEastPCAPStage] ([1] browsable assets)...
-OBJ SavePackage:     Rendered thumbnail for [StaticMesh /Game/PCAP/Stage/SM_LAEastPCAPStage.SM_LAEastPCAPStage]
-OBJ SavePackage: Finished generating thumbnails for package [/Game/PCAP/Stage/SM_LAEastPCAPStage]
-Cmd: OBJ SAVEPACKAGE PACKAGE="/Game/PCAP/Stage/SM_LAEastPCAPStage" FILE="../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/SM_LAEastPCAPStage.uasset" SILENT=true
-LogSavePackage: Moving output files for package: /Game/PCAP/Stage/SM_LAEastPCAPStage
-LogSavePackage: Moving '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/SM_LAEastPCAPStage6EE1562E499854F65AAED4A2EF163739.tmp' to '../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Content/PCAP/Stage/SM_LAEastPCAPStage.uasset'
-LogFileHelpers: InternalPromptForCheckoutAndSave took 119.960 ms
-LogPython: [PCAP] Imported stage: /Game/PCAP/Stage/BLUE_TRANSPARENT.BLUE_TRANSPARENT  (uniform scale 1.000, compute normals)
-LogContentValidation: Enabled validators:
-LogContentValidation:     /Script/DataValidation.DirtyFilesChangelistValidator
-LogContentValidation:     /Script/DataValidation.EditorValidator_Localization
-LogContentValidation:     /Script/DataValidation.EditorValidator_Material
-LogContentValidation:     /Script/DataValidation.PackageFileValidator
-LogContentValidation:     /Script/DataValidation.WorldPartitionChangelistValidator
-LogContentValidation:     /Script/InputBlueprintNodes.EnhancedInputUserWidgetValidator
-LogContentValidation: Display: Starting to validate 25 assets (0 associated objects such as actors)
-LogContentValidation: Additional assets added for validation by 0 validators:
-AssetCheck: /Game/PCAP/Stage/BLUE_TRANSPARENT Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert10 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert11 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert12 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert13 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert14 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert15 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert16 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert17 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert18 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert19 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert20 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert21 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert22 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert23 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert24 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert25 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert26 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert27 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert6 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert7 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert8 Validating asset
-AssetCheck: /Game/PCAP/Stage/lambert9 Validating asset
-AssetCheck: /Game/PCAP/Stage/RED Validating asset
-AssetCheck: /Game/PCAP/Stage/SM_LAEastPCAPStage Validating asset
-LogContentValidation: Validated asset counts for 1 validators:
-LogContentValidation:   /Script/DataValidation.EditorValidator_Localization : 25
-LogSourceControl: Display: Uncontrolled Changelist persistency file saved ../../../../../../Users/mocapstaff/Desktop/PCAPPipeline/Saved/SourceControl/UncontrolledChangelists.json
-LogSlate: Window 'Message Log' being destroyed
-LogSlate: Window 'Message Log' being destroyed
+Build started at 2:08 PM...
+1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
+1>Using bundled DotNet SDK version: 8.0.412 win-x64
+1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
+1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
+1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
+1>Creating makefile for PCAPPipelineEditor (config setting changed)
+1>UHT compiled-in object format Default
+1>Parsing headers for PCAPPipelineEditor
+1>  Running Internal UnrealHeaderTool C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject C:\Users\mocapstaff\Desktop\PCAPPipeline\Intermediate\Build\Win64\PCAPPipelineEditor\Development\PCAPPipelineEditor.uhtmanifest -WarningsAsErrors -installed
+1>UHT processed PCAPPipelineEditor in 1.2396635 seconds (4 files written)
+1>Building PCAPPipelineEditor...
+1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
+1>  Executing up to 32 processes, one per physical core
+1>Using Unreal Build Accelerator local executor to run 18 action(s)
+1>  Storage capacity 40Gb
+1>---- Starting trace: 260615_140901_vs54168 ----
+1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
+1>[1/18] Resource Default.rc2
+1>[2/18] Resource Default.rc2
+1>[3/18] Resource Default.rc2
+1>[4/18] Resource Default.rc2
+1>[5/18] Link [x64] UnrealEditor-PCAPPipeline.lib
+1>[6/18] Link [x64] UnrealEditor-LiveLinkDataStream.lib
+1>[7/18] Link [x64] UnrealEditor-PCAPPipeline.dll
+1>[8/18] Link [x64] UnrealEditor-LiveLinkDataStream.dll
+1>[9/18] Compile [x64] Module.PCAPTool.2.cpp
+1>[10/18] Compile [x64] Module.PCAPTool.1.cpp
+1>[11/18] Compile [x64] Module.LiveLinkDataStreamEditor.cpp
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_static_mutex.ipp(55,36): error C2065: 'TRUE': undeclared identifier
+1>  HANDLE mutex = ::CreateMutexW(0, TRUE, mutex_name);
+1>                                   ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_thread.ipp(45,40): error C2065: 'FALSE': undeclared identifier
+1>  ::WaitForMultipleObjects(2, handles, FALSE, INFINITE);
+1>                                       ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_thread.ipp(130,23): error C2065: 'TRUE': undeclared identifier
+1>  ::SleepEx(INFINITE, TRUE);
+1>                      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(35,9): error C2039: 'InterlockedIncrement': is not a member of '`global namespace''
+1>  if (::InterlockedIncrement(&d.init_count_) == 1)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(35,9): error C3861: 'InterlockedIncrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(39,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>    ::InterlockedExchange(&d.result_, result);
+1>      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(39,7): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(45,9): error C2039: 'InterlockedIncrement': is not a member of '`global namespace''
+1>  if (::InterlockedIncrement(&d.init_count_) == 1)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(45,9): error C3861: 'InterlockedIncrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(47,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>    ::InterlockedExchange(&d.result_, 0);
+1>      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(47,7): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(53,9): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
+1>  if (::InterlockedDecrement(&d.init_count_) == 0)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(53,9): error C3861: 'InterlockedDecrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(61,5): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
+1>  ::InterlockedDecrement(&d.init_count_);
+1>    ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(61,5): error C3861: 'InterlockedDecrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(66,19): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>  long result = ::InterlockedExchangeAdd(&d.result_, 0);
+1>                  ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\winsock_init.ipp(66,19): error C3861: 'InterlockedExchangeAdd': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(89,14): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>    return ::InterlockedExchangeAdd(&stopped_, 0) != 0;
+1>             ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(89,14): error C3861: 'InterlockedExchangeAdd': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(95,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>    ::InterlockedExchange(&stopped_, 0);
+1>      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(95,7): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(101,7): error C2039: 'InterlockedIncrement': is not a member of '`global namespace''
+1>    ::InterlockedIncrement(&outstanding_work_);
+1>      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(101,7): error C3861: 'InterlockedIncrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(107,11): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
+1>    if (::InterlockedDecrement(&outstanding_work_) == 0)
+1>          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(107,11): error C3861: 'InterlockedDecrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.hpp(53,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>  if (::InterlockedExchangeAdd(&shutdown_, 0) != 0)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(192,8): note: This diagnostic occurred in the compiler generated function 'void asio::detail::win_iocp_io_context::schedule_timer(asio::detail::timer_queue<Time_Traits> &,const Time_Traits::time_type &,timer_queue<Time_Traits>::per_timer_data &,asio::detail::wait_op *)'
+1>  void schedule_timer(timer_queue<Time_Traits>& queue,
+1>       ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.hpp(73,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>  if (::InterlockedExchangeAdd(&shutdown_, 0) != 0)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\win_iocp_io_context.hpp(199,15): note: This diagnostic occurred in the compiler generated function 'size_t asio::detail::win_iocp_io_context::cancel_timer(asio::detail::timer_queue<Time_Traits> &,timer_queue<Time_Traits>::per_timer_data &,size_t)'
+1>  std::size_t cancel_timer(timer_queue<Time_Traits>& queue,
+1>              ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(66,14): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>    while (::InterlockedExchangeAdd(&io_context_->shutdown_, 0) == 0)
+1>             ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(66,14): error C3861: 'InterlockedExchangeAdd': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(71,11): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>        ::InterlockedExchange(&io_context_->dispatch_required_, 1);
+1>          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(71,11): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(107,7): error C2039: 'InterlockedIncrement': is not a member of '`global namespace''
+1>    ::InterlockedIncrement(&outstanding_work_);
+1>      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(107,7): error C3861: 'InterlockedIncrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(124,5): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>  ::InterlockedExchange(&shutdown_, 1);
+1>    ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(124,5): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(130,67): error C2065: 'FALSE': undeclared identifier
+1>    ::SetWaitableTimer(waitable_timer_.handle, &timeout, 1, 0, 0, FALSE);
+1>                                                                  ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(138,7): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
+1>    ::InterlockedDecrement(&outstanding_work_);
+1>      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(138,7): error C3861: 'InterlockedDecrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(141,12): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>  while (::InterlockedExchangeAdd(&outstanding_work_, 0) > 0)
+1>           ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(141,12): error C3861: 'InterlockedExchangeAdd': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(151,11): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
+1>        ::InterlockedDecrement(&outstanding_work_);
+1>          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(151,11): error C3861: 'InterlockedDecrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(164,11): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
+1>        ::InterlockedDecrement(&outstanding_work_);
+1>          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(164,11): error C3861: 'InterlockedDecrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(192,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>  if (::InterlockedExchangeAdd(&outstanding_work_, 0) == 0)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(192,9): error C3861: 'InterlockedExchangeAdd': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(211,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>  if (::InterlockedExchangeAdd(&outstanding_work_, 0) == 0)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(211,9): error C3861: 'InterlockedExchangeAdd': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(226,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>  if (::InterlockedExchangeAdd(&outstanding_work_, 0) == 0)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(226,9): error C3861: 'InterlockedExchangeAdd': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(241,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>  if (::InterlockedExchangeAdd(&outstanding_work_, 0) == 0)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(241,9): error C3861: 'InterlockedExchangeAdd': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(260,9): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>  if (::InterlockedExchangeAdd(&outstanding_work_, 0) == 0)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(260,9): error C3861: 'InterlockedExchangeAdd': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(275,9): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>  if (::InterlockedExchange(&stopped_, 1) == 0)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(275,9): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(277,11): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>    if (::InterlockedExchange(&stop_event_posted_, 1) == 0)
+1>          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(277,11): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(307,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>    ::InterlockedExchange(&dispatch_required_, 1);
+1>      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(307,7): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(328,9): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>      ::InterlockedExchange(&dispatch_required_, 1);
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(328,9): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(339,7): error C2039: 'InterlockedDecrement': is not a member of '`global namespace''
+1>    ::InterlockedDecrement(&outstanding_work_);
+1>      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(339,7): error C3861: 'InterlockedDecrement': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(346,9): error C2039: 'InterlockedCompareExchange': is not a member of '`global namespace''
+1>  if (::InterlockedCompareExchange(&op->ready_, 1, 0) == 1)
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(346,9): error C3861: 'InterlockedCompareExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(355,9): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>      ::InterlockedExchange(&dispatch_required_, 1);
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(355,9): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(379,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>    ::InterlockedExchange(&dispatch_required_, 1);
+1>      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(379,7): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(401,7): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>    ::InterlockedExchange(&dispatch_required_, 1);
+1>      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(401,7): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(411,11): error C2039: 'InterlockedCompareExchange': is not a member of '`global namespace''
+1>    if (::InterlockedCompareExchange(&dispatch_required_, 0, 1) == 1)
+1>          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(411,11): error C3861: 'InterlockedCompareExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(461,13): error C2039: 'InterlockedCompareExchange': is not a member of '`global namespace''
+1>      if (::InterlockedCompareExchange(&op->ready_, 1, 0) == 1)
+1>            ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(461,13): error C3861: 'InterlockedCompareExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(498,9): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>      ::InterlockedExchange(&stop_event_posted_, 0);
+1>        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(498,9): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(502,13): error C2039: 'InterlockedExchangeAdd': is not a member of '`global namespace''
+1>      if (::InterlockedExchangeAdd(&stopped_, 0) != 0)
+1>            ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(502,13): error C3861: 'InterlockedExchangeAdd': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(505,15): error C2039: 'InterlockedExchange': is not a member of '`global namespace''
+1>        if (::InterlockedExchange(&stop_event_posted_, 1) == 0)
+1>              ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(505,15): error C3861: 'InterlockedExchange': identifier not found
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(547,55): error C2065: 'FALSE': undeclared identifier
+1>    waitable_timer_.handle = ::CreateWaitableTimer(0, FALSE, 0);
+1>                                                      ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(560,43): error C2065: 'FALSE': undeclared identifier
+1>        &timeout, max_timeout_msec, 0, 0, FALSE);
+1>                                          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\AsioStandalone\include\asio\detail\impl\win_iocp_io_context.ipp(591,45): error C2065: 'FALSE': undeclared identifier
+1>          &timeout, max_timeout_msec, 0, 0, FALSE);
+1>                                            ^
+1>[12/18] Compile [x64] Module.PCAPTool.4.cpp
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\Tests\PCAPVolumeVizTests.cpp(21,5): error C2666: 'FAutomationTestBase::TestEqual': overloaded functions have similar conversions
+1>    TestEqual("mm->cm X", V.X, 100.f);
+1>    ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Misc\AutomationTest.h(2073,7): note: could be 'bool FAutomationTestBase::TestEqual(const FString &,const double,const double,double)'
+1>	bool TestEqual(const FString& What, const double Actual, const double Expected, double Tolerance = UE_KINDA_SMALL_NUMBER)
+1>	     ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Misc\AutomationTest.h(2068,7): note: or       'bool FAutomationTestBase::TestEqual(const FString &,const float,const float,float)'
+1>	bool TestEqual(const FString& What, const float Actual, const float Expected, float Tolerance = UE_KINDA_SMALL_NUMBER)
+1>	     ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Misc\AutomationTest.h(2063,7): note: or       'bool FAutomationTestBase::TestEqual(const FString &,const int32,const int32)'
+1>	bool TestEqual(const FString& What, const int32 Actual, const int32 Expected)
+1>	     ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\Tests\PCAPVolumeVizTests.cpp(21,5): note: while trying to match the argument list '(const char [9], const T, float)'
+1>        with
+1>        [
+1>            T=double
+1>        ]
+1>    TestEqual("mm->cm X", V.X, 100.f);
+1>    ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\Tests\PCAPVolumeVizTests.cpp(22,5): error C2666: 'FAutomationTestBase::TestEqual': overloaded functions have similar conversions
+1>    TestEqual("flip + mm->cm Y", V.Y, -200.f);
+1>    ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Misc\AutomationTest.h(2073,7): note: could be 'bool FAutomationTestBase::TestEqual(const FString &,const double,const double,double)'
+1>	bool TestEqual(const FString& What, const double Actual, const double Expected, double Tolerance = UE_KINDA_SMALL_NUMBER)
+1>	     ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Misc\AutomationTest.h(2068,7): note: or       'bool FAutomationTestBase::TestEqual(const FString &,const float,const float,float)'
+1>	bool TestEqual(const FString& What, const float Actual, const float Expected, float Tolerance = UE_KINDA_SMALL_NUMBER)
+1>	     ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Misc\AutomationTest.h(2063,7): note: or       'bool FAutomationTestBase::TestEqual(const FString &,const int32,const int32)'
+1>	bool TestEqual(const FString& What, const int32 Actual, const int32 Expected)
+1>	     ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\Tests\PCAPVolumeVizTests.cpp(22,5): note: while trying to match the argument list '(const char [16], const T, float)'
+1>        with
+1>        [
+1>            T=double
+1>        ]
+1>    TestEqual("flip + mm->cm Y", V.Y, -200.f);
+1>    ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\Tests\PCAPVolumeVizTests.cpp(23,5): error C2666: 'FAutomationTestBase::TestEqual': overloaded functions have similar conversions
+1>    TestEqual("mm->cm Z", V.Z, 300.f);
+1>    ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Misc\AutomationTest.h(2073,7): note: could be 'bool FAutomationTestBase::TestEqual(const FString &,const double,const double,double)'
+1>	bool TestEqual(const FString& What, const double Actual, const double Expected, double Tolerance = UE_KINDA_SMALL_NUMBER)
+1>	     ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Misc\AutomationTest.h(2068,7): note: or       'bool FAutomationTestBase::TestEqual(const FString &,const float,const float,float)'
+1>	bool TestEqual(const FString& What, const float Actual, const float Expected, float Tolerance = UE_KINDA_SMALL_NUMBER)
+1>	     ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Misc\AutomationTest.h(2063,7): note: or       'bool FAutomationTestBase::TestEqual(const FString &,const int32,const int32)'
+1>	bool TestEqual(const FString& What, const int32 Actual, const int32 Expected)
+1>	     ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\Tests\PCAPVolumeVizTests.cpp(23,5): note: while trying to match the argument list '(const char [9], const T, float)'
+1>        with
+1>        [
+1>            T=double
+1>        ]
+1>    TestEqual("mm->cm Z", V.Z, 300.f);
+1>    ^
+1>[13/18] Compile [x64] Module.PCAPTool.3.cpp
+1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 22.9kb
+1>Total time in Unreal Build Accelerator local executor: 5.76 seconds
+1>
+1>Result: Failed (OtherCompilationError)
+1>Total execution time: 9.98 seconds
+1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
+1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
+========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
+========== Build completed at 2:09 PM and took 10.879 seconds ==========
