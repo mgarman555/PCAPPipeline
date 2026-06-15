@@ -47,4 +47,22 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
     FString Notes;
+
+    // ── Volume Visualizer ──────────────────────────────────────────────
+    // Vicon DataStream address for this stage's raw-marker feed (Phase 2 / SDK).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage|Volume")
+    FString DataStreamHost = TEXT("localhost:801");
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage|Volume")
+    bool bAutoConnectDataStream = true;
+
+    // Calibration that registers Vicon space onto this stage's FBX. Tuned once, saved here.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage|Volume")
+    float VizUnitScale = 1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage|Volume")
+    FVector VizOriginOffset = FVector::ZeroVector;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage|Volume")
+    float VizYaw = 0.0f;
 };
