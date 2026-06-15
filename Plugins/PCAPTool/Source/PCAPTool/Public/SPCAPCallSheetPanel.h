@@ -7,6 +7,10 @@ class SBox;
 class FAssetThumbnail;
 class FAssetThumbnailPool;
 class UMocapDatabase;
+struct FSlateCsvRow;
+struct FShot;
+struct FSession;
+enum class EShotType : uint8;
 
 /**
  * Call Sheet — the shoot-day prep tool. Left-rail workspace:
@@ -23,7 +27,7 @@ public:
     void Construct(const FArguments& InArgs);
 
 private:
-    enum class ESection : uint8 { Overview, Project, Stages, ShootDay, Actors, Props };
+    enum class ESection : uint8 { Overview, Project, Stages, ShootDay, Shots, Actors, Props };
     ESection Current = ESection::Overview;
 
     TSharedPtr<SBox> RailBox;
@@ -39,6 +43,22 @@ private:
     TSharedRef<SWidget> BuildProjectSection();
     TSharedRef<SWidget> BuildShootDaySection();
     UMocapDatabase* GetDB() const;
+
+    // ── Shots (the day's slate list — built here in prep; run in the Operator Console) ──
+    TSharedRef<SWidget> BuildShotsSection();
+    // Returns the active day's working session, creating "S01" if the day has none
+    // (when bCreate). Also points ActiveSessionID at it so the Operator Console follows.
+    FSession* EnsureActiveSession(bool bCreate);
+    void   AddShotBySlot(const FString& Slot);          // manual add; type inferred from slot
+    FReply OnRemoveShot(FString ShotID);
+    void   ImportShotsCsv();                            // file dialog → parse → merge into the day
+    void   ExportShotsCsv();                            // gather the day's shots → CSV file
+    void   ApplyRowsToActiveDay(const TArray<FSlateCsvRow>& Rows);  // merge rows into the session (by slot)
+    FSlateCsvRow RowFromShot(const FShot& Shot) const;
+    // Slot/type helpers (static members, not anon-namespace — unity-build safe).
+    static FString   NormalizeSlot(const FString& Slot);            // "3" → "003", keeps "901"
+    static EShotType ShotTypeFor(const FString& TypeText, const FString& Slot);
+    static FString   ShotTypeName(EShotType Type);
 
     const FLinearColor ColGreen = FLinearColor(0.290f, 0.878f, 0.502f);
     const FLinearColor ColText2 = FLinearColor(0.478f, 0.541f, 0.502f);

@@ -26,6 +26,14 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Modules/ModuleManager.h"
 
+#include "PCAPSlateCsv.h"
+#include "PCAPToolStatics.h"
+#include "DesktopPlatformModule.h"
+#include "IDesktopPlatform.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+
 #define LOCTEXT_NAMESPACE "PCAPCallSheet"
 
 void SPCAPCallSheetPanel::Construct(const FArguments& InArgs)
@@ -85,6 +93,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildRail()
         + SVerticalBox::Slot().AutoHeight()[ BuildRailItem(ESection::Project,  LOCTEXT("Project",  "Project")) ]
         + SVerticalBox::Slot().AutoHeight()[ BuildRailItem(ESection::Stages,   LOCTEXT("Stages",   "Stages")) ]
         + SVerticalBox::Slot().AutoHeight()[ BuildRailItem(ESection::ShootDay, LOCTEXT("ShootDay", "Shoot day")) ]
+        + SVerticalBox::Slot().AutoHeight()[ BuildRailItem(ESection::Shots,    LOCTEXT("Shots",    "Shots")) ]
         + SVerticalBox::Slot().AutoHeight().Padding(2.f, 10.f, 2.f, 4.f)
         [ SNew(STextBlock).Text(LOCTEXT("CalledOut", "Called out")).ColorAndOpacity(FSlateColor(ColText2)) ]
         + SVerticalBox::Slot().AutoHeight()[ BuildRailItem(ESection::Actors, LOCTEXT("Actors", "Actors")) ]
@@ -114,6 +123,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSectionContent(ESection S)
         case ESection::Stages: return SNew(SPCAPStageDatabasePanel);
         case ESection::Actors: return SNew(SPCAPActorDatabasePanel);
         case ESection::Props:  return SNew(SPCAPPropDatabasePanel);
+        case ESection::Shots:  return BuildShotsSection();
         case ESection::Project:  return BuildProjectSection();
         case ESection::ShootDay:
         default:                 return BuildShootDaySection();
@@ -384,6 +394,295 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildOverviewSection()
             : StaticCastSharedRef<SWidget>(SNew(STextBlock).Text(LOCTEXT("NoProps", "No props called yet — open Props to call props to this day.")).ColorAndOpacity(FSlateColor(ColText2)))
         ]
     ];
+}
+
+// ── Shots — the day's slate list (CSV import/export, adopted from Epic's Slates) ─────
+
+FString SPCAPCallSheetPanel::NormalizeSlot(const FString& Slot)
+{
+    const FString Trim = Slot.TrimStartAndEnd();
+    if (Trim.IsEmpty()) return Trim;
+    // Slot-only 3-digit ShotID convention: pad pure-digit slots ("3" -> "003", "901" stays).
+    // Only digits are padded — IsNumeric() would also accept "3.5"/"-1" and Atoi would mangle them.
+    bool bAllDigits = true;
+    for (const TCHAR C : Trim) { if (!FChar::IsDigit(C)) { bAllDigits = false; break; } }
+    if (bAllDigits) return FString::Printf(TEXT("%03d"), FCString::Atoi(*Trim));
+    return Trim;
+}
+
+EShotType SPCAPCallSheetPanel::ShotTypeFor(const FString& TypeText, const FString& Slot)
+{
+    const FString T = TypeText.TrimStartAndEnd().ToLower();
+    if (T.Contains(TEXT("cal")))      return EShotType::Calibration;
+    if (T.Contains(TEXT("test")))     return EShotType::TestShot;
+    if (T.Contains(TEXT("retarget"))) return EShotType::Retargeting;
+    if (!T.IsEmpty())                 return EShotType::Production;
+    // No explicit type — infer from the reserved slots (901/902/903).
+    if (Slot == TEXT("901")) return EShotType::Calibration;
+    if (Slot == TEXT("902")) return EShotType::TestShot;
+    if (Slot == TEXT("903")) return EShotType::Retargeting;
+    return EShotType::Production;
+}
+
+FString SPCAPCallSheetPanel::ShotTypeName(EShotType Type)
+{
+    switch (Type)
+    {
+        case EShotType::Calibration: return TEXT("Calibration");
+        case EShotType::TestShot:    return TEXT("Test");
+        case EShotType::Retargeting: return TEXT("Retargeting");
+        default:                     return TEXT("Production");
+    }
+}
+
+FSession* SPCAPCallSheetPanel::EnsureActiveSession(bool bCreate)
+{
+    UMocapDatabase* DB = GetDB();
+    if (!DB) return nullptr;
+    FShootDay* Day = DB->GetDay(DB->ActiveProductionCode, DB->ActiveDayID);
+    if (!Day) return nullptr;
+
+    if (Day->Sessions.Num() == 0)
+    {
+        if (!bCreate) return nullptr;
+        FSession S; S.SessionID = TEXT("S01"); S.Label = TEXT("Main");
+        Day->Sessions.Add(S);
+        DB->MarkPackageDirty();
+    }
+    if (DB->ActiveSessionID.IsEmpty())
+        DB->ActiveSessionID = Day->Sessions[0].SessionID;
+
+    for (FSession& S : Day->Sessions)
+        if (S.SessionID == DB->ActiveSessionID) return &S;
+    return &Day->Sessions[0];
+}
+
+void SPCAPCallSheetPanel::AddShotBySlot(const FString& Slot)
+{
+    const FString ShotID = NormalizeSlot(Slot);
+    if (ShotID.IsEmpty()) return;
+    FSession* Sess = EnsureActiveSession(true);
+    if (!Sess) return;
+    for (const FShot& S : Sess->Shots) if (S.ShotID == ShotID) return;   // no duplicates
+    FShot New;
+    New.ShotID   = ShotID;
+    New.ShotType = ShotTypeFor(FString(), ShotID);
+    Sess->Shots.Add(New);
+    if (UMocapDatabase* DB = GetDB()) DB->MarkPackageDirty();
+    SelectSection(ESection::Shots);
+}
+
+FReply SPCAPCallSheetPanel::OnRemoveShot(FString ShotID)
+{
+    if (FSession* Sess = EnsureActiveSession(false))
+    {
+        Sess->Shots.RemoveAll([&ShotID](const FShot& S){ return S.ShotID == ShotID; });
+        if (UMocapDatabase* DB = GetDB()) DB->MarkPackageDirty();
+        SelectSection(ESection::Shots);
+    }
+    return FReply::Handled();
+}
+
+void SPCAPCallSheetPanel::ApplyRowsToActiveDay(const TArray<FSlateCsvRow>& Rows)
+{
+    UMocapDatabase* DB = GetDB();
+    FSession* Sess = EnsureActiveSession(true);
+    if (!DB || !Sess) return;
+
+    // Resolve the roster once (id -> entry) so imported actors/props carry their stream defaults.
+    FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+    TMap<FString, UActorRosterEntry*> ActorByID;
+    {
+        TArray<FAssetData> F;
+        ARM.Get().GetAssetsByClass(UActorRosterEntry::StaticClass()->GetClassPathName(), F, false);
+        for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) ActorByID.Add(E->ActorID, E);
+    }
+    TMap<FString, UPropRosterEntry*> PropByID;
+    {
+        TArray<FAssetData> F;
+        ARM.Get().GetAssetsByClass(UPropRosterEntry::StaticClass()->GetClassPathName(), F, false);
+        for (const FAssetData& AD : F) if (UPropRosterEntry* E = Cast<UPropRosterEntry>(AD.GetAsset())) PropByID.Add(E->PropID, E);
+    }
+
+    for (const FSlateCsvRow& R : Rows)
+    {
+        const FString ShotID = NormalizeSlot(R.Slot);
+        if (ShotID.IsEmpty()) continue;
+
+        FShot* Existing = Sess->Shots.FindByPredicate([&ShotID](const FShot& S){ return S.ShotID == ShotID; });
+        FShot NewShot;
+        FShot& T = Existing ? *Existing : NewShot;   // mutate in place (existing) or build fresh
+
+        T.ShotID      = ShotID;
+        T.ShotType    = ShotTypeFor(R.Type, ShotID);
+        T.Description = R.Description;
+        T.Notes       = R.Notes;
+
+        // Overwrite the planning fields from the CSV; existing shots keep their recorded Takes.
+        T.Subjects.Reset();
+        for (const FString& A : R.Actors)
+        {
+            FShotSubject Subj;
+            if (UActorRosterEntry* E = ActorByID.FindRef(A)) Subj = UPCAPToolStatics::MakeShotSubjectFromRoster(E);
+            else                                             Subj.ActorID = A;
+            Subj.bIsActive = true;
+            T.Subjects.Add(Subj);
+        }
+        T.Props.Reset();
+        for (const FString& P : R.Props)
+        {
+            FPropEntry Pr;
+            if (UPropRosterEntry* E = PropByID.FindRef(P)) { Pr.PropID = E->PropID; Pr.bIsTracked = E->bIsTracked; Pr.LiveLinkSubjectName = E->DefaultLiveLinkName; }
+            else                                           { Pr.PropID = P; }
+            T.Props.Add(Pr);
+        }
+
+        if (!Existing) Sess->Shots.Add(MoveTemp(NewShot));
+    }
+    DB->MarkPackageDirty();
+}
+
+FSlateCsvRow SPCAPCallSheetPanel::RowFromShot(const FShot& Shot) const
+{
+    FSlateCsvRow R;
+    R.Slot        = Shot.ShotID;
+    R.Type        = ShotTypeName(Shot.ShotType);
+    R.Description = Shot.Description;
+    for (const FShotSubject& S : Shot.Subjects) R.Actors.Add(S.ActorID);
+    for (const FPropEntry& P : Shot.Props)      R.Props.Add(P.PropID);
+    R.Notes       = Shot.Notes;
+    return R;
+}
+
+void SPCAPCallSheetPanel::ImportShotsCsv()
+{
+    IDesktopPlatform* DP = FDesktopPlatformModule::Get();
+    if (!DP) return;
+    const void* Parent = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
+    TArray<FString> Files;
+    const bool bPicked = DP->OpenFileDialog(
+        Parent, TEXT("Import shot list (CSV)"), FPaths::ProjectContentDir(), TEXT(""),
+        TEXT("CSV files (*.csv)|*.csv|All files (*.*)|*.*"), EFileDialogFlags::None, Files);
+    if (!bPicked || Files.Num() == 0) return;
+
+    FString Text;
+    if (!FFileHelper::LoadFileToString(Text, *Files[0]))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[PCAP] Shot CSV import: could not read %s"), *Files[0]);
+        return;
+    }
+    TArray<FSlateCsvRow> Rows; FString Err;
+    if (!FPCAPSlateCsv::Parse(Text, Rows, Err))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[PCAP] Shot CSV import failed: %s"), *Err);
+        return;
+    }
+    ApplyRowsToActiveDay(Rows);
+    UE_LOG(LogTemp, Log, TEXT("[PCAP] Imported %d shot(s) from %s"), Rows.Num(), *Files[0]);
+    SelectSection(ESection::Shots);
+}
+
+void SPCAPCallSheetPanel::ExportShotsCsv()
+{
+    UMocapDatabase* DB = GetDB();
+    FSession* Sess = EnsureActiveSession(false);
+    if (!DB || !Sess) return;
+
+    TArray<FSlateCsvRow> Rows;
+    for (const FShot& S : Sess->Shots) Rows.Add(RowFromShot(S));
+    const FString Csv = FPCAPSlateCsv::Format(Rows);
+
+    IDesktopPlatform* DP = FDesktopPlatformModule::Get();
+    if (!DP) return;
+    const void* Parent = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
+    const FString DefaultName = FString::Printf(TEXT("shots_%s_Day_%s.csv"), *DB->ActiveProductionCode, *DB->ActiveDayID);
+    TArray<FString> Out;
+    const bool bPicked = DP->SaveFileDialog(
+        Parent, TEXT("Export shot list (CSV)"), FPaths::ProjectContentDir(), DefaultName,
+        TEXT("CSV files (*.csv)|*.csv"), EFileDialogFlags::None, Out);
+    if (!bPicked || Out.Num() == 0) return;
+
+    FString Path = Out[0];
+    if (!Path.EndsWith(TEXT(".csv"))) Path += TEXT(".csv");
+    FFileHelper::SaveStringToFile(Csv, *Path);
+    UE_LOG(LogTemp, Log, TEXT("[PCAP] Exported %d shot(s) to %s"), Rows.Num(), *Path);
+}
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShotsSection()
+{
+    UMocapDatabase* DB = GetDB();
+    if (!DB || DB->ActiveProductionCode.IsEmpty() || DB->ActiveDayID.IsEmpty())
+    {
+        return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(24.f).HAlign(HAlign_Center).VAlign(VAlign_Center)
+        [
+            SNew(STextBlock)
+            .Text(LOCTEXT("ShotsNoDay", "Pick a Project and Shoot day first — then build the day's shot list here."))
+            .ColorAndOpacity(FSlateColor(ColText2))
+        ];
+    }
+
+    // Read-only here: viewing the Shots tab must not mutate the DB. Add/Import create
+    // the session on demand.
+    FSession* Sess = EnsureActiveSession(/*bCreate=*/false);
+
+    TSharedRef<SHorizontalBox> Toolbar = SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
+        [ SNew(SButton).Text(LOCTEXT("ImportCsv", "Import CSV")).ToolTipText(LOCTEXT("ImportCsvTip", "Bulk-create the day's shots from a CSV (slot,type,description,actors,props,notes)")).OnClicked_Lambda([this](){ ImportShotsCsv(); return FReply::Handled(); }) ]
+        + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
+        [ SNew(SButton).Text(LOCTEXT("ExportCsv", "Export CSV")).ToolTipText(LOCTEXT("ExportCsvTip", "Write this day's shot list to a CSV")).OnClicked_Lambda([this](){ ExportShotsCsv(); return FReply::Handled(); }) ]
+        + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center).Padding(8.f, 0.f, 0.f, 0.f)
+        [
+            SNew(SEditableTextBox)
+            .HintText(LOCTEXT("AddShotHint", "+ shot slot (e.g. 004)  ↵"))
+            .OnTextCommitted_Lambda([this](const FText& T, ETextCommit::Type C)
+            {
+                if (C == ETextCommit::OnEnter) { const FString S = T.ToString().TrimStartAndEnd(); if (!S.IsEmpty()) AddShotBySlot(S); }
+            })
+        ];
+
+    TSharedRef<SVerticalBox> List = SNew(SVerticalBox);
+    if (Sess && Sess->Shots.Num() > 0)
+    {
+        TArray<FShot> Sorted = Sess->Shots;   // sorted copy — alphabetical by slot
+        Sorted.Sort([](const FShot& A, const FShot& B){ return A.ShotID < B.ShotID; });
+        for (const FShot& S : Sorted)
+        {
+            const FString ShotID = S.ShotID;
+            const FString Desc   = S.Description;
+            const FString Meta   = FString::Printf(TEXT("%s  ·  %d actors  ·  %d props"),
+                *ShotTypeName(S.ShotType), S.Subjects.Num(), S.Props.Num());
+            List->AddSlot().AutoHeight().Padding(0.f, 2.f)
+            [
+                SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(10.f, 6.f))
+                [
+                    SNew(SHorizontalBox)
+                    + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 12.f, 0.f)
+                    [ SNew(STextBlock).Text(FText::FromString(ShotID)).ColorAndOpacity(FSlateColor(ColGreen)) ]
+                    + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+                    [
+                        SNew(SVerticalBox)
+                        + SVerticalBox::Slot().AutoHeight()[ SNew(STextBlock).Text(FText::FromString(Desc)) ]
+                        + SVerticalBox::Slot().AutoHeight()[ SNew(STextBlock).Text(FText::FromString(Meta)).ColorAndOpacity(FSlateColor(ColText2)) ]
+                    ]
+                    + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+                    [ SNew(SButton).Text(FText::FromString(TEXT("✕"))).ToolTipText(LOCTEXT("RemoveShot", "Remove this shot")).OnClicked(this, &SPCAPCallSheetPanel::OnRemoveShot, ShotID) ]
+                ]
+            ];
+        }
+    }
+    else
+    {
+        List->AddSlot().AutoHeight().Padding(12.f, 8.f)
+        [ SNew(STextBlock).Text(LOCTEXT("NoShots", "No shots yet — add a slot above, or Import CSV to build the whole day's shot list at once.")).ColorAndOpacity(FSlateColor(ColText2)) ];
+    }
+
+    const FString SessLabel = Sess ? FString::Printf(TEXT("Session %s"), *Sess->SessionID) : FString(TEXT("(no session)"));
+
+    return SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+        [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("Shot list — Day_%s · %s"), *DB->ActiveDayID, *SessLabel))).ColorAndOpacity(FSlateColor(ColText2)) ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 10.f)[ Toolbar ]
+        + SVerticalBox::Slot().FillHeight(1.f)[ SNew(SScrollBox) + SScrollBox::Slot()[ List ] ];
 }
 
 #undef LOCTEXT_NAMESPACE

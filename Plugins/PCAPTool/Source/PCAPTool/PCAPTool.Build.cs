@@ -41,6 +41,7 @@ public class PCAPTool : ModuleRules
             "LiveLinkInterface",    // ILiveLinkClient, transform role + frame-data types — TPVCam read
             "Networking",           // FUdpSocketBuilder / FUdpSocketReceiver — WVCAM raw-broadcast listener
             "Sockets",              // FSocket / ISocketSubsystem
+            "DesktopPlatform",      // IDesktopPlatform open/save file dialogs — shot-list CSV import/export
         });
 
         // ── Vicon DataStream SDK (Phase 2 raw markers) ───────────────────────────
