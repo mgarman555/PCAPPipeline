@@ -1,5 +1,6 @@
 #include "PCAPVolumeVisualizer.h"
 #include "PCAPLiveLinkMarkerSource.h"
+#include "PCAPViconSDKMarkerSource.h"
 #include "StageConfigAsset.h"
 
 #include "Components/StaticMeshComponent.h"
@@ -68,7 +69,40 @@ void APCAPVolumeVisualizer::OnConstruction(const FTransform& Transform)
 
 void APCAPVolumeVisualizer::EnsureSource()
 {
-    if (!Source.IsValid()) { Source = MakeShared<FLiveLinkMarkerSource>(); }
+#if WITH_VICON_SDK
+    if (bUseRawMarkers)
+    {
+        if (!Source.IsValid() || !bSourceIsSDK)
+        {
+            TSharedRef<FViconSDKMarkerSource> SDK = MakeShared<FViconSDKMarkerSource>();
+            SDK->Connect(ResolveHost());
+            Source = SDK;
+            bSourceIsSDK = true;
+        }
+        return;
+    }
+#endif
+    if (!Source.IsValid() || bSourceIsSDK)
+    {
+        Source = MakeShared<FLiveLinkMarkerSource>();
+        bSourceIsSDK = false;
+    }
+}
+
+FString APCAPVolumeVisualizer::ResolveHost() const
+{
+    if (UStageConfigAsset* Cfg = StageConfig.LoadSynchronous())
+    {
+        if (!Cfg->DataStreamHost.IsEmpty()) { return Cfg->DataStreamHost; }
+    }
+    return DataStreamHost;
+}
+
+void APCAPVolumeVisualizer::Reconnect()
+{
+    Source.Reset();       // destructor stops + joins the worker thread
+    bSourceIsSDK = false;
+    EnsureSource();
 }
 
 void APCAPVolumeVisualizer::ApplyAlignment(FVector& P) const

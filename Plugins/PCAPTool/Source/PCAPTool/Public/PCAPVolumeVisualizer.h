@@ -25,6 +25,15 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
     TSoftObjectPtr<UStageConfigAsset> StageConfig;
 
+    // Use the Vicon DataStream SDK (real labeled + unlabeled markers — what the operator
+    // sees). Falls back to the Live Link solved-joint stand-in when the SDK isn't built in.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
+    bool bUseRawMarkers = true;
+
+    // Vicon DataStream address, used when no StageConfig host is set. e.g. "10.56.1.25:801".
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
+    FString DataStreamHost = TEXT("localhost:801");
+
     // Optional unlit material with a "Color" VectorParameter. Without it, dots are
     // uncolored but name labels still distinguish subjects.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Display")
@@ -51,6 +60,10 @@ public:
     UFUNCTION(CallInEditor, Category="Alignment")
     void SaveAlignmentToStage();
 
+    // Drop the current feed and reconnect (e.g. after changing the host or bUseRawMarkers).
+    UFUNCTION(CallInEditor, Category="Stage")
+    void Reconnect();
+
     virtual void Tick(float DeltaSeconds) override;
     virtual bool ShouldTickIfViewportsOnly() const override { return true; }
 #if WITH_EDITOR
@@ -65,9 +78,11 @@ private:
     UPROPERTY() TObjectPtr<UStaticMesh> DotMesh;
 
     TSharedPtr<IMarkerSource> Source;
+    bool bSourceIsSDK = false;
     FVizFrame Frame;
 
     void EnsureSource();
+    FString ResolveHost() const;
     void ApplyAlignment(FVector& P) const;
     UInstancedStaticMeshComponent* GetOrCreateSubjectISM(FName Subject);
     UTextRenderComponent* GetOrCreateLabel(FName Subject);

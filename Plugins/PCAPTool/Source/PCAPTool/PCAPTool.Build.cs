@@ -1,4 +1,5 @@
 using UnrealBuildTool;
+using System.IO;
 
 public class PCAPTool : ModuleRules
 {
@@ -41,5 +42,24 @@ public class PCAPTool : ModuleRules
             "Networking",           // FUdpSocketBuilder / FUdpSocketReceiver — WVCAM raw-broadcast listener
             "Sockets",              // FSocket / ISocketSubsystem
         });
+
+        // ── Vicon DataStream SDK (Phase 2 raw markers) ───────────────────────────
+        // Reference the SDK bundled in the sibling LiveLinkViconDataStream plugin if it
+        // is present; otherwise Phase 2 compiles out (WITH_VICON_SDK=0) and the Live Link
+        // stand-in still builds. No cross-plugin module dependency — we point straight at
+        // the SDK's include path + import lib + delay-loaded DLL.
+        string ViconSdkDir = Path.GetFullPath(Path.Combine(PluginDirectory, "..", "LiveLinkViconDataStream", "Source", "ThirdParty", "ViconDataStreamSDK"));
+        string ViconLib = Path.Combine(ViconSdkDir, "ViconDataStreamSDK_CPP.lib");
+        if (File.Exists(ViconLib))
+        {
+            PublicIncludePaths.Add(ViconSdkDir);
+            PublicAdditionalLibraries.Add(ViconLib);
+            PublicDelayLoadDLLs.Add("ViconDataStreamSDK_CPP.dll");
+            PublicDefinitions.Add("WITH_VICON_SDK=1");
+        }
+        else
+        {
+            PublicDefinitions.Add("WITH_VICON_SDK=0");
+        }
     }
 }
