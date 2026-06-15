@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.7.4",
+	"EngineAssociation": "5.7",
 	"Category": "",
 	"Description": "Performance capture pipeline",
 	"Modules": [
@@ -11,17 +11,53 @@
 		}
 	],
 	"Plugins": [
-		{"Name": "PCAPTool", "Enabled": true},
-		{"Name": "PythonScriptPlugin", "Enabled": true},
-		{"Name": "EditorScriptingUtilities", "Enabled": true},
-		{"Name": "RigLogic", "Enabled": true},
-		{"Name": "MetaHuman", "Enabled": true},
-		{"Name": "LiveLink", "Enabled": true},
-		{"Name": "LiveLinkCamera", "Enabled": true},
-		{"Name": "LiveLinkLens", "Enabled": true},
-		{"Name": "LiveLinkControlRig", "Enabled": true},
-		{"Name": "Takes", "Enabled": true},
-		{"Name": "SequencerScripting", "Enabled": true},
-		{"Name": "LiveLinkViconDataStream", "Enabled": false}
+		{
+			"Name": "PCAPTool",
+			"Enabled": true
+		},
+		{
+			"Name": "PythonScriptPlugin",
+			"Enabled": true
+		},
+		{
+			"Name": "EditorScriptingUtilities",
+			"Enabled": true
+		},
+		{
+			"Name": "RigLogic",
+			"Enabled": true
+		},
+		{
+			"Name": "MetaHuman",
+			"Enabled": true
+		},
+		{
+			"Name": "LiveLink",
+			"Enabled": true
+		},
+		{
+			"Name": "LiveLinkCamera",
+			"Enabled": true
+		},
+		{
+			"Name": "LiveLinkLens",
+			"Enabled": true
+		},
+		{
+			"Name": "LiveLinkControlRig",
+			"Enabled": true
+		},
+		{
+			"Name": "Takes",
+			"Enabled": true
+		},
+		{
+			"Name": "SequencerScripting",
+			"Enabled": true
+		},
+		{
+			"Name": "LiveLinkViconDataStream",
+			"Enabled": true
+		}
 	]
 }
