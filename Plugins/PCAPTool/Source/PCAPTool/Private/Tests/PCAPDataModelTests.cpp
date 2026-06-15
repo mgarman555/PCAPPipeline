@@ -141,4 +141,52 @@ bool FPCAPDayReadinessTest::RunTest(const FString&)
     return true;
 }
 
+// SeedNewShootDay — seeded shots/takes use the slot-only 3-digit ShotID ("003"),
+// NOT day+slot ("001003"), so BuildNextTakeID composes a valid DDDSSS_NNN take id.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPSeedNewShootDayTest,
+    "PCAP.DataModel.SeedNewShootDay",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPSeedNewShootDayTest::RunTest(const FString&)
+{
+    const FShootDay Day = UPCAPToolStatics::SeedNewShootDay(TEXT("001"), FDateTime(2026, 6, 12));
+    TestEqual(TEXT("one session"), Day.Sessions.Num(), 1);
+    if (Day.Sessions.Num() != 1) return false;
+    const FSession& Sess = Day.Sessions[0];
+    TestEqual(TEXT("six seeded shots"), Sess.Shots.Num(), 6);
+
+    auto FindShot = [&Sess](const TCHAR* ShotID) -> const FShot*
+    {
+        return Sess.Shots.FindByPredicate([ShotID](const FShot& S){ return S.ShotID == ShotID; });
+    };
+
+    // Slot-only ShotIDs present; the buggy day+slot form ("001901"/"001003") absent.
+    TestNotNull(TEXT("calibration slot 901"), FindShot(TEXT("901")));
+    TestNotNull(TEXT("production slot 003"),  FindShot(TEXT("003")));
+    TestNull   (TEXT("no day+slot 001901"),   FindShot(TEXT("001901")));
+    TestNull   (TEXT("no day+slot 001003"),   FindShot(TEXT("001003")));
+
+    // A seeded take's ShotID is slot-only and its TakeID is the canonical DDDSSS_NNN.
+    if (const FShot* Cal = FindShot(TEXT("901")))
+    {
+        TestEqual(TEXT("calibration preseeded 1 take"), Cal->Takes.Num(), 1);
+        if (Cal->Takes.Num() == 1)
+        {
+            TestEqual(TEXT("take ShotID slot-only"), Cal->Takes[0].ShotID, FString(TEXT("901")));
+            TestEqual(TEXT("take id canonical"),     Cal->Takes[0].TakeID, FString(TEXT("001901_001")));
+        }
+    }
+
+    // BuildNextTakeID against a seeded production shot (no takes) yields DDDSSS_001.
+    UMocapDatabase* DB = NewObject<UMocapDatabase>();
+    FProduction P; P.ProjectCode = TEXT("DA"); P.Days.Add(Day);
+    DB->Productions.Add(P);
+    DB->ActiveProductionCode = TEXT("DA");
+    DB->ActiveDayID          = TEXT("001");
+    DB->ActiveSessionID      = Sess.SessionID;
+    DB->ActiveShotID         = TEXT("003");
+    TestEqual(TEXT("next take id for seeded shot 003"), DB->BuildNextTakeID(), FString(TEXT("001003_001")));
+
+    return true;
+}
+
 #endif // WITH_DEV_AUTOMATION_TESTS

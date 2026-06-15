@@ -65,7 +65,7 @@ FShootDay UPCAPToolStatics::SeedNewShootDay(const FString& DayID, const FDateTim
     {
         FTake T;
         T.TakeNumber = TakeNum;
-        T.ShotID     = DayPadded + Slot;
+        T.ShotID     = Slot;   // slot-only 3-digit ShotID — GenerateTakeID re-pads day+slot for the TakeID
         T.DayID      = DayID;
         T.TakeID     = GenerateTakeID(DayPadded, Slot, TakeNum);
         T.Label      = ETakeLabel::Captured;
@@ -75,7 +75,7 @@ FShootDay UPCAPToolStatics::SeedNewShootDay(const FString& DayID, const FDateTim
     auto MakeShot = [&](const FString& Slot, EShotType Type, const FString& Desc, int32 PreseededTakes) -> FShot
     {
         FShot S;
-        S.ShotID      = DayPadded + Slot;
+        S.ShotID      = Slot;   // slot-only 3-digit ShotID — GenerateTakeID re-pads day+slot for the TakeID
         S.ShotType    = Type;
         S.Description = Desc;
         for (int32 i = 1; i <= PreseededTakes; ++i)
