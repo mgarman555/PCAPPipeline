@@ -1,47 +1,28 @@
-Build started at 5:23 PM...
-1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
-1>Using bundled DotNet SDK version: 8.0.412 win-x64
-1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
-1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
-1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
-1>Building PCAPPipelineEditor...
-1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
-1>[Adaptive Build] Excluded from LiveLinkDataStream unity file: BonjourResolver.cpp, CustomBonjourResolver.cpp, LiveLinkDataStreamModule.cpp, LiveLinkViconCameraController.cpp, LiveLinkViconDataStreamBlueprint.cpp, LiveLinkViconDataStreamSource.cpp, LiveLinkViconMarkerVisualizer.cpp, LiveLinkViconUDPSender.cpp, LiveLinkViconUtils.cpp, NSDCommon.cpp, ViconLensDistortionModelHandler.cpp, ViconLensModel.cpp, ViconStream.cpp, ViconStreamFrameReader.cpp
-1>[Adaptive Build] Excluded from LiveLinkDataStreamEditor unity file: IoContextRunner.cpp, LiveLinkDataStreamEditorModule.cpp, LiveLinkViconDataStreamNSDBrowserPanel.cpp, LiveLinkViconDataStreamNSDBrowserWin.cpp, LiveLinkViconDataStreamSourceEditor.cpp, LiveLinkViconDataStreamSourceFactory.cpp, LiveLinkViconDataStreamSourceNSDEditor.cpp, LiveLinkViconDataStreamSourceNSDFactory.cpp, LiveLinkViconDataStreamSourcePropEditor.cpp
-1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
-1>  Executing up to 32 processes, one per physical core
-1>Using Unreal Build Accelerator local executor to run 4 action(s)
-1>  Storage capacity 40Gb
-1>---- Starting trace: 260612_172308_vs18336 ----
-1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
-1>[1/4] Compile [x64] Module.PCAPTool.4.cpp
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPVCamPanel.cpp(288,49): error C3487: 'T': all return expressions must deduce to the same type: previously it was 'float'
-1>        with
-1>        [
-1>            T=double
-1>        ]
-1>            if (bRotation) { return (Comp == 0) ? O->Rotation.Pitch : (Comp == 1) ? O->Rotation.Yaw : O->Rotation.Roll; }
-1>                                                ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPVCamPanel.cpp(289,32): error C3487: 'T': all return expressions must deduce to the same type: previously it was 'float'
-1>        with
-1>        [
-1>            T=double
-1>        ]
-1>            return (Comp == 0) ? O->Translation.X : (Comp == 1) ? O->Translation.Y : O->Translation.Z;
-1>                               ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPVCamPanel.cpp(435,36): error C3487: 'T': all return expressions must deduce to the same type: previously it was 'float'
-1>        with
-1>        [
-1>            T=double
-1>        ]
-1>                return (Comp == 0) ? Vec.X : (Comp == 1) ? Vec.Y : Vec.Z;
-1>                                   ^
-1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 3.6kb
-1>Total time in Unreal Build Accelerator local executor: 3.08 seconds
-1>
-1>Result: Failed (OtherCompilationError)
-1>Total execution time: 3.78 seconds
-1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
-1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
-========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 5:23 PM and took 04.640 seconds ==========
+LogDerivedDataCache: C:/Users/mocapstaff/AppData/Local/UnrealEngine/Common/DerivedDataCache: Maintenance finished in +00:00:00.000 and deleted 0 files with total size 0 MiB and 0 empty folders. Scanned 0 files in 1 folders with total size 0 MiB.
+LogUdpMessaging: Warning: Waiting for ack too long. Re-sending 1 segments. Attempt 1 out of 16 tries.
+LogSlate: Took 0.000170 seconds to synchronously load lazily loaded font '../../../Engine/Content/Editor/Slate/Fonts/FontAwesome.ttf' (139K)
+LogWindowsDNSBrowser: Display: Found new service: 'ShogunLive.1.19 on RSPN-EAST01 (Low Latency)' (_low-latency._sub._vicondatastream._tcp) in local
+LogWindowsDNSBrowser: Display: Found new service: 'ShogunLive.1.19 on RSPN-EAST01 (Always Live)' (_always-live._sub._vicondatastream._tcp) in local
+LogWindowsDNSBrowser: Display: Found new service: 'ShogunLive.1.19 on RSPN-EAST01 (Default)' (_default._sub._vicondatastream._tcp) in local
+LogSlate: Window 'Create Vicon Data Stream Source (Auto-Discover) connection' being destroyed
+LogSlate: Window 'Create Vicon Data Stream Source connection' being destroyed
+LogWindowsDNSBrowser: Display: Found new service: 'ShogunLive.1.19 on RSPN-EAST01 (Default)' (_default._sub._vicondatastream._tcp) in local
+LogWindowsDNSBrowser: Display: Found new service: 'ShogunLive.1.19 on RSPN-EAST01 (Low Latency)' (_low-latency._sub._vicondatastream._tcp) in local
+LogWindowsDNSBrowser: Display: Found new service: 'ShogunLive.1.19 on RSPN-EAST01 (Always Live)' (_always-live._sub._vicondatastream._tcp) in local
+LogSlate: Window 'Create Vicon Data Stream Source (Auto-Discover) connection' being destroyed
+LogViconStream: Error: Failed to enable wireless configuration Streaming Mode Set : Wireless configuration failed with error 5023: The group or resource is not in the correct state to perform the requested operation.
+LogViconStream: Warning: Unable to use lightweight segment data
+LogSlate: Window 'Create Vicon Data Stream Source connection' being destroyed
+LogViconStream: Display: Connected to client 10/56/1/25:801
+LogViconStream: Display: Using client version 1.14.0.165712
+LogViconStream: Display: Failed to connect to datastream on 10/56/1/25:801
+LogViconStream: Error: Failed to enable wireless configuration Streaming Mode Set : Wireless configuration failed with error 5023: The group or resource is not in the correct state to perform the requested operation.
+LogViconStream: Warning: Unable to use lightweight segment data
+LogSlate: Window 'Create Vicon Data Stream Source connection' being destroyed
+LogViconStream: Display: Connected to client 10.56.1.25:801
+LogViconStream: Display: Using client version 1.14.0.165712
+LogViconStream: Display: Set streaming mode to Push
+LogViconStream: Display: Using lightweight segment data
+Live Link: (03) Can't evaluate frame for 'TPVcam'. No data was available.
+Live Link: Warning: (01) Can't evaluate frame for 'TPVcam'. The requested role is 'LiveLinkTransformRole' and no translators was able to translate it.
+Live Link: Warning: (01) Can't evaluate frame for 'TPVcam'. The requested role is 'LiveLinkCameraRole' and no translators was able to translate it.
