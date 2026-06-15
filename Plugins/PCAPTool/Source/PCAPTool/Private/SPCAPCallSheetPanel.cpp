@@ -34,6 +34,10 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
+#include "PCAPVolumeVisualizer.h"   // spawn target — header only, never edited here
+#include "Editor.h"                 // GEditor
+#include "Engine/World.h"           // UWorld::SpawnActor
+
 #define LOCTEXT_NAMESPACE "PCAPCallSheet"
 
 void SPCAPCallSheetPanel::Construct(const FArguments& InArgs)
@@ -373,6 +377,14 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildOverviewSection()
             [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("%s   ·   %s   ·   Day_%s"), *DB->ActiveProductionCode, *StageName, *DB->ActiveDayID))).ColorAndOpacity(FSlateColor(ColGreen)) ]
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
             [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("%d actors  ·  %d props  ·  %s"), NumActors, NumProps, *SystemsText))).ColorAndOpacity(FSlateColor(ColText2)) ]
+            + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Left).Padding(0.f, 10.f, 0.f, 0.f)
+            [
+                SNew(SButton)
+                .Text(LOCTEXT("SpawnViz", "Spawn volume visualizer"))
+                .ToolTipText(LOCTEXT("SpawnVizTip", "Drop a Volume Visualizer into the level for this day's stage — the stage FBX + live Vicon markers, to scale"))
+                .IsEnabled(Stage != nullptr)
+                .OnClicked_Lambda([this]() { SpawnVolumeVisualizer(); return FReply::Handled(); })
+            ]
           ]
         ]
 
@@ -683,6 +695,35 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShotsSection()
         [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("Shot list — Day_%s · %s"), *DB->ActiveDayID, *SessLabel))).ColorAndOpacity(FSlateColor(ColText2)) ]
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 10.f)[ Toolbar ]
         + SVerticalBox::Slot().FillHeight(1.f)[ SNew(SScrollBox) + SScrollBox::Slot()[ List ] ];
+}
+
+// ── Stage gap-fill: one-click Volume Visualizer for the active stage ─────────────────
+
+void SPCAPCallSheetPanel::SpawnVolumeVisualizer()
+{
+    UMocapDatabase* DB = GetDB();
+    UStageConfigAsset* Cfg = DB ? DB->GetActiveStageConfig() : nullptr;
+    if (!Cfg)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[PCAP] Spawn Volume Visualizer: no active stage config — set a stage on the production/day first."));
+        return;
+    }
+    if (!GEditor) return;
+    UWorld* World = GEditor->GetEditorWorldContext().World();
+    if (!World) return;
+
+    APCAPVolumeVisualizer* Viz = World->SpawnActor<APCAPVolumeVisualizer>();
+    if (!Viz) return;
+
+    Viz->StageConfig = Cfg;
+    Viz->RefreshFromStageConfig();
+    Viz->SetActorLabel(FString::Printf(TEXT("VolumeViz_%s"), *Cfg->ConfigName));
+
+    // Select it so it's easy to find + frame in the viewport.
+    GEditor->SelectNone(/*bNoteSelectionChange=*/false, /*bDeselectBSPSurfs=*/true);
+    GEditor->SelectActor(Viz, /*bInSelected=*/true, /*bNotify=*/true);
+
+    UE_LOG(LogTemp, Log, TEXT("[PCAP] Spawned Volume Visualizer for stage '%s'."), *Cfg->ConfigName);
 }
 
 #undef LOCTEXT_NAMESPACE

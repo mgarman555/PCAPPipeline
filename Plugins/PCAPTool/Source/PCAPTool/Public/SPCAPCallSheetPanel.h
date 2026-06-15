@@ -44,6 +44,11 @@ private:
     TSharedRef<SWidget> BuildShootDaySection();
     UMocapDatabase* GetDB() const;
 
+    // Drop an APCAPVolumeVisualizer into the editor level, wired to the active stage config
+    // (the stage FBX + live Vicon markers, to scale). Only includes the viz header — never
+    // edits it. No-op (logs) when no active stage config.
+    void SpawnVolumeVisualizer();
+
     // ── Shots (the day's slate list — built here in prep; run in the Operator Console) ──
     TSharedRef<SWidget> BuildShotsSection();
     // Returns the active day's working session, creating "S01" if the day has none
