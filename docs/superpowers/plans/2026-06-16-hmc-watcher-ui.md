@@ -176,7 +176,17 @@ For `bChecks`, inline: both cameras' `GetEffectiveIssueFlags` roll up to None vi
 
 ---
 
+## Task 8: Stereo board-calibration mode (added)
+
+**Files:** `PCAPToolTypes.h`, `PCAPToolStatics.{h,cpp}`, `PCAPToolSubsystem.{h,cpp}`, `SHMCSetupPanel.{h,cpp}`
+
+- [x] `EHMCBoardState`; `FHMCImageMetrics.EdgeEnergy` (whole-frame var-of-Laplacian); board fields on `FPipelineCheckProfile` (`bCheckBoard`/`BoardEdgeMin`/`BoardSizeMin`/`BoardSizeMax`/`BoardCenterTol`); calibration fields on `FHMCDeviceConfig`.
+- [x] `AnalyzeFrameBGRA` computes `EdgeEnergy`; `GetDefinition` enables `bCheckBoard` for `StereoHeadMount`; `ClassifyBoardFrame` + `GetBoardStateText`.
+- [x] `CaptureCalibrationStill` (shares a new `SaveCameraStillPng` helper with identity capture); start/end calibration persisted.
+- [x] `BuildCalibrationSection` (stereo-only via Visibility): live coarse board state per camera (OK / too close / too far / off-centre / no-board-occluded), start/end capture rows, and an eyes-on checklist for the fine cases (inverted / horizontal / over-rotated / hand / actor) that need CV.
+- Board thresholds are first-guess (need on-rig tuning). Fine pose detection is the #2 (CV) follow-up.
+
 ## Self-review
-- Spec coverage: clean Preview (T1, plus already-clean feed) · clean Setup feed (T2) · config picker (T3) · scan-readiness gate incl. teeth saved (T4–T6) · focus helper (T7). Stereo board-calibration *mode* (in scope per spec §8) is NOT in this plan — it needs a "calibration take" capture flow; tracked as a follow-up so this plan stays shippable.
+- Spec coverage: clean Preview (T1, plus already-clean feed) · clean Setup feed (T2) · config picker (T3) · scan-readiness gate incl. teeth saved (T4–T6) · focus helper (T7). Stereo board-calibration *mode* — built in Task 8 (coarse edge-energy board check + start/end capture + eyes-on checklist); fine pose detection (inverted/over-rotated/hand) is the #2 CV follow-up.
 - Type consistency: `CaptureIdentityStill(device,cam,bTeeth)`, `MarkROMCaptured(device,label)`, `IsReadyToScan(device)`, `GetDeviceConfig`, `SetFocusMinOverride` names match across subsystem + panel call sites.
 - Risk: PNG encode + file IO — guarded with null/size checks; failure returns false and the gate stays "not captured".

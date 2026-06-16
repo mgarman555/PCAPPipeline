@@ -88,6 +88,12 @@ public:
     static FPipelineCheckProfile GetDefinition(ECapturePipeline Pipeline,
                                                ECaptureConfiguration Config);
 
+    // Coarse stereo calibration-board classification (edge energy + bright-region
+    // position/size) + a label for the status area. Fine pose cases stay operator-judged.
+    static EHMCBoardState ClassifyBoardFrame(const FHMCImageMetrics& Metrics,
+                                             const FPipelineCheckProfile& Profile);
+    static FString GetBoardStateText(EHMCBoardState State);
+
     // Maps one frame's metrics to auto EHMCIssueFlag bits, honoring the pipeline's
     // active checks/thresholds and the captured framing reference (framing drift is
     // only evaluated when Ref.bSet). Pure — hysteresis is applied by the caller.

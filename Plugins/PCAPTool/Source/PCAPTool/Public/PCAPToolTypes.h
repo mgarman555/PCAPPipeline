@@ -305,6 +305,12 @@ struct PCAPTOOL_API FHMCDeviceConfig
 
     // Per-device tuned focus floor from the Setup focus helper; < 0 = use pipeline default.
     UPROPERTY(EditAnywhere, BlueprintReadWrite) float FocusMinOverride = -1.f;
+
+    // ── Stereo calibration takes (checkerboard board — start & end of session) ──
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bCalibStartCaptured = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bCalibEndCaptured   = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FString CalibStartStillPath;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FString CalibEndStillPath;
 };
 
 // ---------------------------------------------------------------------------
@@ -459,6 +465,19 @@ enum class EHMCLightDir : uint8
     Shadow UMETA(DisplayName = "Shadows present")
 };
 
+// Coarse state of a stereo calibration-board take (heuristic from edge energy + the
+// bright-region position/size). Fine pose cases — inverted / horizontal / over-rotated
+// / hand-occluded / actor-present — need CV and stay operator-judged (see the checklist).
+UENUM(BlueprintType)
+enum class EHMCBoardState : uint8
+{
+    Good        UMETA(DisplayName = "Board OK"),
+    NotDetected UMETA(DisplayName = "No board / occluded"),
+    TooClose    UMETA(DisplayName = "Board too close"),
+    TooFar      UMETA(DisplayName = "Board too far"),
+    OffCenter   UMETA(DisplayName = "Board off-centre")
+};
+
 // Per-pipeline check bundle: which checks are active + their thresholds + the
 // framing target. Resolved per (pipeline x configuration) by
 // UPCAPToolStatics::GetDefinition(); GetPipelineProfile() gives the pipeline base.
@@ -490,6 +509,13 @@ struct FPipelineCheckProfile
     bool      bClassifyLightDir = true;    // run lighting-direction classification (vs plain spread)
     FVector2D FocusRegionCenter = FVector2D(0.5, 0.55);  // nasolabial band centre (normalized)
     float     FocusRegionExtent = 0.28f;   // half-extent of the focus window; >= 0.5 = whole frame
+
+    // Stereo calibration-board coarse check (enabled by GetDefinition for StereoHeadMount).
+    bool  bCheckBoard    = false;
+    float BoardEdgeMin   = 0.02f;          // whole-frame edge energy below this -> no board / occluded
+    float BoardSizeMin   = 0.35f;          // bright-region extent below this -> board too far
+    float BoardSizeMax   = 0.92f;          // above this -> board too close
+    float BoardCenterTol = 0.28f;          // centroid this far from frame centre -> off-centre
 };
 
 // Output of one frame's image analysis (per camera). Stored per "Device_Cam" in
@@ -516,6 +542,7 @@ struct PCAPTOOL_API FHMCImageMetrics
     UPROPERTY(BlueprintReadOnly) float LeftMean   = 0.f;
     UPROPERTY(BlueprintReadOnly) float RightMean  = 0.f;
     UPROPERTY(BlueprintReadOnly) float CenterMean = 0.f;     // central region (for back-lit)
+    UPROPERTY(BlueprintReadOnly) float EdgeEnergy = 0.f;     // whole-frame var-of-Laplacian (checkerboard reads high, smooth/occluded low)
 };
 
 // ---------------------------------------------------------------------------

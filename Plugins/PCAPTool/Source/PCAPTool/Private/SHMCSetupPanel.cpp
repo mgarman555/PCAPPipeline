@@ -848,7 +848,8 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCaptureMonitor()
         + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCheckReadout(0) ]
         + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCheckReadout(1) ]
         + SVerticalBox::Slot().AutoHeight().Padding(0, 6, 0, 4) [ BuildScanReadinessGate() ]
-        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildFocusHelper() ];
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildFocusHelper() ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCalibrationSection() ];
 }
 
 TSharedRef<SWidget> SHMCSetupPanel::BuildPipelineDropdown()
@@ -1114,6 +1115,104 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildFocusHelper()
                 ]
                 + SHorizontalBox::Slot().AutoWidth()
                 [ SNew(SButton).Text(FText::FromString(TEXT("Use"))).OnClicked(this, &SHMCSetupPanel::OnUseFocusMin) ]
+            ]
+        ];
+}
+
+EHMCBoardState SHMCSetupPanel::BoardState(int32 CameraIndex) const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (!Sub || ActiveDeviceName.IsEmpty()) return EHMCBoardState::NotDetected;
+    const FPipelineCheckProfile P = UPCAPToolStatics::GetDefinition(
+        Sub->GetDevicePipeline(ActiveDeviceName), Sub->GetDeviceCaptureConfig(ActiveDeviceName));
+    return UPCAPToolStatics::ClassifyBoardFrame(Sub->GetImageMetrics(ActiveDeviceName, CameraIndex), P);
+}
+
+FReply SHMCSetupPanel::OnCaptureCalibStart()
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+            Sub->CaptureCalibrationStill(ActiveDeviceName, SubjectCameraIndex(), false);
+    return FReply::Handled();
+}
+
+FReply SHMCSetupPanel::OnCaptureCalibEnd()
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+            Sub->CaptureCalibrationStill(ActiveDeviceName, SubjectCameraIndex(), true);
+    return FReply::Handled();
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildCalibrationSection()
+{
+    // Live coarse board state for a camera, coloured (green ok / amber framing / red none).
+    auto BoardRow = [this](int32 Cam, const FString& Tag) -> TSharedRef<SWidget>
+    {
+        return SNew(STextBlock)
+            .Text_Lambda([this, Cam, Tag]()
+            {
+                return FText::FromString(FString::Printf(TEXT("%s: %s"), *Tag,
+                    *UPCAPToolStatics::GetBoardStateText(BoardState(Cam))));
+            })
+            .ColorAndOpacity_Lambda([this, Cam]()
+            {
+                switch (BoardState(Cam))
+                {
+                    case EHMCBoardState::Good:        return FSlateColor(ColGreen);
+                    case EHMCBoardState::NotDetected: return FSlateColor(ColRed);
+                    default:                          return FSlateColor(ColYellow);
+                }
+            });
+    };
+
+    auto CalibRow = [this](const FString& Label, TFunction<bool()> DoneFn, FOnClicked OnClick) -> TSharedRef<SWidget>
+    {
+        return SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 8, 0)
+            [
+                SNew(STextBlock)
+                .Text_Lambda([DoneFn]() { return FText::FromString(DoneFn() ? TEXT("✓") : TEXT("○")); })
+                .ColorAndOpacity_Lambda([this, DoneFn]() { return FSlateColor(DoneFn() ? ColGreen : ColGray); })
+            ]
+            + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+            [ SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColWhite)) ]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+            [ SNew(SButton).Text(FText::FromString(TEXT("Capture"))).OnClicked(OnClick) ];
+    };
+
+    return SNew(SBorder)
+        .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+        .Padding(FMargin(8.f, 6.f))
+        // Stereo-only: collapsed unless the device's configuration is a stereo head mount.
+        .Visibility_Lambda([this]()
+        {
+            UPCAPToolSubsystem* Sub = GetSubsystem();
+            const bool bStereo = Sub && !ActiveDeviceName.IsEmpty()
+                && Sub->GetDeviceCaptureConfig(ActiveDeviceName) == ECaptureConfiguration::StereoHeadMount;
+            return bStereo ? EVisibility::Visible : EVisibility::Collapsed;
+        })
+        [
+            SNew(SVerticalBox)
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
+            [ SNew(STextBlock).Text(FText::FromString(TEXT("STEREO CALIBRATION"))).ColorAndOpacity(FSlateColor(ColMuted)) ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 2) [ BoardRow(0, TEXT("TOP")) ]
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6) [ BoardRow(1, TEXT("BOT")) ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 3)
+            [ CalibRow(TEXT("Start-of-session board"),
+                [this]() { UPCAPToolSubsystem* S = GetSubsystem(); return S && S->GetDeviceConfig(ActiveDeviceName).bCalibStartCaptured; },
+                FOnClicked::CreateSP(this, &SHMCSetupPanel::OnCaptureCalibStart)) ]
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 3)
+            [ CalibRow(TEXT("End-of-session board"),
+                [this]() { UPCAPToolSubsystem* S = GetSubsystem(); return S && S->GetDeviceConfig(ActiveDeviceName).bCalibEndCaptured; },
+                FOnClicked::CreateSP(this, &SHMCSetupPanel::OnCaptureCalibEnd)) ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 6, 0, 0)
+            [
+                SNew(STextBlock).AutoWrapText(true).ColorAndOpacity(FSlateColor(ColMuted))
+                .Text(FText::FromString(TEXT("Eyes-on (not auto): flat matte board, sharp corners; not inverted / horizontal / over-rotated; no hand over the pattern; performer OUT of frame; paint up/down/left/right/roll/pitch ~20s.")))
             ]
         ];
 }

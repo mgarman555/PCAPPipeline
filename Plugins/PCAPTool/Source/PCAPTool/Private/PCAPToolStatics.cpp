@@ -352,6 +352,25 @@ FHMCImageMetrics UPCAPToolStatics::AnalyzeFrameBGRA(const TArray<uint8>& BGRA, i
         M.FocusScore = (float)(LapVar / (Mean * Mean + 1.0));
     }
 
+    // Whole-frame edge energy — a checkerboard calibration board reads very high &
+    // uniform; a smooth hand/face/occlusion reads low. Drives the board coarse check.
+    double ELapSum = 0.0, ELapSq = 0.0; int32 ELapN = 0;
+    for (int32 gy = 1; gy <= GH - 2; ++gy)
+        for (int32 gx = 1; gx <= GW - 2; ++gx)
+        {
+            const float c   = L[gy * GW + gx];
+            const float lap = 4.f * c
+                - L[gy * GW + (gx - 1)] - L[gy * GW + (gx + 1)]
+                - L[(gy - 1) * GW + gx] - L[(gy + 1) * GW + gx];
+            ELapSum += lap; ELapSq += (double)lap * lap; ++ELapN;
+        }
+    if (ELapN > 0)
+    {
+        const double ELapMean = ELapSum / ELapN;
+        const double ELapVar  = FMath::Max(0.0, ELapSq / ELapN - ELapMean * ELapMean);
+        M.EdgeEnergy = (float)(ELapVar / (Mean * Mean + 1.0));
+    }
+
     M.bHasSubject = (Mean > 40.0);   // matches FrameHasSubject's luma threshold
     M.bValid = true;
     return M;
@@ -397,12 +416,38 @@ FPipelineCheckProfile UPCAPToolStatics::GetDefinition(ECapturePipeline Pipeline,
             P.FramingSizeMax  = 0.60f;
             P.FramingDriftTol = 0.12f;
             break;
-        case ECaptureConfiguration::MonoHeadMount:
         case ECaptureConfiguration::StereoHeadMount:
+            P.bCheckBoard = true;   // checkerboard calibration take is part of stereo HMC
+            break;
+        case ECaptureConfiguration::MonoHeadMount:
         default:
             break;
     }
     return P;
+}
+
+EHMCBoardState UPCAPToolStatics::ClassifyBoardFrame(const FHMCImageMetrics& M, const FPipelineCheckProfile& P)
+{
+    if (!M.bValid || !M.bHasSubject)   return EHMCBoardState::NotDetected;
+    if (M.EdgeEnergy < P.BoardEdgeMin) return EHMCBoardState::NotDetected;   // smooth -> no board / occluded
+    if (M.SubjectSize > P.BoardSizeMax) return EHMCBoardState::TooClose;
+    if (M.SubjectSize < P.BoardSizeMin) return EHMCBoardState::TooFar;
+    if (FVector2D::Distance(M.SubjectCenter, FVector2D(0.5, 0.5)) > P.BoardCenterTol)
+        return EHMCBoardState::OffCenter;
+    return EHMCBoardState::Good;
+}
+
+FString UPCAPToolStatics::GetBoardStateText(EHMCBoardState State)
+{
+    switch (State)
+    {
+        case EHMCBoardState::Good:        return TEXT("Board OK");
+        case EHMCBoardState::TooClose:    return TEXT("Board too close · pull back");
+        case EHMCBoardState::TooFar:      return TEXT("Board too far · move closer");
+        case EHMCBoardState::OffCenter:   return TEXT("Board off-centre");
+        case EHMCBoardState::NotDetected: return TEXT("No board / occluded");
+        default:                          return FString();
+    }
 }
 
 int32 UPCAPToolStatics::MapMetricsToAutoFlags(const FHMCImageMetrics& M,

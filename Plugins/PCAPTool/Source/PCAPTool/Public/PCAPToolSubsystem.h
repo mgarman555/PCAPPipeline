@@ -186,6 +186,11 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     bool CaptureIdentityStill(const FString& DeviceName, int32 CameraIndex, bool bTeeth);
 
+    // Save the camera's current frame as the stereo calibration board still — start
+    // (bEnd=false) or end (bEnd=true) of session, per the Calibration Takes docs.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    bool CaptureCalibrationStill(const FString& DeviceName, int32 CameraIndex, bool bEnd);
+
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void SetPerformerPrepConfirmed(const FString& DeviceName, bool bConfirmed);
 
@@ -253,6 +258,10 @@ private:
     // analyzed frame; keyed "DeviceName_Cam".
     TMap<FString, TArray<uint8>> LastFrameBGRA;
     TMap<FString, FIntPoint>     LastFrameDims;
+
+    // Encode a camera's cached BGRA frame to a PNG at FullPath. Shared by the identity
+    // and calibration still-capture paths. False if there's no cached frame / IO fails.
+    bool SaveCameraStillPng(const FString& DeviceName, int32 CameraIndex, const FString& FullPath);
 
     // Mount-stability detection: subject-centroid history per camera (~last 2s at the
     // ~5Hz rate) for instability variance, plus a per-camera "bumped until" timestamp

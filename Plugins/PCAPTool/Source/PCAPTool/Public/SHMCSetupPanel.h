@@ -65,6 +65,7 @@ private:
     TSharedRef<SWidget> BuildConfigDropdown();                   // ECaptureConfiguration picker
     TSharedRef<SWidget> BuildScanReadinessGate();               // prep / neutral / teeth / ROM + "ready to scan"
     TSharedRef<SWidget> BuildFocusHelper();                     // capture sharp/soft -> propose FocusMin
+    TSharedRef<SWidget> BuildCalibrationSection();              // stereo board-calibration take (stereo-only)
     TSharedRef<SWidget> BuildCheckReadout(int32 CameraIndex);    // camera label + metrics + ref controls
     TSharedRef<SWidget> BuildCheckDot(const FString& Label, int32 FlagBit, int32 CameraIndex);
     // Coloured per-camera check box (green ok / red issue), shown below each feed's
@@ -108,6 +109,10 @@ private:
     FReply OnCaptureFocusSharp();                    // sample focus on a sharp frame
     FReply OnCaptureFocusSoft();                     // sample focus on a soft frame
     FReply OnUseFocusMin();                          // propose + apply FocusMin override
+    // Stereo calibration-take handlers + coarse board state (stereo-only section).
+    FReply OnCaptureCalibStart();
+    FReply OnCaptureCalibEnd();
+    EHMCBoardState BoardState(int32 CameraIndex) const;
     float  FocusSharpSample = -1.f;
     float  FocusSoftSample  = -1.f;
 

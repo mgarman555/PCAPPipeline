@@ -809,6 +809,10 @@ void UPCAPToolSubsystem::SaveConfig() const
         Obj->SetStringField(TEXT("teethStillPath"), C.TeethStillPath);
         Obj->SetStringField(TEXT("romTakeLabel"), C.ROMTakeLabel);
         Obj->SetNumberField(TEXT("focusMinOverride"), C.FocusMinOverride);
+        Obj->SetBoolField(TEXT("calibStartCaptured"), C.bCalibStartCaptured);
+        Obj->SetBoolField(TEXT("calibEndCaptured"), C.bCalibEndCaptured);
+        Obj->SetStringField(TEXT("calibStartStillPath"), C.CalibStartStillPath);
+        Obj->SetStringField(TEXT("calibEndStillPath"), C.CalibEndStillPath);
 
         auto WriteRef = [](const FHMCFramingRef& R) -> TSharedPtr<FJsonObject>
         {
@@ -875,6 +879,10 @@ void UPCAPToolSubsystem::LoadConfig()
         Obj->TryGetStringField(TEXT("romTakeLabel"), Config.ROMTakeLabel);
         double FMO = -1.0;
         if (Obj->TryGetNumberField(TEXT("focusMinOverride"), FMO)) Config.FocusMinOverride = (float)FMO;
+        Obj->TryGetBoolField(TEXT("calibStartCaptured"), Config.bCalibStartCaptured);
+        Obj->TryGetBoolField(TEXT("calibEndCaptured"), Config.bCalibEndCaptured);
+        Obj->TryGetStringField(TEXT("calibStartStillPath"), Config.CalibStartStillPath);
+        Obj->TryGetStringField(TEXT("calibEndStillPath"), Config.CalibEndStillPath);
 
         auto ReadRef = [](const TSharedPtr<FJsonObject>& Parent, const TCHAR* Key, FHMCFramingRef& R)
         {
@@ -966,11 +974,8 @@ void UPCAPToolSubsystem::SetFocusMinOverride(const FString& DeviceName, float Va
     if (FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName)) { C->FocusMinOverride = Value; SaveConfig(); }
 }
 
-bool UPCAPToolSubsystem::CaptureIdentityStill(const FString& DeviceName, int32 CameraIndex, bool bTeeth)
+bool UPCAPToolSubsystem::SaveCameraStillPng(const FString& DeviceName, int32 CameraIndex, const FString& FullPath)
 {
-    FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
-    if (!C) return false;
-
     const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
     const TArray<uint8>* BGRA = LastFrameBGRA.Find(CamKey);
     const FIntPoint*     Dim  = LastFrameDims.Find(CamKey);
@@ -987,14 +992,36 @@ bool UPCAPToolSubsystem::CaptureIdentityStill(const FString& DeviceName, int32 C
     TArray<uint8> PngData;
     PngData.Append(Png.GetData(), (int32)Png.Num());
 
-    const FString Dir = FPaths::ProjectSavedDir() / TEXT("PCAPTool/Identity");
-    IFileManager::Get().MakeDirectory(*Dir, true);
-    const FString Path = Dir / FString::Printf(TEXT("%s_%s.png"),
-        *DeviceName, bTeeth ? TEXT("teeth") : TEXT("neutral"));
-    if (!FFileHelper::SaveArrayToFile(PngData, *Path)) return false;
+    IFileManager::Get().MakeDirectory(*FPaths::GetPath(FullPath), true);
+    return FFileHelper::SaveArrayToFile(PngData, *FullPath);
+}
+
+bool UPCAPToolSubsystem::CaptureIdentityStill(const FString& DeviceName, int32 CameraIndex, bool bTeeth)
+{
+    FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
+    if (!C) return false;
+
+    const FString Path = FPaths::ProjectSavedDir() / TEXT("PCAPTool/Identity")
+        / FString::Printf(TEXT("%s_%s.png"), *DeviceName, bTeeth ? TEXT("teeth") : TEXT("neutral"));
+    if (!SaveCameraStillPng(DeviceName, CameraIndex, Path)) return false;
 
     if (bTeeth) { C->TeethStillPath   = Path; C->bTeethCaptured   = true; }
     else        { C->NeutralStillPath = Path; C->bNeutralCaptured = true; }
+    SaveConfig();
+    return true;
+}
+
+bool UPCAPToolSubsystem::CaptureCalibrationStill(const FString& DeviceName, int32 CameraIndex, bool bEnd)
+{
+    FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
+    if (!C) return false;
+
+    const FString Path = FPaths::ProjectSavedDir() / TEXT("PCAPTool/Identity")
+        / FString::Printf(TEXT("%s_calib_%s.png"), *DeviceName, bEnd ? TEXT("end") : TEXT("start"));
+    if (!SaveCameraStillPng(DeviceName, CameraIndex, Path)) return false;
+
+    if (bEnd) { C->CalibEndStillPath   = Path; C->bCalibEndCaptured   = true; }
+    else      { C->CalibStartStillPath = Path; C->bCalibStartCaptured = true; }
     SaveConfig();
     return true;
 }
