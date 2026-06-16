@@ -3,13 +3,11 @@
 #include "MocapDatabase.h"
 #include "PCAPToolSettings.h"
 #include "PCAPToolPaths.h"
-#include "PCAPLiveSubjects.h"
 
 #include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBox.h"
-#include "Widgets/Layout/SWrapBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
@@ -61,8 +59,6 @@ void SPCAPPropDatabasePanel::Construct(const FArguments& InArgs)
                           [ SNew(SEditableTextBox).HintText(LOCTEXT("NewHint", "+ new propID  ↵")).OnTextCommitted(this, &SPCAPPropDatabasePanel::OnNewPropCommitted) ] ]
                     ]
                 ]
-                + SVerticalBox::Slot().AutoHeight().Padding(FMargin(6.f, 4.f, 6.f, 0.f))
-                [ SAssignNew(StreamingBox, SBox) ]
                 + SVerticalBox::Slot().FillHeight(1.f).Padding(FMargin(6.f))
                 [
                     SNew(SOverlay)
@@ -102,8 +98,6 @@ void SPCAPPropDatabasePanel::Construct(const FArguments& InArgs)
     ];
 
     ReloadProps();
-    RefreshStreaming();
-    RegisterActiveTimer(3.0f, FWidgetActiveTimerDelegate::CreateSP(this, &SPCAPPropDatabasePanel::TickStreaming));
 }
 
 void SPCAPPropDatabasePanel::ReloadProps()
@@ -326,66 +320,6 @@ TSharedRef<SWidget> SPCAPPropDatabasePanel::BuildDetailFor(UPropRosterEntry* Ent
             ]
         ]
     ];
-}
-
-// ── Streaming-now strip: capture untracked live Shogun subjects as props ────
-
-void SPCAPPropDatabasePanel::RefreshStreaming()
-{
-    if (!StreamingBox.IsValid()) return;
-
-    const TArray<FString> Untracked = PCAPLiveSubjects::GetUntracked();
-    if (Untracked.Num() == 0)
-    {
-        StreamingBox->SetContent(SNew(SBox));   // nothing untracked → collapse the strip
-        return;
-    }
-
-    TSharedRef<SWrapBox> Chips = SNew(SWrapBox).UseAllottedSize(true);
-    for (const FString& Name : Untracked)
-    {
-        Chips->AddSlot().Padding(3.f, 2.f)
-        [
-            SNew(SButton)
-            .ContentPadding(FMargin(8.f, 3.f))
-            .ToolTipText(FText::FromString(FString::Printf(TEXT("Add '%s' as a prop, bound to the live subject"), *Name)))
-            .OnClicked_Lambda([this, Name]()
-            {
-                if (UPropRosterEntry* E = CreatePropAsset(Name))
-                {
-                    E->DefaultLiveLinkName = FName(*Name);
-                    SavePropAsset(E);
-                    ReloadProps();
-                    RefreshStreaming();
-                    if (TileView.IsValid()) TileView->SetSelection(TWeakObjectPtr<UPropRosterEntry>(E));
-                }
-                return FReply::Handled();
-            })
-            [
-                SNew(SHorizontalBox)
-                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-                [ SNew(STextBlock).Text(FText::FromString(Name)) ]
-                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(7.f, 0.f, 0.f, 0.f)
-                [ SNew(STextBlock).Text(LOCTEXT("AddProp", "+ prop")).ColorAndOpacity(FSlateColor(ColGreen)) ]
-            ]
-        ];
-    }
-
-    StreamingBox->SetContent(
-        SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(8.f, 5.f))
-        [
-            SNew(SVerticalBox)
-            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
-            [ SNew(STextBlock).Text(LOCTEXT("StreamHdr", "Streaming now — not yet tracked")).ColorAndOpacity(FSlateColor(ColText2)) ]
-            + SVerticalBox::Slot().AutoHeight()
-            [ Chips ]
-        ]);
-}
-
-EActiveTimerReturnType SPCAPPropDatabasePanel::TickStreaming(double, float)
-{
-    RefreshStreaming();
-    return EActiveTimerReturnType::Continue;
 }
 
 #undef LOCTEXT_NAMESPACE

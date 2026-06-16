@@ -34,7 +34,6 @@ private:
 
     TSharedPtr<STileView<TWeakObjectPtr<UActorRosterEntry>>> TileView;
     TSharedPtr<SBox> DetailBox;                          // holds the selected actor's detail card
-    TSharedPtr<SBox> StreamingBox;                       // "streaming now, untracked" capture strip
     TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
     TMap<TWeakObjectPtr<UActorRosterEntry>, TSharedPtr<FAssetThumbnail>> TileThumbnails;   // keeps card thumbs alive
     TSharedPtr<FAssetThumbnail> DetailThumbnail;
@@ -53,8 +52,6 @@ private:
     FReply OnRefreshClicked();
 
     void CloseDetail();
-    void RefreshStreaming();                                      // rebuild the untracked-subjects strip
-    EActiveTimerReturnType TickStreaming(double InCurrentTime, float InDeltaTime);
     TSharedRef<SWidget> BuildDetailFor(UActorRosterEntry* Entry);
     static UObject* ResolvePreview(UActorRosterEntry* Entry);   // headshot ?? MetaHuman ?? face scan
 

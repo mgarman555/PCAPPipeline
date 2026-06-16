@@ -33,7 +33,6 @@ private:
 
     TSharedPtr<STileView<TWeakObjectPtr<UPropRosterEntry>>> TileView;
     TSharedPtr<SBox> DetailBox;
-    TSharedPtr<SBox> StreamingBox;   // "streaming now, untracked" capture strip
     TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
     TMap<TWeakObjectPtr<UPropRosterEntry>, TSharedPtr<FAssetThumbnail>> TileThumbnails;
     TSharedPtr<FAssetThumbnail> DetailThumbnail;
@@ -51,8 +50,6 @@ private:
     void OnNewPropCommitted(const FText& Text, ETextCommit::Type CommitType);
 
     void CloseDetail();
-    void RefreshStreaming();                                      // rebuild the untracked-subjects strip
-    EActiveTimerReturnType TickStreaming(double InCurrentTime, float InDeltaTime);
     TSharedRef<SWidget> BuildDetailFor(UPropRosterEntry* Entry);
 
     const FLinearColor ColGreen = FLinearColor(0.290f, 0.878f, 0.502f);
