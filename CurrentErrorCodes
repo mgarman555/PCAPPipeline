@@ -1,290 +1,293 @@
-Build started at 2:48 PM...
+Build started at 4:02 PM...
 1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
 1>Using bundled DotNet SDK version: 8.0.412 win-x64
 1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
 1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
 1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
-1>Invalidating makefile for PCAPPipelineEditor (source file added)
-1>UHT compiled-in object format Default
 1>Parsing headers for PCAPPipelineEditor
 1>  Running Internal UnrealHeaderTool C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject C:\Users\mocapstaff\Desktop\PCAPPipeline\Intermediate\Build\Win64\PCAPPipelineEditor\Development\PCAPPipelineEditor.uhtmanifest -WarningsAsErrors -installed
-1>UHT processed PCAPPipelineEditor in 0.8204253 seconds (3 files written)
+1>UHT processed PCAPPipelineEditor in 1.2045594 seconds (7 files written)
 1>Building PCAPPipelineEditor...
 1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
 1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
 1>  Executing up to 32 processes, one per physical core
 1>Using Unreal Build Accelerator local executor to run 7 action(s)
 1>  Storage capacity 40Gb
-1>---- Starting trace: 260615_144823_vs38252 ----
+1>---- Starting trace: 260616_160229_vs60200 ----
 1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
 1>[1/7] Compile [x64] Module.PCAPTool.2.cpp
 1>[2/7] Compile [x64] Module.PCAPTool.1.cpp
 1>[3/7] Compile [x64] Module.PCAPTool.4.cpp
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\ViconDataStreamSDK\IDataStreamClientBase.h(43,13): error C2059: syntax error: 'constant'
-1>  namespace CPP
-1>            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\ViconDataStreamSDK\IDataStreamClientBase.h(44,3): error C2143: syntax error: missing ';' before '{'
-1>  {
-1>  ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\ViconDataStreamSDK\IDataStreamClientBase.h(44,3): error C2447: '{': missing function header (old-style formal list?)
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\ViconDataStreamSDK\DataStreamClient.h(24,13): error C2059: syntax error: 'constant'
-1>  namespace CPP
-1>            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\ViconDataStreamSDK\DataStreamClient.h(25,3): error C2143: syntax error: missing ';' before '{'
-1>  {
-1>  ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\LiveLinkViconDataStream\Source\ThirdParty\ViconDataStreamSDK\DataStreamClient.h(25,3): error C2447: '{': missing function header (old-style formal list?)
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(61,41): error C2589: 'constant': illegal token on right side of '::'
-1>    using namespace ViconDataStreamSDK::CPP;
-1>                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(61,21): error C2062: type '<error type>' unexpected
-1>    using namespace ViconDataStreamSDK::CPP;
-1>                    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(62,5): error C2065: 'Client': undeclared identifier
-1>    Client C;
-1>    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(62,12): error C2146: syntax error: missing ';' before identifier 'C'
-1>    Client C;
-1>           ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(62,12): error C2065: 'C': undeclared identifier
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(66,13): error C2065: 'C': undeclared identifier
-1>        if (C.Connect(String(H)).Result != Result::Success)
-1>            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(66,23): error C3861: 'String': identifier not found
-1>        if (C.Connect(String(H)).Result != Result::Success)
-1>                      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(66,44): error C2653: 'Result': is not a class or namespace name
-1>        if (C.Connect(String(H)).Result != Result::Success)
-1>                                           ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(66,52): error C2065: 'Success': undeclared identifier
-1>        if (C.Connect(String(H)).Result != Result::Success)
-1>                                                   ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(71,5): error C2065: 'C': undeclared identifier
-1>    C.SetStreamMode(StreamMode::ServerPush);
-1>    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(71,21): error C2653: 'StreamMode': is not a class or namespace name
-1>    C.SetStreamMode(StreamMode::ServerPush);
-1>                    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(71,33): error C2065: 'ServerPush': undeclared identifier
-1>    C.SetStreamMode(StreamMode::ServerPush);
-1>                                ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(72,5): error C2065: 'C': undeclared identifier
-1>    C.EnableMarkerData();
-1>    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(73,5): error C2065: 'C': undeclared identifier
-1>    C.EnableUnlabeledMarkerData();
-1>    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(78,13): error C2065: 'C': undeclared identifier
-1>        if (C.GetFrame().Result != Result::Success)
-1>            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(78,36): error C2653: 'Result': is not a class or namespace name
-1>        if (C.GetFrame().Result != Result::Success)
-1>                                   ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(78,44): error C2065: 'Success': undeclared identifier
-1>        if (C.GetFrame().Result != Result::Success)
-1>                                           ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(87,43): error C2065: 'C': undeclared identifier
-1>        const unsigned int SubjectCount = C.GetSubjectCount().SubjectCount;
-1>                                          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(87,28): error C2737: 'SubjectCount': const object must be initialized
-1>        const unsigned int SubjectCount = C.GetSubjectCount().SubjectCount;
-1>                           ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(90,13): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-1>            const String Subject = C.GetSubjectName(s).SubjectName;
-1>            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(90,26): error C2146: syntax error: missing ';' before identifier 'Subject'
-1>            const String Subject = C.GetSubjectName(s).SubjectName;
-1>                         ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(90,26): error C2065: 'Subject': undeclared identifier
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(90,36): error C2065: 'C': undeclared identifier
-1>            const String Subject = C.GetSubjectName(s).SubjectName;
-1>                                   ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(92,39): error C2065: 'Subject': undeclared identifier
-1>            Group.SubjectName = FName(UTF8_TO_TCHAR(((std::string)Subject).c_str()));
-1>                                      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(94,46): error C2065: 'C': undeclared identifier
-1>            const unsigned int MarkerCount = C.GetMarkerCount(Subject).MarkerCount;
-1>                                             ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(94,63): error C2065: 'Subject': undeclared identifier
-1>            const unsigned int MarkerCount = C.GetMarkerCount(Subject).MarkerCount;
-1>                                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(94,32): error C2737: 'MarkerCount': const object must be initialized
-1>            const unsigned int MarkerCount = C.GetMarkerCount(Subject).MarkerCount;
-1>                               ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(97,17): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-1>                const String MarkerName = C.GetMarkerName(Subject, m).MarkerName;
-1>                ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(97,23): error C4456: declaration of 'String' hides previous local declaration
-1>                const String MarkerName = C.GetMarkerName(Subject, m).MarkerName;
-1>                      ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(90,19): note: see declaration of 'String'
-1>            const String Subject = C.GetSubjectName(s).SubjectName;
-1>                  ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(97,30): error C2146: syntax error: missing ';' before identifier 'MarkerName'
-1>                const String MarkerName = C.GetMarkerName(Subject, m).MarkerName;
-1>                             ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(97,30): error C2065: 'MarkerName': undeclared identifier
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(97,43): error C2065: 'C': undeclared identifier
-1>                const String MarkerName = C.GetMarkerName(Subject, m).MarkerName;
-1>                                          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(97,59): error C2065: 'Subject': undeclared identifier
-1>                const String MarkerName = C.GetMarkerName(Subject, m).MarkerName;
-1>                                                          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(98,17): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-1>                const Output_GetMarkerGlobalTranslation T = C.GetMarkerGlobalTranslation(Subject, MarkerName);
-1>                ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(98,57): error C2146: syntax error: missing ';' before identifier 'T'
-1>                const Output_GetMarkerGlobalTranslation T = C.GetMarkerGlobalTranslation(Subject, MarkerName);
-1>                                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(98,57): error C2065: 'T': undeclared identifier
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(98,61): error C2065: 'C': undeclared identifier
-1>                const Output_GetMarkerGlobalTranslation T = C.GetMarkerGlobalTranslation(Subject, MarkerName);
-1>                                                            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(98,90): error C2065: 'Subject': undeclared identifier
-1>                const Output_GetMarkerGlobalTranslation T = C.GetMarkerGlobalTranslation(Subject, MarkerName);
-1>                                                                                         ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(98,99): error C2065: 'MarkerName': undeclared identifier
-1>                const Output_GetMarkerGlobalTranslation T = C.GetMarkerGlobalTranslation(Subject, MarkerName);
-1>                                                                                                  ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(99,21): error C2065: 'T': undeclared identifier
-1>                if (T.Result == Result::Success && !T.Occluded)
-1>                    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(99,33): error C2653: 'Result': is not a class or namespace name
-1>                if (T.Result == Result::Success && !T.Occluded)
-1>                                ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(99,41): error C2065: 'Success': undeclared identifier
-1>                if (T.Result == Result::Success && !T.Occluded)
-1>                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(99,53): error C2065: 'T': undeclared identifier
-1>                if (T.Result == Result::Success && !T.Occluded)
-1>                                                    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(101,59): error C2065: 'T': undeclared identifier
-1>                    Group.Points.Add(PCAPViz::ViconMMToUE(T.Translation[0], T.Translation[1], T.Translation[2]));
-1>                                                          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(101,77): error C2065: 'T': undeclared identifier
-1>                    Group.Points.Add(PCAPViz::ViconMMToUE(T.Translation[0], T.Translation[1], T.Translation[2]));
-1>                                                                            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(101,95): error C2065: 'T': undeclared identifier
-1>                    Group.Points.Add(PCAPViz::ViconMMToUE(T.Translation[0], T.Translation[1], T.Translation[2]));
-1>                                                                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(101,47): error C2660: 'PCAPViz::ViconMMToUE': function does not take 1 arguments
-1>                    Group.Points.Add(PCAPViz::ViconMMToUE(T.Translation[0], T.Translation[1], T.Translation[2]));
-1>                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPMarkerSource.h(38,26): note: see declaration of 'PCAPViz::ViconMMToUE'
-1>    PCAPTOOL_API FVector ViconMMToUE(double X, double Y, double Z);
-1>                         ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(101,47): note: while trying to match the argument list '()'
-1>                    Group.Points.Add(PCAPViz::ViconMMToUE(T.Translation[0], T.Translation[1], T.Translation[2]));
-1>                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(108,45): error C2065: 'C': undeclared identifier
-1>        const unsigned int UnlabeledCount = C.GetUnlabeledMarkerCount().MarkerCount;
-1>                                            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(108,28): error C2737: 'UnlabeledCount': const object must be initialized
-1>        const unsigned int UnlabeledCount = C.GetUnlabeledMarkerCount().MarkerCount;
-1>                           ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(111,13): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-1>            const Output_GetUnlabeledMarkerGlobalTranslation T = C.GetUnlabeledMarkerGlobalTranslation(u);
-1>            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(111,62): error C2146: syntax error: missing ';' before identifier 'T'
-1>            const Output_GetUnlabeledMarkerGlobalTranslation T = C.GetUnlabeledMarkerGlobalTranslation(u);
-1>                                                             ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(111,62): error C2065: 'T': undeclared identifier
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(111,66): error C2065: 'C': undeclared identifier
-1>            const Output_GetUnlabeledMarkerGlobalTranslation T = C.GetUnlabeledMarkerGlobalTranslation(u);
-1>                                                                 ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(112,17): error C2065: 'T': undeclared identifier
-1>            if (T.Result == Result::Success)
-1>                ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(112,29): error C2653: 'Result': is not a class or namespace name
-1>            if (T.Result == Result::Success)
-1>                            ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(112,37): error C2065: 'Success': undeclared identifier
-1>            if (T.Result == Result::Success)
-1>                                    ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(114,54): error C2065: 'T': undeclared identifier
-1>                F.Unlabeled.Add(PCAPViz::ViconMMToUE(T.Translation[0], T.Translation[1], T.Translation[2]));
-1>                                                     ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(114,72): error C2065: 'T': undeclared identifier
-1>                F.Unlabeled.Add(PCAPViz::ViconMMToUE(T.Translation[0], T.Translation[1], T.Translation[2]));
-1>                                                                       ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(114,90): error C2065: 'T': undeclared identifier
-1>                F.Unlabeled.Add(PCAPViz::ViconMMToUE(T.Translation[0], T.Translation[1], T.Translation[2]));
-1>                                                                                         ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(114,42): error C2660: 'PCAPViz::ViconMMToUE': function does not take 1 arguments
-1>                F.Unlabeled.Add(PCAPViz::ViconMMToUE(T.Translation[0], T.Translation[1], T.Translation[2]));
-1>                                         ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\PCAPMarkerSource.h(38,26): note: see declaration of 'PCAPViz::ViconMMToUE'
-1>    PCAPTOOL_API FVector ViconMMToUE(double X, double Y, double Z);
-1>                         ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(114,42): note: while trying to match the argument list '()'
-1>                F.Unlabeled.Add(PCAPViz::ViconMMToUE(T.Translation[0], T.Translation[1], T.Translation[2]));
-1>                                         ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\PCAPViconSDKMarkerSource.cpp(124,5): error C2065: 'C': undeclared identifier
-1>    C.Disconnect();
-1>    ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(12,12): error C3861: 'ETypedElementWorldType': identifier not found
-1>enum class ETypedElementWorldType : uint8;
-1>           ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(12,12): error C2649: 'typename': is not a 'enum'
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(56,66): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-1>	virtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType WorldType) const = 0;
-1>	                                                                ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(56,95): error C2146: syntax error: missing ')' before identifier 'WorldType'
-1>	virtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType WorldType) const = 0;
-1>	                                                                                             ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(56,95): error C3646: 'WorldType': unknown override specifier
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(56,104): error C2059: syntax error: ')'
-1>	virtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType WorldType) const = 0;
-1>	                                                                                                      ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(56,106): error C2143: syntax error: missing ';' before 'const'
-1>	virtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType WorldType) const = 0;
-1>	                                                                                                        ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(56,106): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(56,112): error C2059: syntax error: '='
-1>	virtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType WorldType) const = 0;
-1>	                                                                                                              ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(56,115): error C2238: unexpected token(s) preceding ';'
-1>	virtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType WorldType) const = 0;
-1>	                                                                                                                 ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(234,25): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-1>	bool CanMoveSMInstance(const ETypedElementWorldType WorldType) const { return InstanceManager->CanMoveSMInstance(InstanceId, WorldType); }
-1>	                       ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(234,54): error C2146: syntax error: missing ')' before identifier 'WorldType'
-1>	bool CanMoveSMInstance(const ETypedElementWorldType WorldType) const { return InstanceManager->CanMoveSMInstance(InstanceId, WorldType); }
-1>	                                                    ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(234,54): error C3646: 'WorldType': unknown override specifier
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(234,63): error C2059: syntax error: ')'
-1>	bool CanMoveSMInstance(const ETypedElementWorldType WorldType) const { return InstanceManager->CanMoveSMInstance(InstanceId, WorldType); }
-1>	                                                             ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(234,65): error C2143: syntax error: missing ';' before 'const'
-1>	bool CanMoveSMInstance(const ETypedElementWorldType WorldType) const { return InstanceManager->CanMoveSMInstance(InstanceId, WorldType); }
-1>	                                                               ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(234,65): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(234,71): error C2059: syntax error: '{'
-1>	bool CanMoveSMInstance(const ETypedElementWorldType WorldType) const { return InstanceManager->CanMoveSMInstance(InstanceId, WorldType); }
-1>	                                                                     ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Public\Elements\SMInstance\SMInstanceManager.h(234,71): error C2334: unexpected token(s) preceding '{'; skipping apparent function body
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Classes\Components\InstancedStaticMeshComponent.h(775,77): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-1>	ENGINE_API virtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType InWorldType) const override;
-1>	                                                                           ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Classes\Components\InstancedStaticMeshComponent.h(775,106): error C2146: syntax error: missing ')' before identifier 'InWorldType'
-1>	ENGINE_API virtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType InWorldType) const override;
-1>	                                                                                                        ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Classes\Components\InstancedStaticMeshComponent.h(775,106): error C3646: 'InWorldType': unknown override specifier
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Classes\Components\InstancedStaticMeshComponent.h(775,117): error C2059: syntax error: ')'
-1>	ENGINE_API virtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType InWorldType) const override;
-1>	                                                                                                                   ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Classes\Components\InstancedStaticMeshComponent.h(775,119): error C2143: syntax error: missing ';' before 'const'
-1>	ENGINE_API virtual bool CanMoveSMInstance(const FSMInstanceId& InstanceId, const ETypedElementWorldType InWorldType) const override;
-1>	                                                                                                                     ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Engine\Classes\Components\InstancedStaticMeshComponent.h(775,119): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,128): error C2039: 'DisplayName': is not a member of 'UActorRosterEntry'
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                                               ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\ActorRosterEntry.h(12,20): note: see declaration of 'UActorRosterEntry'
+1>class PCAPTOOL_API UActorRosterEntry : public UDataAsset
+1>                   ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,107): error C2665: 'TArray<TTuple<KeyType,ValueType>,FDefaultAllocator>::Add': no overloaded function could convert all the argument types
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                          ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Containers\Array.h(2709,42): note: could be 'int TArray<TTuple<KeyType,ValueType>,FDefaultAllocator>::Add(const TTuple<KeyType,ValueType> &)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	UE_NODEBUG UE_FORCEINLINE_HINT SizeType Add(const ElementType& Item)
+1>	                                        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,107): note: 'int TArray<TTuple<KeyType,ValueType>,FDefaultAllocator>::Add(const TTuple<KeyType,ValueType> &)': cannot convert argument 1 from 'initializer list' to 'const TTuple<KeyType,ValueType> &'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: Reason: cannot convert from 'initializer list' to 'const TTuple<KeyType,ValueType>'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                              ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple': no overloaded function could convert all the argument types
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(680,2): note: could be 'TTuple<KeyType,ValueType>::TTuple(const TTuple<KeyType,ValueType> &)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	TTuple(const TTuple&) = default;
+1>	^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple(const TTuple<KeyType,ValueType> &)': cannot convert argument 1 from 'FString' to 'const TTuple<KeyType,ValueType> &'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                              ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: Reason: cannot convert from 'FString' to 'const TTuple<KeyType,ValueType>'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                                 ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(679,2): note: or       'TTuple<KeyType,ValueType>::TTuple(TTuple<KeyType,ValueType> &&)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	TTuple(TTuple&&) = default;
+1>	^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple(TTuple<KeyType,ValueType> &&)': cannot convert argument 1 from 'FString' to 'TTuple<KeyType,ValueType> &&'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                              ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: Reason: cannot convert from 'FString' to 'TTuple<KeyType,ValueType>'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                                 ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(678,2): note: or       'TTuple<KeyType,ValueType>::TTuple(void)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	constexpr TTuple() requires (std::is_default_constructible_v<Types> && ...) = default;
+1>	^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple': function does not take 1 arguments
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                              ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(673,2): note: or       'TTuple<KeyType,ValueType>::TTuple(const TTuple<OtherTypes...> &)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	TTuple(const TTuple<OtherTypes...>& Other)
+1>	^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(666,2): note: or       'TTuple<KeyType,ValueType>::TTuple(TTuple<OtherTypes...> &&)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	TTuple(TTuple<OtherTypes...>&& Other)
+1>	^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(659,2): note: or       'TTuple<KeyType,ValueType>::TTuple(ArgTypes ...)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	constexpr explicit(!std::conjunction_v<std::is_convertible<ArgTypes&&, Types>...>) TTuple(ArgTypes&&... Args)
+1>	^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: while trying to match the argument list '(FString)'
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                              ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Containers\Array.h(2696,42): note: or       'int TArray<TTuple<KeyType,ValueType>,FDefaultAllocator>::Add(TTuple<KeyType,ValueType> &&)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	UE_NODEBUG UE_FORCEINLINE_HINT SizeType Add(ElementType&& Item)
+1>	                                        ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,107): note: 'int TArray<TTuple<KeyType,ValueType>,FDefaultAllocator>::Add(TTuple<KeyType,ValueType> &&)': cannot convert argument 1 from 'initializer list' to 'TTuple<KeyType,ValueType> &&'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                          ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: Reason: cannot convert from 'initializer list' to 'TTuple<KeyType,ValueType>'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                              ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple': no overloaded function could convert all the argument types
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(680,2): note: could be 'TTuple<KeyType,ValueType>::TTuple(const TTuple<KeyType,ValueType> &)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	TTuple(const TTuple&) = default;
+1>	^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple(const TTuple<KeyType,ValueType> &)': cannot convert argument 1 from 'FString' to 'const TTuple<KeyType,ValueType> &'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                              ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: Reason: cannot convert from 'FString' to 'const TTuple<KeyType,ValueType>'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                                 ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(679,2): note: or       'TTuple<KeyType,ValueType>::TTuple(TTuple<KeyType,ValueType> &&)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	TTuple(TTuple&&) = default;
+1>	^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple(TTuple<KeyType,ValueType> &&)': cannot convert argument 1 from 'FString' to 'TTuple<KeyType,ValueType> &&'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                              ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: Reason: cannot convert from 'FString' to 'TTuple<KeyType,ValueType>'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                                 ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(678,2): note: or       'TTuple<KeyType,ValueType>::TTuple(void)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	constexpr TTuple() requires (std::is_default_constructible_v<Types> && ...) = default;
+1>	^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple': function does not take 1 arguments
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                              ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(673,2): note: or       'TTuple<KeyType,ValueType>::TTuple(const TTuple<OtherTypes...> &)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	TTuple(const TTuple<OtherTypes...>& Other)
+1>	^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(666,2): note: or       'TTuple<KeyType,ValueType>::TTuple(TTuple<OtherTypes...> &&)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	TTuple(TTuple<OtherTypes...>&& Other)
+1>	^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(659,2): note: or       'TTuple<KeyType,ValueType>::TTuple(ArgTypes ...)'
+1>        with
+1>        [
+1>            KeyType=FString,
+1>            ValueType=FString
+1>        ]
+1>	constexpr explicit(!std::conjunction_v<std::is_convertible<ArgTypes&&, Types>...>) TTuple(ArgTypes&&... Args)
+1>	^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: while trying to match the argument list '(FString)'
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                              ^
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,107): note: while trying to match the argument list '(initializer list)'
+1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
+1>                                                                                                          ^
 1>[4/7] Compile [x64] Module.PCAPTool.3.cpp
-1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 12.4kb
-1>Total time in Unreal Build Accelerator local executor: 5.61 seconds
+1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 10.5kb
+1>Total time in Unreal Build Accelerator local executor: 5.85 seconds
 1>
 1>Result: Failed (OtherCompilationError)
-1>Total execution time: 9.38 seconds
+1>Total execution time: 7.94 seconds
 1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
 1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
 ========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 2:48 PM and took 10.423 seconds ==========
+========== Build completed at 4:02 PM and took 08.879 seconds ==========
