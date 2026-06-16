@@ -11,3 +11,6 @@ DerivedDataCache/
 *.xcworkspace
 *.xcodeproj
 Build/
+
+# Brainstorming visual companion (local only)
+.superpowers/
