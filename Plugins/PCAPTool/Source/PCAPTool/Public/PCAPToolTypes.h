@@ -850,6 +850,9 @@ struct PCAPTOOL_API FShootDay
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
     TArray<FString> CalledPropIDs;    // → UPropRosterEntry.PropID
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
+    TArray<FString> CalledVCamIDs;    // → UPCAPVCamConfig asset name
 };
 
 USTRUCT(BlueprintType)

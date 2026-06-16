@@ -197,6 +197,21 @@ void UMocapDatabase::SetPropCalled(const FString& PropID, bool bCalled)
     }
 }
 
+bool UMocapDatabase::IsVCamCalled(const FString& VCamID) const
+{
+    const FShootDay* Day = const_cast<UMocapDatabase*>(this)->GetDay(ActiveProductionCode, ActiveDayID);
+    return Day && Day->CalledVCamIDs.Contains(VCamID);
+}
+
+void UMocapDatabase::SetVCamCalled(const FString& VCamID, bool bCalled)
+{
+    if (FShootDay* Day = GetDay(ActiveProductionCode, ActiveDayID))
+    {
+        if (bCalled) Day->CalledVCamIDs.AddUnique(VCamID);
+        else         Day->CalledVCamIDs.Remove(VCamID);
+    }
+}
+
 bool UMocapDatabase::GetActiveDayReadiness(TArray<FString>& OutIssues) const
 {
     OutIssues.Reset();

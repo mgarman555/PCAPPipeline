@@ -62,6 +62,8 @@ public:
     void SetActorCalled(const FString& ActorID, bool bCalled);
     bool IsPropCalled(const FString& PropID) const;
     void SetPropCalled(const FString& PropID, bool bCalled);
+    bool IsVCamCalled(const FString& VCamID) const;
+    void SetVCamCalled(const FString& VCamID, bool bCalled);
 
     // Is the active day ready to shoot? OutIssues lists what's missing (empty = ready).
     bool GetActiveDayReadiness(TArray<FString>& OutIssues) const;
