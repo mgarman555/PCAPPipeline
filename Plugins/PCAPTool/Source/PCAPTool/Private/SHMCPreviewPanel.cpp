@@ -422,6 +422,11 @@ FString SHMCPreviewPanel::DeviceErrorText(const FString& DeviceName) const
             const FString Hint = Sub->GetFramingHint(DeviceName, Cam);
             if (!Hint.IsEmpty()) Msg += FString::Printf(TEXT(" (%s)"), *Hint);
         }
+        if (Flags & HMC_Issue_UnevenLight)
+        {
+            const FString LHint = Sub->GetLightingHint(DeviceName, Cam);
+            if (!LHint.IsEmpty()) Msg += FString::Printf(TEXT(" (%s)"), *LHint);
+        }
         return Msg;
     };
 

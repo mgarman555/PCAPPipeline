@@ -62,6 +62,9 @@ private:
     // ── Capture Monitor: pipeline + automatic checks + framing reference ──────
     TSharedRef<SWidget> BuildCaptureMonitor();
     TSharedRef<SWidget> BuildPipelineDropdown();                 // ECapturePipeline picker
+    TSharedRef<SWidget> BuildConfigDropdown();                   // ECaptureConfiguration picker
+    TSharedRef<SWidget> BuildScanReadinessGate();               // prep / neutral / teeth / ROM + "ready to scan"
+    TSharedRef<SWidget> BuildFocusHelper();                     // capture sharp/soft -> propose FocusMin
     TSharedRef<SWidget> BuildCheckReadout(int32 CameraIndex);    // camera label + metrics + ref controls
     TSharedRef<SWidget> BuildCheckDot(const FString& Label, int32 FlagBit, int32 CameraIndex);
     // Coloured per-camera check box (green ok / red issue), shown below each feed's
@@ -74,6 +77,7 @@ private:
     // Aggregated red status line for the selected HMC (both cameras) — empty when good.
     FString SetupStatusText() const;
     static FString PipelineName(ECapturePipeline Pipeline);
+    static FString ConfigName(ECaptureConfiguration Config);
 
     // Issue-driven feed border + banner (mirrors Preview's look).
     FLinearColor FeedBorderColor(const FString& DeviceName, int32 CameraIndex) const;
@@ -91,8 +95,21 @@ private:
     void   OnCameraRoleChosen(int32 CameraIndex, int32 RoleValue);  // SetCameraRole
     void   OnBoomChosen(int32 Side);    // 0 = Left, 1 = Right
     void   OnPipelineChosen(int32 PipelineValue);   // SetDevicePipeline
+    void   OnConfigChosen(int32 ConfigValue);       // SetDeviceCaptureConfig
     FReply OnSetFramingRef(int32 CameraIndex);      // capture "where the face should be"
     FReply OnClearFramingRef(int32 CameraIndex);
+
+    // ── Scan-readiness gate + focus helper (operate on ActiveDeviceName) ──
+    int32  SubjectCameraIndex() const;              // camera with a subject (default 0)
+    FReply OnConfirmPrep();                          // toggle performer-prep confirmed
+    FReply OnCaptureNeutral();                       // save neutral identity still
+    FReply OnCaptureTeeth();                         // save teeth identity still
+    FReply OnRecordROM();                            // mark the ROM take captured
+    FReply OnCaptureFocusSharp();                    // sample focus on a sharp frame
+    FReply OnCaptureFocusSoft();                     // sample focus on a soft frame
+    FReply OnUseFocusMin();                          // propose + apply FocusMin override
+    float  FocusSharpSample = -1.f;
+    float  FocusSoftSample  = -1.f;
 
     FHMCDeviceStatus GetStatus(const FString& DeviceName) const;
     static UPCAPToolSubsystem* GetSubsystem();

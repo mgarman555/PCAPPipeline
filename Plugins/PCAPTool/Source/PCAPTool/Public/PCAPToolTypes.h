@@ -293,6 +293,18 @@ struct PCAPTOOL_API FHMCDeviceConfig
     // in HMC Preview. Persisted.
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool bPreppedForPreview = false;
+
+    // ── Scan readiness (per actor on this device) — drives the Setup gate ──
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bPerformerPrepConfirmed = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bNeutralCaptured = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bTeethCaptured   = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bROMCaptured     = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FString NeutralStillPath;   // PNG (Saved/PCAPTool/Identity)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FString TeethStillPath;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FString ROMTakeLabel;       // marked device take id/label
+
+    // Per-device tuned focus floor from the Setup focus helper; < 0 = use pipeline default.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) float FocusMinOverride = -1.f;
 };
 
 // ---------------------------------------------------------------------------

@@ -140,6 +140,14 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void SetDevicePipeline(const FString& DeviceName, ECapturePipeline Pipeline);
 
+    // Camera configuration (mono-tripod / mono-headmount / stereo-headmount). With the
+    // pipeline it selects the watcher definition (GetDefinition). Persisted.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    ECaptureConfiguration GetDeviceCaptureConfig(const FString& DeviceName) const;
+
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void SetDeviceCaptureConfig(const FString& DeviceName, ECaptureConfiguration Config);
+
     // Per-camera framing reference ("where the face should be"), captured at setup.
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     FHMCFramingRef GetFramingRef(const FString& DeviceName, int32 CameraIndex) const;
@@ -166,6 +174,34 @@ public:
     // — empty when the lighting reads even or there's no subject. Mirrors GetFramingHint.
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     FString GetLightingHint(const FString& DeviceName, int32 CameraIndex) const;
+
+    // ─── Scan readiness (per-actor calibration gate) + focus helper ─────────────
+
+    // Full device config snapshot (for the Setup gate to read its state).
+    FHMCDeviceConfig GetDeviceConfig(const FString& DeviceName) const;
+
+    // Save the camera's current frame as the actor's neutral (bTeeth=false) or teeth
+    // (bTeeth=true) identity still — PNG under Saved/PCAPTool/Identity. False if there's
+    // no cached frame yet.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    bool CaptureIdentityStill(const FString& DeviceName, int32 CameraIndex, bool bTeeth);
+
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void SetPerformerPrepConfirmed(const FString& DeviceName, bool bConfirmed);
+
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void MarkROMCaptured(const FString& DeviceName, const FString& TakeLabel);
+
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void ClearScanReadiness(const FString& DeviceName);
+
+    // True when prep confirmed + neutral + ROM captured AND both cameras read clear.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    bool IsReadyToScan(const FString& DeviceName) const;
+
+    // Per-device focus floor from the Setup focus helper (< 0 = use pipeline default).
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void SetFocusMinOverride(const FString& DeviceName, float Value);
 
     // ─── Prepped for Preview ────────────────────────────────────────────────────
     // Only prepped devices appear in HMC Preview. Set by the "Prepped for Preview"
@@ -212,6 +248,11 @@ private:
     TMap<FString, double>           LastAnalyzeTime;   // last analysis timestamp per cam
     TMap<FString, int32>            StableAutoFlags;   // hysteresis-stable auto flags per cam
     TMap<FString, int32>            AutoFlagHold;      // per "Cam|bit" integrator counter
+
+    // Latest decoded BGRA per camera (for identity-still capture). Overwritten each
+    // analyzed frame; keyed "DeviceName_Cam".
+    TMap<FString, TArray<uint8>> LastFrameBGRA;
+    TMap<FString, FIntPoint>     LastFrameDims;
 
     // Mount-stability detection: subject-centroid history per camera (~last 2s at the
     // ~5Hz rate) for instability variance, plus a per-camera "bumped until" timestamp

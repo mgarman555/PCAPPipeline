@@ -629,27 +629,8 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildSetupFeed(int32 CameraIndex, const FStr
                             ]
                         ]
 
-                        // Framing target guide — faint crosshair at the pipeline target
-                        // centre (0.5,0.5 for MetaHuman HMC). Align the face to it, then
-                        // hit "Set reference". HitTestInvisible so it never blocks input.
-                        + SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Fill)
-                        [
-                            SNew(SBox).WidthOverride(2.f).Visibility(EVisibility::HitTestInvisible)
-                            [
-                                SNew(SBorder)
-                                .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
-                                .BorderBackgroundColor(FLinearColor(1.f, 1.f, 1.f, 0.22f))
-                            ]
-                        ]
-                        + SOverlay::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center)
-                        [
-                            SNew(SBox).HeightOverride(2.f).Visibility(EVisibility::HitTestInvisible)
-                            [
-                                SNew(SBorder)
-                                .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
-                                .BorderBackgroundColor(FLinearColor(1.f, 1.f, 1.f, 0.22f))
-                            ]
-                        ]
+                        // (Framing crosshair removed — clean feed by design; the watcher
+                        //  reports framing in the status line, not as an overlay on the face.)
 
                         // Issue banner across the top
                         + SOverlay::Slot().VAlign(VAlign_Top)
@@ -844,7 +825,7 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCaptureMonitor()
             .Text(FText::FromString(TEXT("CAPTURE MONITOR")))
             .ColorAndOpacity(FSlateColor(ColMuted))
         ]
-        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 8)
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 12, 0)
@@ -854,8 +835,20 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCaptureMonitor()
             ]
             + SHorizontalBox::Slot().AutoWidth() [ BuildPipelineDropdown() ]
         ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 8)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 12, 0)
+            [
+                SNew(SBox).WidthOverride(90.f)
+                [ SNew(STextBlock).Text(FText::FromString(TEXT("CAMERA SETUP"))).ColorAndOpacity(FSlateColor(ColMuted)) ]
+            ]
+            + SHorizontalBox::Slot().AutoWidth() [ BuildConfigDropdown() ]
+        ]
         + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCheckReadout(0) ]
-        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCheckReadout(1) ];
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCheckReadout(1) ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 6, 0, 4) [ BuildScanReadinessGate() ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildFocusHelper() ];
 }
 
 TSharedRef<SWidget> SHMCSetupPanel::BuildPipelineDropdown()
@@ -882,6 +875,247 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildPipelineDropdown()
             }
             return MB.MakeWidget();
         });
+}
+
+FString SHMCSetupPanel::ConfigName(ECaptureConfiguration Config)
+{
+    switch (Config)
+    {
+        case ECaptureConfiguration::MonoTripod:      return TEXT("Mono - Tripod");
+        case ECaptureConfiguration::MonoHeadMount:   return TEXT("Mono - Head Mount");
+        case ECaptureConfiguration::StereoHeadMount: return TEXT("Stereo - Head Mount");
+        default:                                     return TEXT("Stereo - Head Mount");
+    }
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildConfigDropdown()
+{
+    return SNew(SComboButton)
+        .ButtonContent()
+        [
+            SNew(STextBlock).Text_Lambda([this]()
+            {
+                UPCAPToolSubsystem* Sub = GetSubsystem();
+                const ECaptureConfiguration C = (Sub && !ActiveDeviceName.IsEmpty())
+                    ? Sub->GetDeviceCaptureConfig(ActiveDeviceName) : ECaptureConfiguration::StereoHeadMount;
+                return FText::FromString(ConfigName(C));
+            })
+        ]
+        .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
+        {
+            FMenuBuilder MB(true, nullptr);
+            const ECaptureConfiguration Configs[] = {
+                ECaptureConfiguration::MonoTripod,
+                ECaptureConfiguration::MonoHeadMount,
+                ECaptureConfiguration::StereoHeadMount };
+            for (ECaptureConfiguration C : Configs)
+            {
+                MB.AddMenuEntry(FText::FromString(ConfigName(C)), FText::GetEmpty(), FSlateIcon(),
+                    FUIAction(FExecuteAction::CreateSP(this, &SHMCSetupPanel::OnConfigChosen, (int32)C)));
+            }
+            return MB.MakeWidget();
+        });
+}
+
+void SHMCSetupPanel::OnConfigChosen(int32 ConfigValue)
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+            Sub->SetDeviceCaptureConfig(ActiveDeviceName, (ECaptureConfiguration)ConfigValue);
+}
+
+int32 SHMCSetupPanel::SubjectCameraIndex() const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (Sub && !ActiveDeviceName.IsEmpty())
+    {
+        if (Sub->GetImageMetrics(ActiveDeviceName, 0).bHasSubject) return 0;
+        if (Sub->GetImageMetrics(ActiveDeviceName, 1).bHasSubject) return 1;
+    }
+    return 0;
+}
+
+FReply SHMCSetupPanel::OnConfirmPrep()
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+        {
+            const bool bNow = Sub->GetDeviceConfig(ActiveDeviceName).bPerformerPrepConfirmed;
+            Sub->SetPerformerPrepConfirmed(ActiveDeviceName, !bNow);   // toggle
+        }
+    return FReply::Handled();
+}
+
+FReply SHMCSetupPanel::OnCaptureNeutral()
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+            Sub->CaptureIdentityStill(ActiveDeviceName, SubjectCameraIndex(), false);
+    return FReply::Handled();
+}
+
+FReply SHMCSetupPanel::OnCaptureTeeth()
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+            Sub->CaptureIdentityStill(ActiveDeviceName, SubjectCameraIndex(), true);
+    return FReply::Handled();
+}
+
+FReply SHMCSetupPanel::OnRecordROM()
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+        {
+            const FString Take = GetStatus(ActiveDeviceName).CurrentTakeName;
+            Sub->MarkROMCaptured(ActiveDeviceName, Take.IsEmpty() ? TEXT("ROM") : Take);
+        }
+    return FReply::Handled();
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildScanReadinessGate()
+{
+    // One row: a state glyph (green check / grey ring), label + hint, and an action button.
+    auto GateRow = [this](const FString& Label, const FString& Hint,
+        TFunction<bool()> DoneFn, const FString& BtnText, FOnClicked OnClick) -> TSharedRef<SWidget>
+    {
+        return SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0, 0, 8, 0)
+            [
+                SNew(STextBlock)
+                .Text_Lambda([DoneFn]() { return FText::FromString(DoneFn() ? TEXT("✓") : TEXT("○")); })
+                .ColorAndOpacity_Lambda([this, DoneFn]() { return FSlateColor(DoneFn() ? ColGreen : ColGray); })
+            ]
+            + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+            [
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight()
+                [ SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColWhite)) ]
+                + SVerticalBox::Slot().AutoHeight()
+                [ SNew(STextBlock).Text(FText::FromString(Hint)).ColorAndOpacity(FSlateColor(ColMuted)) ]
+            ]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+            [ SNew(SButton).Text(FText::FromString(BtnText)).OnClicked(OnClick) ];
+    };
+
+    return SNew(SBorder)
+        .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+        .Padding(FMargin(8.f, 6.f))
+        [
+            SNew(SVerticalBox)
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 6)
+            [ SNew(STextBlock).Text(FText::FromString(TEXT("READY TO SCAN"))).ColorAndOpacity(FSlateColor(ColMuted)) ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 3)
+            [ GateRow(TEXT("Performer prep"), TEXT("no glasses / occlusion, light stubble"),
+                [this]() { UPCAPToolSubsystem* S = GetSubsystem(); return S && S->GetDeviceConfig(ActiveDeviceName).bPerformerPrepConfirmed; },
+                TEXT("Confirm"), FOnClicked::CreateSP(this, &SHMCSetupPanel::OnConfirmPrep)) ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 3)
+            [ GateRow(TEXT("Neutral frame"), TEXT("relaxed, teeth touching, facing forward"),
+                [this]() { UPCAPToolSubsystem* S = GetSubsystem(); return S && S->GetDeviceConfig(ActiveDeviceName).bNeutralCaptured; },
+                TEXT("Capture"), FOnClicked::CreateSP(this, &SHMCSetupPanel::OnCaptureNeutral)) ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 3)
+            [ GateRow(TEXT("Teeth frame"), TEXT("bared teeth (recommended)"),
+                [this]() { UPCAPToolSubsystem* S = GetSubsystem(); return S && S->GetDeviceConfig(ActiveDeviceName).bTeethCaptured; },
+                TEXT("Capture"), FOnClicked::CreateSP(this, &SHMCSetupPanel::OnCaptureTeeth)) ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 3)
+            [ GateRow(TEXT("Range of motion"), TEXT("expressions take (recorded on device)"),
+                [this]() { UPCAPToolSubsystem* S = GetSubsystem(); return S && S->GetDeviceConfig(ActiveDeviceName).bROMCaptured; },
+                TEXT("Mark"), FOnClicked::CreateSP(this, &SHMCSetupPanel::OnRecordROM)) ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 8, 0, 0)
+            [
+                SNew(SBorder)
+                .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                .Padding(FMargin(6.f, 4.f))
+                .BorderBackgroundColor_Lambda([this]()
+                {
+                    UPCAPToolSubsystem* S = GetSubsystem();
+                    const bool bReady = S && S->IsReadyToScan(ActiveDeviceName);
+                    const FLinearColor Base = bReady ? ColGreen : ColRed;
+                    return FSlateColor(FLinearColor(Base.R, Base.G, Base.B, 0.55f));
+                })
+                [
+                    SNew(STextBlock).ColorAndOpacity(FSlateColor(ColWhite))
+                    .Text_Lambda([this]() -> FText
+                    {
+                        UPCAPToolSubsystem* S = GetSubsystem();
+                        if (!S || ActiveDeviceName.IsEmpty()) return FText::FromString(TEXT("NOT READY"));
+                        if (S->IsReadyToScan(ActiveDeviceName)) return FText::FromString(TEXT("READY TO SCAN"));
+                        const FHMCDeviceConfig C = S->GetDeviceConfig(ActiveDeviceName);
+                        TArray<FString> Miss;
+                        if (!C.bPerformerPrepConfirmed) Miss.Add(TEXT("prep"));
+                        if (!C.bNeutralCaptured)        Miss.Add(TEXT("neutral"));
+                        if (!C.bROMCaptured)            Miss.Add(TEXT("ROM"));
+                        if (Miss.Num() == 0)            Miss.Add(TEXT("clear the live checks"));
+                        return FText::FromString(FString::Printf(TEXT("NOT READY · %s"), *FString::Join(Miss, TEXT(", "))));
+                    })
+                ]
+            ]
+        ];
+}
+
+FReply SHMCSetupPanel::OnCaptureFocusSharp()
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+            FocusSharpSample = Sub->GetImageMetrics(ActiveDeviceName, SubjectCameraIndex()).FocusScore;
+    return FReply::Handled();
+}
+
+FReply SHMCSetupPanel::OnCaptureFocusSoft()
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        if (!ActiveDeviceName.IsEmpty())
+            FocusSoftSample = Sub->GetImageMetrics(ActiveDeviceName, SubjectCameraIndex()).FocusScore;
+    return FReply::Handled();
+}
+
+FReply SHMCSetupPanel::OnUseFocusMin()
+{
+    if (FocusSharpSample >= 0.f && FocusSoftSample >= 0.f && FocusSharpSample > FocusSoftSample)
+        if (UPCAPToolSubsystem* Sub = GetSubsystem())
+            if (!ActiveDeviceName.IsEmpty())
+                Sub->SetFocusMinOverride(ActiveDeviceName, 0.5f * (FocusSharpSample + FocusSoftSample));
+    return FReply::Handled();
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildFocusHelper()
+{
+    return SNew(SBorder)
+        .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+        .Padding(FMargin(8.f, 6.f))
+        [
+            SNew(SVerticalBox)
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4)
+            [ SNew(STextBlock).Text(FText::FromString(TEXT("FOCUS HELPER"))).ColorAndOpacity(FSlateColor(ColMuted)) ]
+            + SVerticalBox::Slot().AutoHeight()
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 6, 0)
+                [ SNew(SButton).Text(FText::FromString(TEXT("Capture sharp"))).OnClicked(this, &SHMCSetupPanel::OnCaptureFocusSharp) ]
+                + SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 12, 0)
+                [ SNew(SButton).Text(FText::FromString(TEXT("Capture soft"))).OnClicked(this, &SHMCSetupPanel::OnCaptureFocusSoft) ]
+                + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+                [
+                    SNew(STextBlock).ColorAndOpacity(FSlateColor(ColMuted))
+                    .Text_Lambda([this]()
+                    {
+                        const FString Sh = (FocusSharpSample >= 0.f) ? FString::Printf(TEXT("%.3f"), FocusSharpSample) : FString(TEXT("-"));
+                        const FString So = (FocusSoftSample  >= 0.f) ? FString::Printf(TEXT("%.3f"), FocusSoftSample)  : FString(TEXT("-"));
+                        FString Pr = TEXT("-");
+                        if (FocusSharpSample >= 0.f && FocusSoftSample >= 0.f && FocusSharpSample > FocusSoftSample)
+                            Pr = FString::Printf(TEXT("%.3f"), 0.5f * (FocusSharpSample + FocusSoftSample));
+                        return FText::FromString(FString::Printf(TEXT("sharp %s · soft %s · FocusMin %s"), *Sh, *So, *Pr));
+                    })
+                ]
+                + SHorizontalBox::Slot().AutoWidth()
+                [ SNew(SButton).Text(FText::FromString(TEXT("Use"))).OnClicked(this, &SHMCSetupPanel::OnUseFocusMin) ]
+            ]
+        ];
 }
 
 TSharedRef<SWidget> SHMCSetupPanel::BuildCheckDot(const FString& Label, int32 FlagBit, int32 CameraIndex)

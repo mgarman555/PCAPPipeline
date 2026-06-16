@@ -588,15 +588,19 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
 
                 // Resolve this device's definition (pipeline x configuration) first so
                 // the focus measure is weighted to the pipeline's nasolabial band.
-                ECaptureConfiguration CaptureCfg = ECaptureConfiguration::StereoHeadMount;
-                if (const FHMCDeviceConfig* DC = RegisteredConfigs.Find(DeviceName)) CaptureCfg = DC->CaptureConfig;
-                const FPipelineCheckProfile Profile =
+                const FHMCDeviceConfig* DCfg = RegisteredConfigs.Find(DeviceName);
+                const ECaptureConfiguration CaptureCfg =
+                    DCfg ? DCfg->CaptureConfig : ECaptureConfiguration::StereoHeadMount;
+                FPipelineCheckProfile Profile =
                     UPCAPToolStatics::GetDefinition(GetDevicePipeline(DeviceName), CaptureCfg);
+                if (DCfg && DCfg->FocusMinOverride >= 0.f) Profile.FocusMin = DCfg->FocusMinOverride;
 
                 const FHMCImageMetrics M = UPCAPToolStatics::AnalyzeFrameBGRA(
                     Uncompressed, IW->GetWidth(), IW->GetHeight(),
                     Profile.FocusRegionCenter, Profile.FocusRegionExtent);
                 ImageMetrics.Add(CamKey, M);
+                LastFrameBGRA.Add(CamKey, Uncompressed);
+                LastFrameDims.Add(CamKey, FIntPoint(IW->GetWidth(), IW->GetHeight()));
 
                 // Mount stability from the subject centroid: a sudden jump = a bump
                 // (latched ~1.2s so a one-frame knock stays visible), and high variance
@@ -797,6 +801,14 @@ void UPCAPToolSubsystem::SaveConfig() const
         Obj->SetNumberField(TEXT("pipeline"), (double)(uint8)C.Pipeline);
         Obj->SetNumberField(TEXT("captureConfig"), (double)(uint8)C.CaptureConfig);
         Obj->SetBoolField(TEXT("preppedForPreview"), C.bPreppedForPreview);
+        Obj->SetBoolField(TEXT("performerPrepConfirmed"), C.bPerformerPrepConfirmed);
+        Obj->SetBoolField(TEXT("neutralCaptured"), C.bNeutralCaptured);
+        Obj->SetBoolField(TEXT("teethCaptured"), C.bTeethCaptured);
+        Obj->SetBoolField(TEXT("romCaptured"), C.bROMCaptured);
+        Obj->SetStringField(TEXT("neutralStillPath"), C.NeutralStillPath);
+        Obj->SetStringField(TEXT("teethStillPath"), C.TeethStillPath);
+        Obj->SetStringField(TEXT("romTakeLabel"), C.ROMTakeLabel);
+        Obj->SetNumberField(TEXT("focusMinOverride"), C.FocusMinOverride);
 
         auto WriteRef = [](const FHMCFramingRef& R) -> TSharedPtr<FJsonObject>
         {
@@ -854,6 +866,15 @@ void UPCAPToolSubsystem::LoadConfig()
         if (Obj->TryGetNumberField(TEXT("captureConfig"), CapCfg))
             Config.CaptureConfig = (ECaptureConfiguration)(uint8)CapCfg;
         Obj->TryGetBoolField(TEXT("preppedForPreview"), Config.bPreppedForPreview);
+        Obj->TryGetBoolField(TEXT("performerPrepConfirmed"), Config.bPerformerPrepConfirmed);
+        Obj->TryGetBoolField(TEXT("neutralCaptured"), Config.bNeutralCaptured);
+        Obj->TryGetBoolField(TEXT("teethCaptured"), Config.bTeethCaptured);
+        Obj->TryGetBoolField(TEXT("romCaptured"), Config.bROMCaptured);
+        Obj->TryGetStringField(TEXT("neutralStillPath"), Config.NeutralStillPath);
+        Obj->TryGetStringField(TEXT("teethStillPath"), Config.TeethStillPath);
+        Obj->TryGetStringField(TEXT("romTakeLabel"), Config.ROMTakeLabel);
+        double FMO = -1.0;
+        if (Obj->TryGetNumberField(TEXT("focusMinOverride"), FMO)) Config.FocusMinOverride = (float)FMO;
 
         auto ReadRef = [](const TSharedPtr<FJsonObject>& Parent, const TCHAR* Key, FHMCFramingRef& R)
         {
@@ -892,6 +913,105 @@ void UPCAPToolSubsystem::SetDevicePipeline(const FString& DeviceName, ECapturePi
         C->Pipeline = Pipeline;
         SaveConfig();
     }
+}
+
+ECaptureConfiguration UPCAPToolSubsystem::GetDeviceCaptureConfig(const FString& DeviceName) const
+{
+    const FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
+    return C ? C->CaptureConfig : ECaptureConfiguration::StereoHeadMount;
+}
+
+void UPCAPToolSubsystem::SetDeviceCaptureConfig(const FString& DeviceName, ECaptureConfiguration Config)
+{
+    if (FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName))
+    {
+        C->CaptureConfig = Config;
+        SaveConfig();
+    }
+}
+
+FHMCDeviceConfig UPCAPToolSubsystem::GetDeviceConfig(const FString& DeviceName) const
+{
+    const FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
+    return C ? *C : FHMCDeviceConfig();
+}
+
+void UPCAPToolSubsystem::SetPerformerPrepConfirmed(const FString& DeviceName, bool bConfirmed)
+{
+    if (FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName)) { C->bPerformerPrepConfirmed = bConfirmed; SaveConfig(); }
+}
+
+void UPCAPToolSubsystem::MarkROMCaptured(const FString& DeviceName, const FString& TakeLabel)
+{
+    if (FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName)) { C->bROMCaptured = true; C->ROMTakeLabel = TakeLabel; SaveConfig(); }
+}
+
+void UPCAPToolSubsystem::ClearScanReadiness(const FString& DeviceName)
+{
+    if (FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName))
+    {
+        C->bPerformerPrepConfirmed = false;
+        C->bNeutralCaptured = false;
+        C->bTeethCaptured   = false;
+        C->bROMCaptured     = false;
+        C->NeutralStillPath.Empty();
+        C->TeethStillPath.Empty();
+        C->ROMTakeLabel.Empty();
+        SaveConfig();
+    }
+}
+
+void UPCAPToolSubsystem::SetFocusMinOverride(const FString& DeviceName, float Value)
+{
+    if (FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName)) { C->FocusMinOverride = Value; SaveConfig(); }
+}
+
+bool UPCAPToolSubsystem::CaptureIdentityStill(const FString& DeviceName, int32 CameraIndex, bool bTeeth)
+{
+    FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
+    if (!C) return false;
+
+    const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+    const TArray<uint8>* BGRA = LastFrameBGRA.Find(CamKey);
+    const FIntPoint*     Dim  = LastFrameDims.Find(CamKey);
+    if (!BGRA || !Dim || Dim->X <= 0 || Dim->Y <= 0 || BGRA->Num() < Dim->X * Dim->Y * 4)
+        return false;   // no cached frame for this camera yet
+
+    IImageWrapperModule& IWM = FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
+    TSharedPtr<IImageWrapper> PNG = IWM.CreateImageWrapper(EImageFormat::PNG);
+    if (!PNG.IsValid() ||
+        !PNG->SetRaw(BGRA->GetData(), BGRA->Num(), Dim->X, Dim->Y, ERGBFormat::BGRA, 8))
+        return false;
+
+    const TArray64<uint8>& Png = PNG->GetCompressed();
+    TArray<uint8> PngData;
+    PngData.Append(Png.GetData(), (int32)Png.Num());
+
+    const FString Dir = FPaths::ProjectSavedDir() / TEXT("PCAPTool/Identity");
+    IFileManager::Get().MakeDirectory(*Dir, true);
+    const FString Path = Dir / FString::Printf(TEXT("%s_%s.png"),
+        *DeviceName, bTeeth ? TEXT("teeth") : TEXT("neutral"));
+    if (!FFileHelper::SaveArrayToFile(PngData, *Path)) return false;
+
+    if (bTeeth) { C->TeethStillPath   = Path; C->bTeethCaptured   = true; }
+    else        { C->NeutralStillPath = Path; C->bNeutralCaptured = true; }
+    SaveConfig();
+    return true;
+}
+
+bool UPCAPToolSubsystem::IsReadyToScan(const FString& DeviceName) const
+{
+    const FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
+    if (!C) return false;
+
+    const int32 F0 = GetEffectiveIssueFlags(DeviceName, 0);
+    const int32 F1 = GetEffectiveIssueFlags(DeviceName, 1);
+    const bool bChecksClear =
+        UPCAPToolStatics::GetIssueSeverity(F0) == EHMCIssueSeverity::None &&
+        UPCAPToolStatics::GetIssueSeverity(F1) == EHMCIssueSeverity::None;
+
+    // Teeth is recommended but not required (docs: "optional but highly recommended").
+    return C->bPerformerPrepConfirmed && C->bNeutralCaptured && C->bROMCaptured && bChecksClear;
 }
 
 FHMCFramingRef UPCAPToolSubsystem::GetFramingRef(const FString& DeviceName, int32 CameraIndex) const
