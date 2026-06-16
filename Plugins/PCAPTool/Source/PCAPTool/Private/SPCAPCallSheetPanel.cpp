@@ -9,6 +9,7 @@
 #include "Widgets/Input/SComboButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SNullWidget.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -321,21 +322,45 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
         .OnMenuOpenChanged_Lambda([this](bool bOpen) { if (!bOpen) RebuildSheet(); })   // refresh chips when the picker closes
         .OnGetMenuContent_Lambda([Items, IsCalled, SetCalled]() -> TSharedRef<SWidget>
         {
-            TSharedRef<SVerticalBox> List = SNew(SVerticalBox);
-            for (const TPair<FString, FString>& It : Items)
+            TSharedRef<FString> Filter = MakeShared<FString>();
+            TSharedRef<SBox> ListHost = SNew(SBox);
+
+            // Shared rebuild closure — re-renders the (filtered) checklist into ListHost.
+            TSharedRef<TFunction<void()>> Rebuild = MakeShared<TFunction<void()>>();
+            *Rebuild = [Items, IsCalled, SetCalled, Filter, ListHostWeak = TWeakPtr<SBox>(ListHost)]()
             {
-                const FString Id = It.Key;
-                List->AddSlot().AutoHeight().Padding(8.f, 3.f)
-                [
-                    SNew(SCheckBox)
-                    .IsChecked(IsCalled(Id) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                    .OnCheckStateChanged_Lambda([Id, SetCalled](ECheckBoxState S) { SetCalled(Id, S == ECheckBoxState::Checked); })
-                    [ SNew(STextBlock).Text(FText::FromString(Id)) ]
-                ];
-            }
-            if (Items.Num() == 0)
-                List->AddSlot().Padding(8.f)[ SNew(STextBlock).Text(LOCTEXT("EmptyLib", "(library empty)")) ];
-            return SNew(SBox).MinDesiredWidth(220.f).MaxDesiredHeight(320.f)[ SNew(SScrollBox) + SScrollBox::Slot()[ List ] ];
+                TSharedPtr<SBox> LH = ListHostWeak.Pin();
+                if (!LH.IsValid()) return;
+                TSharedRef<SVerticalBox> List = SNew(SVerticalBox);
+                int32 Shown = 0;
+                for (const TPair<FString, FString>& It : Items)
+                {
+                    if (!Filter->IsEmpty() && !It.Key.Contains(*Filter) && !It.Value.Contains(*Filter)) continue;
+                    const FString Id = It.Key;
+                    ++Shown;
+                    List->AddSlot().AutoHeight().Padding(8.f, 3.f)
+                    [
+                        SNew(SCheckBox)
+                        .IsChecked(IsCalled(Id) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                        .OnCheckStateChanged_Lambda([Id, SetCalled](ECheckBoxState S) { SetCalled(Id, S == ECheckBoxState::Checked); })
+                        [ SNew(STextBlock).Text(FText::FromString(Id)) ]
+                    ];
+                }
+                if (Shown == 0)
+                    List->AddSlot().Padding(8.f)[ SNew(STextBlock).Text(LOCTEXT("NoMatch", "(no matches)")) ];
+                LH->SetContent(SNew(SScrollBox) + SScrollBox::Slot()[ List ]);
+            };
+            (*Rebuild)();
+
+            return SNew(SBox).MinDesiredWidth(240.f)
+            [
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight().Padding(4.f)
+                [ SNew(SSearchBox).HintText(LOCTEXT("SearchLib", "search…"))
+                  .OnTextChanged_Lambda([Filter, Rebuild](const FText& T) { *Filter = T.ToString(); (*Rebuild)(); }) ]
+                + SVerticalBox::Slot().AutoHeight()
+                [ SNew(SBox).MaxDesiredHeight(320.f)[ ListHost ] ]
+            ];
         });
 
     return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
