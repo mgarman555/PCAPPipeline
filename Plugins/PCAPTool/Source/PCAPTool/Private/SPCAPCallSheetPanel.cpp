@@ -2,6 +2,7 @@
 #include "SPCAPActorDatabasePanel.h"
 #include "SPCAPPropDatabasePanel.h"
 #include "SPCAPStageDatabasePanel.h"
+#include "SPCAPVCamDatabasePanel.h"
 
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
@@ -25,6 +26,8 @@
 #include "AssetThumbnail.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Modules/ModuleManager.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
 
 #include "PCAPSlateCsv.h"
 #include "PCAPToolStatics.h"
@@ -46,6 +49,15 @@ void SPCAPCallSheetPanel::Construct(const FArguments& InArgs)
     if (UPCAPToolSettings* S = UPCAPToolSettings::Get()) { S->GetOrCreateDatabase(); }
 
     ThumbnailPool = MakeShared<FAssetThumbnailPool>(32);
+
+    {
+        FPropertyEditorModule& PEM = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+        FDetailsViewArgs Args;
+        Args.bAllowSearch = false;
+        Args.bHideSelectionTip = true;
+        Args.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+        StageDetailsView = PEM.CreateDetailView(Args);
+    }
 
     ChildSlot
     [
@@ -101,7 +113,8 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildRail()
         + SVerticalBox::Slot().AutoHeight().Padding(2.f, 10.f, 2.f, 4.f)
         [ SNew(STextBlock).Text(LOCTEXT("CalledOut", "Called out")).ColorAndOpacity(FSlateColor(ColText2)) ]
         + SVerticalBox::Slot().AutoHeight()[ BuildRailItem(ESection::Actors, LOCTEXT("Actors", "Actors")) ]
-        + SVerticalBox::Slot().AutoHeight()[ BuildRailItem(ESection::Props,  LOCTEXT("Props",  "Props")) ];
+        + SVerticalBox::Slot().AutoHeight()[ BuildRailItem(ESection::Props,  LOCTEXT("Props",  "Props")) ]
+        + SVerticalBox::Slot().AutoHeight()[ BuildRailItem(ESection::VCam,   LOCTEXT("VCam",   "VCam")) ];
 }
 
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildRailItem(ESection S, const FText& Label)
@@ -124,9 +137,10 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSectionContent(ESection S)
     switch (S)
     {
         case ESection::Overview: return BuildOverviewSection();
-        case ESection::Stages: return SNew(SPCAPStageDatabasePanel);
+        case ESection::Stages: return BuildStagesSection();
         case ESection::Actors: return SNew(SPCAPActorDatabasePanel);
         case ESection::Props:  return SNew(SPCAPPropDatabasePanel);
+        case ESection::VCam:   return SNew(SPCAPVCamDatabasePanel);
         case ESection::Shots:  return BuildShotsSection();
         case ESection::Project:  return BuildProjectSection();
         case ESection::ShootDay:
@@ -262,6 +276,65 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShootDaySection()
                     SelectSection(ESection::ShootDay);
                 }
             })
+        ];
+}
+
+// ── Stages — call out the day's stage (preset) + edit its setup below ────────
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildStagesSection()
+{
+    UMocapDatabase* DB = GetDB();
+    FShootDay* Day = DB ? DB->GetDay(DB->ActiveProductionCode, DB->ActiveDayID) : nullptr;
+    if (!DB || DB->ActiveProductionCode.IsEmpty() || !Day)
+    {
+        return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(24.f).HAlign(HAlign_Center).VAlign(VAlign_Center)
+        [ SNew(STextBlock).Text(LOCTEXT("StagesNoDay", "Pick a Project and Shoot day first — then call out the day's stage here.")).ColorAndOpacity(FSlateColor(ColText2)) ];
+    }
+
+    UStageConfigAsset* Active = DB->GetActiveStageConfig();
+    if (StageDetailsView.IsValid()) StageDetailsView->SetObject(Active);
+    const FString ActiveName = Active ? (Active->ConfigName.IsEmpty() ? Active->GetName() : Active->ConfigName) : FString(TEXT("(none)"));
+
+    return SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+        [ SNew(STextBlock).Text(LOCTEXT("PickStage", "Stage called for this day")).ColorAndOpacity(FSlateColor(ColText2)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [
+            SNew(SComboButton)
+            .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(ActiveName)) ]
+            .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
+            {
+                FMenuBuilder MB(true, nullptr);
+                FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+                TArray<FAssetData> F;
+                ARM.Get().GetAssetsByClass(UStageConfigAsset::StaticClass()->GetClassPathName(), F, false);
+                TArray<UStageConfigAsset*> Stages;
+                for (const FAssetData& AD : F) if (UStageConfigAsset* S = Cast<UStageConfigAsset>(AD.GetAsset())) Stages.Add(S);
+                Stages.Sort([](const UStageConfigAsset& A, const UStageConfigAsset& B){ return A.ConfigName < B.ConfigName; });
+                for (UStageConfigAsset* S : Stages)
+                {
+                    TWeakObjectPtr<UStageConfigAsset> Weak(S);
+                    const FString Label = S->ConfigName.IsEmpty() ? S->GetName() : S->ConfigName;
+                    MB.AddMenuEntry(FText::FromString(Label), FText::GetEmpty(), FSlateIcon(),
+                        FUIAction(FExecuteAction::CreateLambda([this, Weak]()
+                        {
+                            UMocapDatabase* D = GetDB();
+                            FShootDay* Dy = D ? D->GetDay(D->ActiveProductionCode, D->ActiveDayID) : nullptr;
+                            if (Dy && Weak.IsValid()) { Dy->ActiveStageConfig = Weak.Get(); D->MarkPackageDirty(); }
+                            SelectSection(ESection::Stages);
+                        })));
+                }
+                return MB.MakeWidget();
+            })
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 2.f)
+        [ SNew(STextBlock).Text(LOCTEXT("StageSetup", "Setup — edits update this stage's preset")).ColorAndOpacity(FSlateColor(ColText2)) ]
+        + SVerticalBox::Slot().FillHeight(1.f)
+        [
+            Active
+            ? StaticCastSharedRef<SWidget>(SNew(SScrollBox) + SScrollBox::Slot()[ StageDetailsView.ToSharedRef() ])
+            : StaticCastSharedRef<SWidget>(SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(16.f)
+                [ SNew(STextBlock).Text(LOCTEXT("NoStagePick", "No stage called yet — pick one above (manage the library in the Stage Database).")).ColorAndOpacity(FSlateColor(ColText2)) ])
         ];
 }
 

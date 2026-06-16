@@ -7,6 +7,7 @@ class SBox;
 class FAssetThumbnail;
 class FAssetThumbnailPool;
 class UMocapDatabase;
+class IDetailsView;
 struct FSlateCsvRow;
 struct FShot;
 struct FSession;
@@ -27,12 +28,13 @@ public:
     void Construct(const FArguments& InArgs);
 
 private:
-    enum class ESection : uint8 { Overview, Project, Stages, ShootDay, Shots, Actors, Props };
+    enum class ESection : uint8 { Overview, Project, Stages, ShootDay, Shots, Actors, Props, VCam };
     ESection Current = ESection::Overview;
 
     TSharedPtr<SBox> RailBox;
     TSharedPtr<SBox> ContentBox;
     TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
+    TSharedPtr<IDetailsView> StageDetailsView;   // inline editor for the called stage's setup
     TArray<TSharedPtr<FAssetThumbnail>> OverviewThumbnails;   // kept alive while the overview is shown
 
     void SelectSection(ESection S);
@@ -42,6 +44,7 @@ private:
     TSharedRef<SWidget> BuildOverviewSection();
     TSharedRef<SWidget> BuildProjectSection();
     TSharedRef<SWidget> BuildShootDaySection();
+    TSharedRef<SWidget> BuildStagesSection();   // dropdown of configured stages + editable setup
     UMocapDatabase* GetDB() const;
 
     // Drop an APCAPVolumeVisualizer into the editor level, wired to the active stage config
