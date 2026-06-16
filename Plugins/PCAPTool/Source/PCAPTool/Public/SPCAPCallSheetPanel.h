@@ -4,8 +4,6 @@
 #include "Widgets/SCompoundWidget.h"
 
 class SBox;
-class FAssetThumbnail;
-class FAssetThumbnailPool;
 class UMocapDatabase;
 class IDetailsView;
 struct FSlateCsvRow;
@@ -14,10 +12,11 @@ struct FSession;
 enum class EShotType : uint8;
 
 /**
- * Call Sheet — the shoot-day prep tool. Left-rail workspace:
- *   Overview (the day's callout at a glance) / Context (Project, Stages, Shoot day) /
- *   Called out (Actors, Props). Selecting a rail item swaps the main pane.
- * Stages/Actors/Props host the database panels; the section IS the database.
+ * Call Sheet — the shoot-day prep tool, as a single scrollable page:
+ *   header (Production / Day / Stage pickers + readiness + spawn-viz) →
+ *   stage setup → called Actors / Props / VCam (chips + "+ call" picker) → Shots.
+ * Calls out from the Actor/Prop/Stage/VCam libraries; management lives in their
+ * Database tabs. The Production picker reads the Production Database.
  */
 class PCAPTOOL_API SPCAPCallSheetPanel : public SCompoundWidget
 {
@@ -28,43 +27,37 @@ public:
     void Construct(const FArguments& InArgs);
 
 private:
-    enum class ESection : uint8 { Overview, Project, Stages, ShootDay, Shots, Actors, Props, VCam };
-    ESection Current = ESection::Overview;
+    TSharedPtr<SBox> SheetBox;                    // the single scrollable page
+    TSharedPtr<IDetailsView> StageDetailsView;    // inline editor for the called stage's setup
 
-    TSharedPtr<SBox> RailBox;
-    TSharedPtr<SBox> ContentBox;
-    TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
-    TSharedPtr<IDetailsView> StageDetailsView;   // inline editor for the called stage's setup
-    TArray<TSharedPtr<FAssetThumbnail>> OverviewThumbnails;   // kept alive while the overview is shown
-
-    void SelectSection(ESection S);
-    TSharedRef<SWidget> BuildRail();
-    TSharedRef<SWidget> BuildRailItem(ESection S, const FText& Label);
-    TSharedRef<SWidget> BuildSectionContent(ESection S);
-    TSharedRef<SWidget> BuildOverviewSection();
-    TSharedRef<SWidget> BuildProjectSection();
-    TSharedRef<SWidget> BuildShootDaySection();
-    TSharedRef<SWidget> BuildStagesSection();   // dropdown of configured stages + editable setup
     UMocapDatabase* GetDB() const;
+    void RebuildSheet();                          // re-render the whole page (replaces section-switching)
 
-    // Drop an APCAPVolumeVisualizer into the editor level, wired to the active stage config
-    // (the stage FBX + live Vicon markers, to scale). Only includes the viz header — never
-    // edits it. No-op (logs) when no active stage config.
+    TSharedRef<SWidget> BuildSheet();
+    TSharedRef<SWidget> BuildHeader();            // production/day/stage pickers + readiness + spawn-viz
+    TSharedRef<SWidget> BuildStageArea();         // stage dropdown + editable setup
+    // One shared called-section builder, type-erased via lambdas (actors/props/vcam).
+    TSharedRef<SWidget> BuildCallSection(const FText& Title,
+        const TArray<TPair<FString, FString>>& Items,
+        TFunction<bool(const FString&)> IsCalled,
+        TFunction<void(const FString&, bool)> SetCalled);
+    TArray<TPair<FString, FString>> GatherActors() const;   // id, display
+    TArray<TPair<FString, FString>> GatherProps() const;
+    TArray<TPair<FString, FString>> GatherVCams() const;
+
+    // Drop an APCAPVolumeVisualizer into the level for the active stage (header-only include).
     void SpawnVolumeVisualizer();
 
-    // ── Shots (the day's slate list — built here in prep; run in the Operator Console) ──
+    // ── Shots (the day's slate list; built here in prep, run in the Operator Console) ──
     TSharedRef<SWidget> BuildShotsSection();
-    // Returns the active day's working session, creating "S01" if the day has none
-    // (when bCreate). Also points ActiveSessionID at it so the Operator Console follows.
     FSession* EnsureActiveSession(bool bCreate);
-    void   AddShotBySlot(const FString& Slot);          // manual add; type inferred from slot
+    void   AddShotBySlot(const FString& Slot);
     FReply OnRemoveShot(FString ShotID);
-    void   ImportShotsCsv();                            // file dialog → parse → merge into the day
-    void   ExportShotsCsv();                            // gather the day's shots → CSV file
-    void   ApplyRowsToActiveDay(const TArray<FSlateCsvRow>& Rows);  // merge rows into the session (by slot)
+    void   ImportShotsCsv();
+    void   ExportShotsCsv();
+    void   ApplyRowsToActiveDay(const TArray<FSlateCsvRow>& Rows);
     FSlateCsvRow RowFromShot(const FShot& Shot) const;
-    // Slot/type helpers (static members, not anon-namespace — unity-build safe).
-    static FString   NormalizeSlot(const FString& Slot);            // "3" → "003", keeps "901"
+    static FString   NormalizeSlot(const FString& Slot);
     static EShotType ShotTypeFor(const FString& TypeText, const FString& Slot);
     static FString   ShotTypeName(EShotType Type);
 
