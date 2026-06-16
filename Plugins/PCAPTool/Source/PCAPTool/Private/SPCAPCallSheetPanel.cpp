@@ -236,6 +236,21 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)
         [
             SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 8.f, 0.f)
+            [ SNew(SBox).WidthOverride(170.f)
+              [ SNew(SEditableTextBox).HintText(LOCTEXT("NewProdHint", "+ production code  ↵"))
+                .OnTextCommitted_Lambda([this](const FText& T, ETextCommit::Type C)
+                {
+                    if (C != ETextCommit::OnEnter) return;
+                    const FString Code = T.ToString().TrimStartAndEnd();
+                    if (Code.IsEmpty()) return;
+                    if (UMocapDatabase* D = GetDB())
+                    {
+                        if (!D->GetProductionByCode(Code)) { FProduction P; P.ProjectCode = Code; P.ProductionName = Code; D->Productions.Add(P); D->MarkPackageDirty(); }
+                        D->ActiveProductionCode = Code;
+                    }
+                    RebuildSheet();
+                }) ] ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
             [ SNew(SBox).WidthOverride(150.f)
               [ SNew(SEditableTextBox).HintText(LOCTEXT("NewDayHint", "+ day id  ↵"))
