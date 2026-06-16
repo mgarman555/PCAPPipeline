@@ -46,8 +46,9 @@ public:
     // Hardware issue bitmask (EHMCIssueFlag) for one camera of a polled device.
     // Combines per-camera signals (streaming/exposure/dropped) with device-wide
     // ones (battery/storage/cpu/temp/clip). CameraIndex 0 = Top, 1 = Bot.
+    // TargetFPS: the pipeline's minimum frame rate (MetaHuman: 60 ideal, 30 for now).
     UFUNCTION(BlueprintCallable, Category="PCAP|HMC")
-    static int32 EvaluateCameraIssues(const FHMCDeviceStatus& Status, int32 CameraIndex);
+    static int32 EvaluateCameraIssues(const FHMCDeviceStatus& Status, int32 CameraIndex, float TargetFPS = 30.f);
 
     // Rolls a flag bitmask up to a single severity for border color.
     // Red wins over Amber wins over None. Accepts hardware | manual flags.
@@ -59,6 +60,10 @@ public:
     UFUNCTION(BlueprintPure, Category="PCAP|HMC")
     static FString GetIssueBannerText(int32 IssueFlags);
 
+    // Short reason for a lighting-direction classification (for the status area),
+    // e.g. "lit from below". Empty for Even. Mirrors the framing-hint pattern.
+    static FString GetLightingHintText(EHMCLightDir Dir);
+
     // Cheap "is a subject in the frame" heuristic over a decoded BGRA buffer
     // (sampled mean luminance vs threshold). Interim stand-in for real face
     // detection — IR head-cams light the face brightly when it's in the box.
@@ -69,10 +74,19 @@ public:
     // Per-frame metrics from a decoded BGRA buffer: focus (variance-of-Laplacian),
     // luma stats (mean / blown / crushed), regional luma spread, and a coarse
     // brightness-weighted subject centroid/size. Pure; runs on a downsampled grid.
-    static FHMCImageMetrics AnalyzeFrameBGRA(const TArray<uint8>& BGRA, int32 Width, int32 Height);
+    // FocusRegion* weights the focus measure to the nasolabial band (the doc's
+    // focus target). Defaults to the whole frame so existing callers are unchanged.
+    static FHMCImageMetrics AnalyzeFrameBGRA(const TArray<uint8>& BGRA, int32 Width, int32 Height,
+                                             FVector2D FocusRegionCenter = FVector2D(0.5, 0.5),
+                                             float FocusRegionExtent = 1.0f);
 
     // Active-pipeline check bundle (active checks + thresholds + framing target).
     static FPipelineCheckProfile GetPipelineProfile(ECapturePipeline Pipeline);
+
+    // Resolve the watcher definition for a pipeline + camera configuration. Starts
+    // from the pipeline profile, then applies configuration-specific tweaks.
+    static FPipelineCheckProfile GetDefinition(ECapturePipeline Pipeline,
+                                               ECaptureConfiguration Config);
 
     // Maps one frame's metrics to auto EHMCIssueFlag bits, honoring the pipeline's
     // active checks/thresholds and the captured framing reference (framing drift is

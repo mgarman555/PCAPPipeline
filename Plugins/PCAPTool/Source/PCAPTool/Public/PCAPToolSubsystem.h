@@ -162,6 +162,11 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     FString GetFramingHint(const FString& DeviceName, int32 CameraIndex) const;
 
+    // How the light is wrong on the latest frame ("lit from below" / "back-lit" / ...)
+    // — empty when the lighting reads even or there's no subject. Mirrors GetFramingHint.
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    FString GetLightingHint(const FString& DeviceName, int32 CameraIndex) const;
+
     // ─── Prepped for Preview ────────────────────────────────────────────────────
     // Only prepped devices appear in HMC Preview. Set by the "Prepped for Preview"
     // action in Setup; persisted on the device config.

@@ -100,7 +100,7 @@ FShootDay UPCAPToolStatics::SeedNewShootDay(const FString& DayID, const FDateTim
 
 // ── HMC issue evaluation ────────────────────────────────────────────────────
 
-int32 UPCAPToolStatics::EvaluateCameraIssues(const FHMCDeviceStatus& S, int32 CameraIndex)
+int32 UPCAPToolStatics::EvaluateCameraIssues(const FHMCDeviceStatus& S, int32 CameraIndex, float TargetFPS)
 {
     int32 Flags = HMC_Issue_None;
 
@@ -130,7 +130,7 @@ int32 UPCAPToolStatics::EvaluateCameraIssues(const FHMCDeviceStatus& S, int32 Ca
     // MetaHuman Capture Device Requirements: >= 60 fps recommended. Device-wide.
     // S.FPS is the device's reported frameRate; threshold has margin. VERIFY on the
     // rig that frameRate is the capture rate (not the stream rate) before trusting.
-    if (S.FPS > 0.f && S.FPS < 55.f)                                   Flags |= HMC_Issue_LowFPS;
+    if (S.FPS > 0.f && S.FPS < TargetFPS * 0.92f)                      Flags |= HMC_Issue_LowFPS;
 
     return Flags;
 }
@@ -141,7 +141,8 @@ EHMCIssueSeverity UPCAPToolStatics::GetIssueSeverity(int32 Flags)
         HMC_Issue_NotStreaming | HMC_Issue_Overexposed |
         HMC_Issue_LowBattery   | HMC_Issue_LowStorage   | HMC_Issue_HighTemp |
         HMC_Issue_NoFace       | HMC_Issue_OutOfFocus   | HMC_Issue_FramingDrift |
-        HMC_Issue_Bumped       | HMC_Issue_Unstable     | HMC_Issue_LowFPS;
+        HMC_Issue_Bumped       | HMC_Issue_Unstable     | HMC_Issue_LowFPS       |
+        HMC_Issue_TooClose     | HMC_Issue_TooFar;
 
     const int32 AmberMask =
         HMC_Issue_Underexposed | HMC_Issue_DroppedFrames | HMC_Issue_ClipNotReady |
@@ -167,7 +168,9 @@ FString UPCAPToolStatics::GetIssueBannerText(int32 Flags)
     if (Flags & HMC_Issue_LowBattery)    return TEXT("Battery low · Eyes on it");
     if (Flags & HMC_Issue_LowStorage)    return TEXT("Storage critical · Wrap soon");
     if (Flags & HMC_Issue_HighTemp)      return TEXT("Overheating · Check rig");
-    if (Flags & HMC_Issue_LowFPS)        return TEXT("Low frame rate · Capture below 60 fps");
+    if (Flags & HMC_Issue_LowFPS)        return TEXT("Low frame rate · Below the target fps");
+    if (Flags & HMC_Issue_TooClose)      return TEXT("Too close · Pull the camera back");
+    if (Flags & HMC_Issue_TooFar)        return TEXT("Too far · Move the camera closer");
     // Amber (warning) issues
     if (Flags & HMC_Issue_UnevenLight)   return TEXT("Uneven lighting · Flatten the light");
     if (Flags & HMC_Issue_Underexposed)  return TEXT("Underexposed · Raise exposure or gain");
@@ -181,6 +184,18 @@ FString UPCAPToolStatics::GetIssueBannerText(int32 Flags)
     if (Flags & HMC_Manual_LipSeal)      return TEXT("Lip seal not visible · Adjust camera");
     if (Flags & HMC_Manual_Eyelid)       return TEXT("Eyelid not visible · Adjust camera");
     return TEXT("All clear · Ready to record");
+}
+
+FString UPCAPToolStatics::GetLightingHintText(EHMCLightDir Dir)
+{
+    switch (Dir)
+    {
+        case EHMCLightDir::Below:  return TEXT("lit from below");
+        case EHMCLightDir::Side:   return TEXT("lit from one side");
+        case EHMCLightDir::Back:   return TEXT("back-lit (face in shadow)");
+        case EHMCLightDir::Shadow: return TEXT("hard shadows on the face");
+        default:                   return FString();
+    }
 }
 
 bool UPCAPToolStatics::FrameHasSubject(const TArray<uint8>& BGRA, int32 Width, int32 Height)
@@ -212,7 +227,8 @@ bool UPCAPToolStatics::FrameHasSubject(const TArray<uint8>& BGRA, int32 Width, i
 
 // ── Automatic image analysis (Capture Monitor) ──────────────────────────────
 
-FHMCImageMetrics UPCAPToolStatics::AnalyzeFrameBGRA(const TArray<uint8>& BGRA, int32 Width, int32 Height)
+FHMCImageMetrics UPCAPToolStatics::AnalyzeFrameBGRA(const TArray<uint8>& BGRA, int32 Width, int32 Height,
+                                                    FVector2D FocusRegionCenter, float FocusRegionExtent)
 {
     FHMCImageMetrics M;   // bValid stays false on any guard
     const int32 NumBytes = BGRA.Num();
@@ -245,6 +261,7 @@ FHMCImageMetrics UPCAPToolStatics::AnalyzeFrameBGRA(const TArray<uint8>& BGRA, i
     double Sum = 0.0, Blown = 0.0, Crushed = 0.0, WX = 0.0, WY = 0.0;
     double Quad[4] = { 0,0,0,0 };
     int32  QuadN[4] = { 0,0,0,0 };
+    double CenterSum = 0.0; int32 CenterN = 0;   // central region (for back-lit detection)
     for (int32 gy = 0; gy < GH; ++gy)
         for (int32 gx = 0; gx < GW; ++gx)
         {
@@ -257,6 +274,7 @@ FHMCImageMetrics UPCAPToolStatics::AnalyzeFrameBGRA(const TArray<uint8>& BGRA, i
             WX += v * nx; WY += v * ny;
             const int32 q = (gx < GW / 2 ? 0 : 1) + (gy < GH / 2 ? 0 : 2);
             Quad[q] += v; ++QuadN[q];
+            if (FMath::Abs(nx - 0.5) < 0.18 && FMath::Abs(ny - 0.5) < 0.18) { CenterSum += v; ++CenterN; }
         }
 
     const double Mean = Sum / N;                 // 0..255
@@ -288,10 +306,35 @@ FHMCImageMetrics UPCAPToolStatics::AnalyzeFrameBGRA(const TArray<uint8>& BGRA, i
     for (int32 q = 1; q < 4; ++q) { QMin = FMath::Min(QMin, qm[q]); QMax = FMath::Max(QMax, qm[q]); }
     M.RegionSpread = (Mean > KINDA_SMALL_NUMBER) ? (float)((QMax - QMin) / Mean) : 0.f;
 
-    // Focus = variance of the Laplacian over the grid, exposure-normalized.
+    // Lighting direction from the region means -> Epic's documented bad-light cases.
+    {
+        const double topM  = (qm[0] + qm[1]) * 0.5, botM   = (qm[2] + qm[3]) * 0.5;
+        const double leftM = (qm[0] + qm[2]) * 0.5, rightM = (qm[1] + qm[3]) * 0.5;
+        const double ctrM  = (CenterN > 0) ? CenterSum / CenterN : Mean;
+        M.TopMean    = (float)(topM  / 255.0); M.BottomMean = (float)(botM   / 255.0);
+        M.LeftMean   = (float)(leftM / 255.0); M.RightMean  = (float)(rightM / 255.0);
+        M.CenterMean = (float)(ctrM  / 255.0);
+        const double inv   = (Mean > KINDA_SMALL_NUMBER) ? 1.0 / Mean : 0.0;
+        const double below = (botM - topM) * inv;
+        const double side  = FMath::Abs(leftM - rightM) * inv;
+        const double back  = (Mean - ctrM) * inv;
+        if      (below > 0.30)            M.LightDir = EHMCLightDir::Below;
+        else if (side  > 0.30)            M.LightDir = EHMCLightDir::Side;
+        else if (back  > 0.30)            M.LightDir = EHMCLightDir::Back;
+        else if (M.RegionSpread > 0.40f)  M.LightDir = EHMCLightDir::Shadow;
+        else                              M.LightDir = EHMCLightDir::Even;
+    }
+
+    // Focus = variance of the Laplacian, measured over the focus region (the
+    // nasolabial band by default), exposure-normalized. The Max/Min bounds collapse
+    // the loop to nothing for tiny grids, matching the original empty-loop safety.
+    const int32 rx0 = FMath::Max(1,      (int32)((FocusRegionCenter.X - FocusRegionExtent) * GW));
+    const int32 rx1 = FMath::Min(GW - 2, (int32)((FocusRegionCenter.X + FocusRegionExtent) * GW));
+    const int32 ry0 = FMath::Max(1,      (int32)((FocusRegionCenter.Y - FocusRegionExtent) * GH));
+    const int32 ry1 = FMath::Min(GH - 2, (int32)((FocusRegionCenter.Y + FocusRegionExtent) * GH));
     double LapSum = 0.0, LapSq = 0.0; int32 LapN = 0;
-    for (int32 gy = 1; gy < GH - 1; ++gy)
-        for (int32 gx = 1; gx < GW - 1; ++gx)
+    for (int32 gy = ry0; gy <= ry1; ++gy)
+        for (int32 gx = rx0; gx <= rx1; ++gx)
         {
             const float c   = L[gy * GW + gx];
             const float lap = 4.f * c
@@ -339,6 +382,29 @@ FPipelineCheckProfile UPCAPToolStatics::GetPipelineProfile(ECapturePipeline Pipe
     }
 }
 
+FPipelineCheckProfile UPCAPToolStatics::GetDefinition(ECapturePipeline Pipeline,
+                                                      ECaptureConfiguration Config)
+{
+    FPipelineCheckProfile P = GetPipelineProfile(Pipeline);
+
+    // Configuration tweaks. Tripod is a head-and-shoulders shot (smaller face
+    // fraction, looser drift); head-mounts are tight, face fills the frame, so the
+    // defaults already match the head-mount docs.
+    switch (Config)
+    {
+        case ECaptureConfiguration::MonoTripod:
+            P.FramingSizeMin  = 0.20f;
+            P.FramingSizeMax  = 0.60f;
+            P.FramingDriftTol = 0.12f;
+            break;
+        case ECaptureConfiguration::MonoHeadMount:
+        case ECaptureConfiguration::StereoHeadMount:
+        default:
+            break;
+    }
+    return P;
+}
+
 int32 UPCAPToolStatics::MapMetricsToAutoFlags(const FHMCImageMetrics& M,
                                               const FPipelineCheckProfile& P,
                                               const FHMCFramingRef& Ref)
@@ -357,15 +423,27 @@ int32 UPCAPToolStatics::MapMetricsToAutoFlags(const FHMCImageMetrics& M,
         if (M.MeanLuma  < P.MeanLumaMin)  Flags |= HMC_Issue_Underexposed;
     }
 
-    if (P.bCheckLighting && M.RegionSpread > P.RegionSpreadMax)
-        Flags |= HMC_Issue_UnevenLight;
-
-    if (P.bCheckFraming && Ref.bSet)
+    if (P.bCheckLighting)
     {
-        const float Drift     = (float)FVector2D::Distance(M.SubjectCenter, Ref.Center);
-        const float SizeDelta = FMath::Abs(M.SubjectSize - Ref.Size);
-        if (Drift > P.FramingDriftTol || SizeDelta > P.FramingDriftTol * 1.5f)
-            Flags |= HMC_Issue_FramingDrift;
+        const bool bUneven = P.bClassifyLightDir ? (M.LightDir != EHMCLightDir::Even)
+                                                 : (M.RegionSpread > P.RegionSpreadMax);
+        if (bUneven) Flags |= HMC_Issue_UnevenLight;
+    }
+
+    if (P.bCheckFraming)
+    {
+        // Absolute size band (independent of the captured reference): too close / far.
+        if (M.SubjectSize > P.FramingSizeMax) Flags |= HMC_Issue_TooClose;
+        if (M.SubjectSize < P.FramingSizeMin) Flags |= HMC_Issue_TooFar;
+
+        // Drift from the captured reference (only once it has been set).
+        if (Ref.bSet)
+        {
+            const float Drift     = (float)FVector2D::Distance(M.SubjectCenter, Ref.Center);
+            const float SizeDelta = FMath::Abs(M.SubjectSize - Ref.Size);
+            if (Drift > P.FramingDriftTol || SizeDelta > P.FramingDriftTol * 1.5f)
+                Flags |= HMC_Issue_FramingDrift;
+        }
     }
     return Flags;
 }

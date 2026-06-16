@@ -227,6 +227,18 @@ enum class ECapturePipeline : uint8
     // Future: ViconBody, OptiTrackBody, ... -- each a new check bundle.
 };
 
+// Camera setup for a device. The watcher resolves its definition by
+// Pipeline x CaptureConfiguration -- the checks differ across these (e.g. a
+// tripod is a head-and-shoulders shot, a head-mount is a tight face; stereo
+// adds checkerboard board calibration). See GetDefinition().
+UENUM(BlueprintType)
+enum class ECaptureConfiguration : uint8
+{
+    MonoTripod      UMETA(DisplayName = "Mono - Tripod"),
+    MonoHeadMount   UMETA(DisplayName = "Mono - Head Mount"),
+    StereoHeadMount UMETA(DisplayName = "Stereo - Head Mount")
+};
+
 // Per-camera framing reference captured at setup: where the actor's face should
 // be. The monitor flags live drift from this. Normalized 0..1 frame coords.
 USTRUCT(BlueprintType)
@@ -266,6 +278,10 @@ struct PCAPTOOL_API FHMCDeviceConfig
     // Capture pipeline this device's monitor checks run for (default MetaHuman HMC).
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     ECapturePipeline Pipeline = ECapturePipeline::MetaHumanHMC;
+
+    // Camera setup -- selects the watcher definition together with Pipeline.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    ECaptureConfiguration CaptureConfig = ECaptureConfiguration::StereoHeadMount;
 
     // Per-camera "where the face should be" reference, captured at setup.
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -384,7 +400,10 @@ enum EHMCIssueFlag : int32
     HMC_Issue_FramingDrift  = 1 << 12,  // subject drifted from the captured reference (red)
     HMC_Issue_Bumped        = 1 << 13,  // sudden position jump — mount knocked (red)
     HMC_Issue_Unstable      = 1 << 14,  // high position variance — loose / wobbling mount (red)
-    HMC_Issue_LowFPS        = 1 << 15,  // device frameRate below the 60fps minimum (red)
+    HMC_Issue_LowFPS        = 1 << 15,  // device frameRate below the pipeline target (red)
+    // (bits 16-20 are the retired HMC_Manual_* operator flags below)
+    HMC_Issue_TooClose      = 1 << 21,  // subject size above the pipeline max -- pull back (red)
+    HMC_Issue_TooFar        = 1 << 22,  // subject size below the pipeline min -- move closer (red)
 
     // Operator-reported (manual) bits — RETIRED (no UI; superseded by the automatic
     // framing check above). Kept for save-format / bit-stability compatibility only.
@@ -416,8 +435,21 @@ enum class EHMCManualIssue : uint8
     Eyelid       UMETA(DisplayName = "Eyelid not visible")
 };
 
+// Which way the light is wrong -- Epic's documented bad-lighting cases. Even = OK;
+// over/under-exposure are handled separately by the exposure check.
+UENUM(BlueprintType)
+enum class EHMCLightDir : uint8
+{
+    Even   UMETA(DisplayName = "Even"),
+    Below  UMETA(DisplayName = "Lit from below"),
+    Side   UMETA(DisplayName = "Lit from side"),
+    Back   UMETA(DisplayName = "Back-lit"),
+    Shadow UMETA(DisplayName = "Shadows present")
+};
+
 // Per-pipeline check bundle: which checks are active + their thresholds + the
-// framing target. Returned by UPCAPToolStatics::GetPipelineProfile(ECapturePipeline).
+// framing target. Resolved per (pipeline x configuration) by
+// UPCAPToolStatics::GetDefinition(); GetPipelineProfile() gives the pipeline base.
 // Plain struct (engine-internal; not Blueprint-exposed).
 struct FPipelineCheckProfile
 {
@@ -441,6 +473,11 @@ struct FPipelineCheckProfile
     float BumpJumpMin       = 0.06f;       // sudden one-sample centroid jump -> bump
     float InstabilityStdMax = 0.03f;       // centroid std-dev over the window -> unstable mount
     float BumpHoldSeconds   = 1.2f;        // how long a detected bump stays latched red
+
+    float     TargetFPS         = 30.f;    // below this -> LowFPS (MetaHuman: 60 ideal, 30 for now)
+    bool      bClassifyLightDir = true;    // run lighting-direction classification (vs plain spread)
+    FVector2D FocusRegionCenter = FVector2D(0.5, 0.55);  // nasolabial band centre (normalized)
+    float     FocusRegionExtent = 0.28f;   // half-extent of the focus window; >= 0.5 = whole frame
 };
 
 // Output of one frame's image analysis (per camera). Stored per "Device_Cam" in
@@ -459,6 +496,14 @@ struct PCAPTOOL_API FHMCImageMetrics
     UPROPERTY(BlueprintReadOnly) float RegionSpread = 0.f;    // (max-min)/mean across regions
     UPROPERTY(BlueprintReadOnly) FVector2D SubjectCenter = FVector2D(0.5, 0.5);  // normalized
     UPROPERTY(BlueprintReadOnly) float SubjectSize  = 0.f;    // normalized extent
+
+    // Lighting-direction classification + the per-region luma it's derived from.
+    UPROPERTY(BlueprintReadOnly) EHMCLightDir LightDir = EHMCLightDir::Even;
+    UPROPERTY(BlueprintReadOnly) float TopMean    = 0.f;     // 0..1, upper-half mean luma
+    UPROPERTY(BlueprintReadOnly) float BottomMean = 0.f;     // lower-half
+    UPROPERTY(BlueprintReadOnly) float LeftMean   = 0.f;
+    UPROPERTY(BlueprintReadOnly) float RightMean  = 0.f;
+    UPROPERTY(BlueprintReadOnly) float CenterMean = 0.f;     // central region (for back-lit)
 };
 
 // ---------------------------------------------------------------------------

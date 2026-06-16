@@ -344,8 +344,14 @@ void UPCAPToolSubsystem::OnPollResponse(FHttpRequestPtr Request, FHttpResponsePt
 
     Status->LastUpdateTime = FDateTime::UtcNow();
     Status->StatusMessage  = GenerateStatusQuip(*Status);
-    Status->IssueFlags0    = UPCAPToolStatics::EvaluateCameraIssues(*Status, 0);
-    Status->IssueFlags1    = UPCAPToolStatics::EvaluateCameraIssues(*Status, 1);
+    float TargetFPS = 30.f;
+    {
+        ECaptureConfiguration CapCfg = ECaptureConfiguration::StereoHeadMount;
+        if (const FHMCDeviceConfig* DC = RegisteredConfigs.Find(DeviceName)) CapCfg = DC->CaptureConfig;
+        TargetFPS = UPCAPToolStatics::GetDefinition(GetDevicePipeline(DeviceName), CapCfg).TargetFPS;
+    }
+    Status->IssueFlags0    = UPCAPToolStatics::EvaluateCameraIssues(*Status, 0, TargetFPS);
+    Status->IssueFlags1    = UPCAPToolStatics::EvaluateCameraIssues(*Status, 1, TargetFPS);
 
     // HTTP completes on the game thread in UE5 — no AsyncTask needed
     OnStatusUpdated.Broadcast(DeviceName, *Status);
@@ -579,15 +585,22 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
             if (NowT - LastA >= 0.2)
             {
                 LastA = NowT;
+
+                // Resolve this device's definition (pipeline x configuration) first so
+                // the focus measure is weighted to the pipeline's nasolabial band.
+                ECaptureConfiguration CaptureCfg = ECaptureConfiguration::StereoHeadMount;
+                if (const FHMCDeviceConfig* DC = RegisteredConfigs.Find(DeviceName)) CaptureCfg = DC->CaptureConfig;
+                const FPipelineCheckProfile Profile =
+                    UPCAPToolStatics::GetDefinition(GetDevicePipeline(DeviceName), CaptureCfg);
+
                 const FHMCImageMetrics M = UPCAPToolStatics::AnalyzeFrameBGRA(
-                    Uncompressed, IW->GetWidth(), IW->GetHeight());
+                    Uncompressed, IW->GetWidth(), IW->GetHeight(),
+                    Profile.FocusRegionCenter, Profile.FocusRegionExtent);
                 ImageMetrics.Add(CamKey, M);
 
                 // Mount stability from the subject centroid: a sudden jump = a bump
                 // (latched ~1.2s so a one-frame knock stays visible), and high variance
                 // over the window = an unstable / wobbling mount. Only with a subject.
-                const FPipelineCheckProfile Profile =
-                    UPCAPToolStatics::GetPipelineProfile(GetDevicePipeline(DeviceName));
 
                 int32 StabilityFlags = 0;
                 if (M.bHasSubject && Profile.bCheckFraming)   // skip if the pipeline doesn't frame-check
@@ -782,6 +795,7 @@ void UPCAPToolSubsystem::SaveConfig() const
         Obj->SetStringField(TEXT("actorID"),         C.ActorID);
         Obj->SetStringField(TEXT("webSocketEndpoint"), C.WebSocketEndpoint);
         Obj->SetNumberField(TEXT("pipeline"), (double)(uint8)C.Pipeline);
+        Obj->SetNumberField(TEXT("captureConfig"), (double)(uint8)C.CaptureConfig);
         Obj->SetBoolField(TEXT("preppedForPreview"), C.bPreppedForPreview);
 
         auto WriteRef = [](const FHMCFramingRef& R) -> TSharedPtr<FJsonObject>
@@ -836,6 +850,9 @@ void UPCAPToolSubsystem::LoadConfig()
         int32 Pipe = 0;
         if (Obj->TryGetNumberField(TEXT("pipeline"), Pipe))
             Config.Pipeline = (ECapturePipeline)(uint8)Pipe;
+        int32 CapCfg = 0;
+        if (Obj->TryGetNumberField(TEXT("captureConfig"), CapCfg))
+            Config.CaptureConfig = (ECaptureConfiguration)(uint8)CapCfg;
         Obj->TryGetBoolField(TEXT("preppedForPreview"), Config.bPreppedForPreview);
 
         auto ReadRef = [](const TSharedPtr<FJsonObject>& Parent, const TCHAR* Key, FHMCFramingRef& R)
@@ -909,6 +926,14 @@ FString UPCAPToolSubsystem::GetFramingHint(const FString& DeviceName, int32 Came
     return FString();
 }
 
+FString UPCAPToolSubsystem::GetLightingHint(const FString& DeviceName, int32 CameraIndex) const
+{
+    const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
+    const FHMCImageMetrics* M = ImageMetrics.Find(CamKey);
+    if (!M || !M->bValid || !M->bHasSubject) return FString();
+    return UPCAPToolStatics::GetLightingHintText(M->LightDir);
+}
+
 bool UPCAPToolSubsystem::SetFramingReferenceFromCurrent(const FString& DeviceName, int32 CameraIndex)
 {
     FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
@@ -925,8 +950,8 @@ bool UPCAPToolSubsystem::SetFramingReferenceFromCurrent(const FString& DeviceNam
     (CameraIndex == 0 ? C->FramingRef0 : C->FramingRef1) = Ref;
     SaveConfig();
 
-    // Within the pipeline's ideal target tolerance?
-    const FPipelineCheckProfile P = UPCAPToolStatics::GetPipelineProfile(C->Pipeline);
+    // Within the pipeline's ideal target tolerance? (honor the capture configuration)
+    const FPipelineCheckProfile P = UPCAPToolStatics::GetDefinition(C->Pipeline, C->CaptureConfig);
     return FVector2D::Distance(Ref.Center, P.FramingTargetCenter) <= P.FramingCenterTol
         && Ref.Size >= P.FramingSizeMin && Ref.Size <= P.FramingSizeMax;
 }
