@@ -27,6 +27,10 @@
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
+#include "PCAPToolPaths.h"
+#include "FileHelpers.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
 
 #include "PCAPSlateCsv.h"
 #include "PCAPToolStatics.h"
@@ -79,6 +83,40 @@ UMocapDatabase* SPCAPCallSheetPanel::GetDB() const
     return S ? S->GetDatabase() : nullptr;
 }
 
+UObject* SPCAPCallSheetPanel::CreateAssetIn(UClass* Class, const FString& Dir, const FString& Id, TFunction<void(UObject*)> Init)
+{
+    if (Id.IsEmpty() || !Class) return nullptr;
+    const FString PackageName = FString::Printf(TEXT("%s/%s"), *Dir, *Id);
+    const FString ObjectPath  = FString::Printf(TEXT("%s.%s"), *PackageName, *Id);
+    if (FPackageName::DoesPackageExist(PackageName))
+        return StaticLoadObject(Class, nullptr, *ObjectPath);   // already in the library — resolve & return it
+    UPackage* Package = CreatePackage(*PackageName);
+    if (!Package) return nullptr;
+    UObject* Obj = NewObject<UObject>(Package, Class, FName(*Id), RF_Public | RF_Standalone | RF_Transactional);
+    if (Init) Init(Obj);                                        // set type fields BEFORE the save so they persist
+    FAssetRegistryModule::AssetCreated(Obj);
+    Package->MarkPackageDirty();
+    FEditorFileUtils::PromptForCheckoutAndSave({ Package }, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
+    return Obj;
+}
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::MakeAddButton(const FText& HintText, TFunction<void(const FString&)> OnCreate)
+{
+    return SNew(SComboButton)
+        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(TEXT("+"))) ]
+        .OnGetMenuContent_Lambda([HintText, OnCreate]() -> TSharedRef<SWidget>
+        {
+            return SNew(SBox).Padding(6.f).MinDesiredWidth(190.f)
+            [ SNew(SEditableTextBox).HintText(HintText)
+              .OnTextCommitted_Lambda([OnCreate](const FText& T, ETextCommit::Type C)
+              {
+                  if (C != ETextCommit::OnEnter) return;
+                  const FString N = T.ToString().TrimStartAndEnd();
+                  if (!N.IsEmpty()) OnCreate(N);
+              }) ];
+        });
+}
+
 void SPCAPCallSheetPanel::RebuildSheet()
 {
     if (SheetBox.IsValid()) SheetBox->SetContent(BuildSheet());
@@ -109,15 +147,35 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
         [ BuildCallSection(LOCTEXT("CalledActors", "Called actors"), GatherActors(),
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsActorCalled(Id); },
-            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetActorCalled(Id, b); D->MarkPackageDirty(); } }) ]
+            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetActorCalled(Id, b); D->MarkPackageDirty(); } },
+            [this](const FString& Id)
+            {
+                CreateAssetIn(UActorRosterEntry::StaticClass(), PCAPPaths::ActorsDir(), Id,
+                    [Id](UObject* O){ if (UActorRosterEntry* E = Cast<UActorRosterEntry>(O)) E->ActorID = Id; });
+                if (UMocapDatabase* D = GetDB()) { D->SetActorCalled(Id, true); D->MarkPackageDirty(); }
+                RebuildSheet();
+            }) ]
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
         [ BuildCallSection(LOCTEXT("CalledProps", "Called props"), GatherProps(),
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsPropCalled(Id); },
-            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetPropCalled(Id, b); D->MarkPackageDirty(); } }) ]
+            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetPropCalled(Id, b); D->MarkPackageDirty(); } },
+            [this](const FString& Id)
+            {
+                CreateAssetIn(UPropRosterEntry::StaticClass(), PCAPPaths::PropsDir(), Id,
+                    [Id](UObject* O){ if (UPropRosterEntry* E = Cast<UPropRosterEntry>(O)) E->PropID = Id; });
+                if (UMocapDatabase* D = GetDB()) { D->SetPropCalled(Id, true); D->MarkPackageDirty(); }
+                RebuildSheet();
+            }) ]
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
         [ BuildCallSection(LOCTEXT("CalledVCam", "Called vcam"), GatherVCams(),
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsVCamCalled(Id); },
-            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetVCamCalled(Id, b); D->MarkPackageDirty(); } }) ]
+            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetVCamCalled(Id, b); D->MarkPackageDirty(); } },
+            [this](const FString& Id)
+            {
+                CreateAssetIn(UPCAPVCamConfig::StaticClass(), PCAPPaths::VCamsDir(), Id);
+                if (UMocapDatabase* D = GetDB()) { D->SetVCamCalled(Id, true); D->MarkPackageDirty(); }
+                RebuildSheet();
+            }) ]
         + SScrollBox::Slot()[ BuildShotsSection() ];
 }
 
@@ -223,10 +281,41 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ ProdPick ]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
+            [ MakeAddButton(LOCTEXT("AddProd", "+ production code  ↵"), [this](const FString& Code)
+              {
+                  if (UMocapDatabase* D = GetDB())
+                  {
+                      if (!D->GetProductionByCode(Code)) { FProduction P; P.ProjectCode = Code; P.ProductionName = Code; D->Productions.Add(P); D->MarkPackageDirty(); }
+                      D->ActiveProductionCode = Code;
+                  }
+                  RebuildSheet();
+              }) ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f)[ Dot() ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ DayPick ]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
+            [ MakeAddButton(LOCTEXT("AddDay", "+ day id  ↵"), [this](const FString& Id)
+              {
+                  if (UMocapDatabase* D = GetDB())
+                      if (FProduction* P = D->GetProductionByCode(D->ActiveProductionCode))
+                      {
+                          if (!D->GetDay(D->ActiveProductionCode, Id)) { FShootDay Dy; Dy.DayID = Id; P->Days.Add(Dy); D->MarkPackageDirty(); }
+                          D->ActiveDayID = Id;
+                      }
+                  RebuildSheet();
+              }) ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f)[ Dot() ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ StagePick ]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
+            [ MakeAddButton(LOCTEXT("AddStage", "+ stage name  ↵"), [this](const FString& Name)
+              {
+                  UStageConfigAsset* S = Cast<UStageConfigAsset>(CreateAssetIn(UStageConfigAsset::StaticClass(), PCAPPaths::StagesDir(), Name,
+                      [Name](UObject* O){ if (UStageConfigAsset* SC = Cast<UStageConfigAsset>(O)) SC->ConfigName = Name; }));
+                  if (S)
+                      if (UMocapDatabase* D = GetDB())
+                          if (FShootDay* Dy = D->GetDay(D->ActiveProductionCode, D->ActiveDayID)) { Dy->ActiveStageConfig = S; D->MarkPackageDirty(); }
+                  RebuildSheet();
+              }) ]
             + SHorizontalBox::Slot().FillWidth(1.f)[ SNullWidget::NullWidget ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
             [ SNew(STextBlock).Text(ReadyText).ColorAndOpacity(FSlateColor(bReady ? ColGreen : ColAmber)) ]
@@ -235,44 +324,11 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
         [ SNew(STextBlock).Text(FText::FromString(SystemsText)).ColorAndOpacity(FSlateColor(ColText2)) ]
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)
         [
-            SNew(SHorizontalBox)
-            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 8.f, 0.f)
-            [ SNew(SBox).WidthOverride(170.f)
-              [ SNew(SEditableTextBox).HintText(LOCTEXT("NewProdHint", "+ production code  ↵"))
-                .OnTextCommitted_Lambda([this](const FText& T, ETextCommit::Type C)
-                {
-                    if (C != ETextCommit::OnEnter) return;
-                    const FString Code = T.ToString().TrimStartAndEnd();
-                    if (Code.IsEmpty()) return;
-                    if (UMocapDatabase* D = GetDB())
-                    {
-                        if (!D->GetProductionByCode(Code)) { FProduction P; P.ProjectCode = Code; P.ProductionName = Code; D->Productions.Add(P); D->MarkPackageDirty(); }
-                        D->ActiveProductionCode = Code;
-                    }
-                    RebuildSheet();
-                }) ] ]
-            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-            [ SNew(SBox).WidthOverride(150.f)
-              [ SNew(SEditableTextBox).HintText(LOCTEXT("NewDayHint", "+ day id  ↵"))
-                .OnTextCommitted_Lambda([this](const FText& T, ETextCommit::Type CommitType)
-                {
-                    if (CommitType != ETextCommit::OnEnter) return;
-                    const FString Id = T.ToString().TrimStartAndEnd();
-                    if (Id.IsEmpty()) return;
-                    if (UMocapDatabase* D = GetDB())
-                        if (FProduction* P = D->GetProductionByCode(D->ActiveProductionCode))
-                        {
-                            if (!D->GetDay(D->ActiveProductionCode, Id)) { FShootDay Dy; Dy.DayID = Id; P->Days.Add(Dy); D->MarkPackageDirty(); }
-                            D->ActiveDayID = Id;
-                        }
-                    RebuildSheet();
-                }) ] ]
-            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f, 0.f, 0.f)
-            [ SNew(SButton)
-              .Text(LOCTEXT("SpawnViz", "Spawn volume visualizer"))
-              .ToolTipText(LOCTEXT("SpawnVizTip", "Drop a Volume Visualizer into the level for this day's stage"))
-              .IsEnabled(Stage != nullptr)
-              .OnClicked_Lambda([this]() { SpawnVolumeVisualizer(); return FReply::Handled(); }) ]
+            SNew(SButton)
+            .Text(LOCTEXT("SpawnViz", "Spawn volume visualizer"))
+            .ToolTipText(LOCTEXT("SpawnVizTip", "Drop a Volume Visualizer into the level for this day's stage"))
+            .IsEnabled(Stage != nullptr)
+            .OnClicked_Lambda([this]() { SpawnVolumeVisualizer(); return FReply::Handled(); })
         ]
     ];
 }
@@ -305,7 +361,8 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildStageArea()
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
     const TArray<TPair<FString, FString>>& Items,
     TFunction<bool(const FString&)> IsCalled,
-    TFunction<void(const FString&, bool)> SetCalled)
+    TFunction<void(const FString&, bool)> SetCalled,
+    TFunction<void(const FString&)> CreateNew)
 {
     TSharedRef<SWrapBox> Chips = SNew(SWrapBox).UseAllottedSize(true);
     int32 Count = 0;
@@ -335,7 +392,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
     TSharedRef<SComboButton> AddBtn = SNew(SComboButton)
         .ButtonContent()[ SNew(STextBlock).Text(LOCTEXT("CallAdd", "+ call")) ]
         .OnMenuOpenChanged_Lambda([this](bool bOpen) { if (!bOpen) RebuildSheet(); })   // refresh chips when the picker closes
-        .OnGetMenuContent_Lambda([Items, IsCalled, SetCalled]() -> TSharedRef<SWidget>
+        .OnGetMenuContent_Lambda([Items, IsCalled, SetCalled, CreateNew]() -> TSharedRef<SWidget>
         {
             TSharedRef<FString> Filter = MakeShared<FString>();
             TSharedRef<SBox> ListHost = SNew(SBox);
@@ -370,6 +427,14 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
             return SNew(SBox).MinDesiredWidth(240.f)
             [
                 SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight().Padding(4.f)
+                [ SNew(SEditableTextBox).HintText(LOCTEXT("CreateNewHint", "+ new (creates in database)  ↵"))
+                  .OnTextCommitted_Lambda([CreateNew](const FText& T, ETextCommit::Type C)
+                  {
+                      if (C != ETextCommit::OnEnter) return;
+                      const FString N = T.ToString().TrimStartAndEnd();
+                      if (!N.IsEmpty()) CreateNew(N);
+                  }) ]
                 + SVerticalBox::Slot().AutoHeight().Padding(4.f)
                 [ SNew(SSearchBox).HintText(LOCTEXT("SearchLib", "search…"))
                   .OnTextChanged_Lambda([Filter, Rebuild](const FText& T) { *Filter = T.ToString(); (*Rebuild)(); }) ]
