@@ -1,293 +1,30 @@
-Build started at 4:02 PM...
+Build started at 5:16 PM...
 1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
 1>Using bundled DotNet SDK version: 8.0.412 win-x64
 1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
 1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
 1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
-1>Parsing headers for PCAPPipelineEditor
-1>  Running Internal UnrealHeaderTool C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject C:\Users\mocapstaff\Desktop\PCAPPipeline\Intermediate\Build\Win64\PCAPPipelineEditor\Development\PCAPPipelineEditor.uhtmanifest -WarningsAsErrors -installed
-1>UHT processed PCAPPipelineEditor in 1.2045594 seconds (7 files written)
 1>Building PCAPPipelineEditor...
 1>Using Visual Studio 2022 14.44.35226 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
 1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
 1>  Executing up to 32 processes, one per physical core
-1>Using Unreal Build Accelerator local executor to run 7 action(s)
+1>Using Unreal Build Accelerator local executor to run 4 action(s)
 1>  Storage capacity 40Gb
-1>---- Starting trace: 260616_160229_vs60200 ----
+1>---- Starting trace: 260616_171610_vs7152 ----
 1>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
-1>[1/7] Compile [x64] Module.PCAPTool.2.cpp
-1>[2/7] Compile [x64] Module.PCAPTool.1.cpp
-1>[3/7] Compile [x64] Module.PCAPTool.4.cpp
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,128): error C2039: 'DisplayName': is not a member of 'UActorRosterEntry'
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                                               ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Public\ActorRosterEntry.h(12,20): note: see declaration of 'UActorRosterEntry'
-1>class PCAPTOOL_API UActorRosterEntry : public UDataAsset
-1>                   ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,107): error C2665: 'TArray<TTuple<KeyType,ValueType>,FDefaultAllocator>::Add': no overloaded function could convert all the argument types
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                          ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Containers\Array.h(2709,42): note: could be 'int TArray<TTuple<KeyType,ValueType>,FDefaultAllocator>::Add(const TTuple<KeyType,ValueType> &)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	UE_NODEBUG UE_FORCEINLINE_HINT SizeType Add(const ElementType& Item)
-1>	                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,107): note: 'int TArray<TTuple<KeyType,ValueType>,FDefaultAllocator>::Add(const TTuple<KeyType,ValueType> &)': cannot convert argument 1 from 'initializer list' to 'const TTuple<KeyType,ValueType> &'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: Reason: cannot convert from 'initializer list' to 'const TTuple<KeyType,ValueType>'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple': no overloaded function could convert all the argument types
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(680,2): note: could be 'TTuple<KeyType,ValueType>::TTuple(const TTuple<KeyType,ValueType> &)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	TTuple(const TTuple&) = default;
-1>	^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple(const TTuple<KeyType,ValueType> &)': cannot convert argument 1 from 'FString' to 'const TTuple<KeyType,ValueType> &'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: Reason: cannot convert from 'FString' to 'const TTuple<KeyType,ValueType>'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                                 ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(679,2): note: or       'TTuple<KeyType,ValueType>::TTuple(TTuple<KeyType,ValueType> &&)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	TTuple(TTuple&&) = default;
-1>	^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple(TTuple<KeyType,ValueType> &&)': cannot convert argument 1 from 'FString' to 'TTuple<KeyType,ValueType> &&'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: Reason: cannot convert from 'FString' to 'TTuple<KeyType,ValueType>'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                                 ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(678,2): note: or       'TTuple<KeyType,ValueType>::TTuple(void)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	constexpr TTuple() requires (std::is_default_constructible_v<Types> && ...) = default;
-1>	^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple': function does not take 1 arguments
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                              ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(673,2): note: or       'TTuple<KeyType,ValueType>::TTuple(const TTuple<OtherTypes...> &)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	TTuple(const TTuple<OtherTypes...>& Other)
-1>	^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(666,2): note: or       'TTuple<KeyType,ValueType>::TTuple(TTuple<OtherTypes...> &&)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	TTuple(TTuple<OtherTypes...>&& Other)
-1>	^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(659,2): note: or       'TTuple<KeyType,ValueType>::TTuple(ArgTypes ...)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	constexpr explicit(!std::conjunction_v<std::is_convertible<ArgTypes&&, Types>...>) TTuple(ArgTypes&&... Args)
-1>	^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: while trying to match the argument list '(FString)'
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                              ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Containers\Array.h(2696,42): note: or       'int TArray<TTuple<KeyType,ValueType>,FDefaultAllocator>::Add(TTuple<KeyType,ValueType> &&)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	UE_NODEBUG UE_FORCEINLINE_HINT SizeType Add(ElementType&& Item)
-1>	                                        ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,107): note: 'int TArray<TTuple<KeyType,ValueType>,FDefaultAllocator>::Add(TTuple<KeyType,ValueType> &&)': cannot convert argument 1 from 'initializer list' to 'TTuple<KeyType,ValueType> &&'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                          ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: Reason: cannot convert from 'initializer list' to 'TTuple<KeyType,ValueType>'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple': no overloaded function could convert all the argument types
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(680,2): note: could be 'TTuple<KeyType,ValueType>::TTuple(const TTuple<KeyType,ValueType> &)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	TTuple(const TTuple&) = default;
-1>	^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple(const TTuple<KeyType,ValueType> &)': cannot convert argument 1 from 'FString' to 'const TTuple<KeyType,ValueType> &'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: Reason: cannot convert from 'FString' to 'const TTuple<KeyType,ValueType>'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                                 ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(679,2): note: or       'TTuple<KeyType,ValueType>::TTuple(TTuple<KeyType,ValueType> &&)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	TTuple(TTuple&&) = default;
-1>	^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple(TTuple<KeyType,ValueType> &&)': cannot convert argument 1 from 'FString' to 'TTuple<KeyType,ValueType> &&'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: Reason: cannot convert from 'FString' to 'TTuple<KeyType,ValueType>'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                                 ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,114): note: No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(678,2): note: or       'TTuple<KeyType,ValueType>::TTuple(void)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	constexpr TTuple() requires (std::is_default_constructible_v<Types> && ...) = default;
-1>	^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: 'TTuple<KeyType,ValueType>::TTuple': function does not take 1 arguments
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                              ^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(673,2): note: or       'TTuple<KeyType,ValueType>::TTuple(const TTuple<OtherTypes...> &)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	TTuple(const TTuple<OtherTypes...>& Other)
-1>	^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(666,2): note: or       'TTuple<KeyType,ValueType>::TTuple(TTuple<OtherTypes...> &&)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	TTuple(TTuple<OtherTypes...>&& Other)
-1>	^
-1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\Core\Public\Templates\Tuple.h(659,2): note: or       'TTuple<KeyType,ValueType>::TTuple(ArgTypes ...)'
-1>        with
-1>        [
-1>            KeyType=FString,
-1>            ValueType=FString
-1>        ]
-1>	constexpr explicit(!std::conjunction_v<std::is_convertible<ArgTypes&&, Types>...>) TTuple(ArgTypes&&... Args)
-1>	^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,111): note: while trying to match the argument list '(FString)'
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                              ^
-1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SPCAPCallSheetPanel.cpp(386,107): note: while trying to match the argument list '(initializer list)'
-1>    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, E->DisplayName });
-1>                                                                                                          ^
-1>[4/7] Compile [x64] Module.PCAPTool.3.cpp
-1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 10.5kb
-1>Total time in Unreal Build Accelerator local executor: 5.85 seconds
+1>[1/4] Compile [x64] Module.PCAPTool.4.cpp
+1>C:\Users\mocapstaff\Desktop\PCAPPipeline\Plugins\PCAPTool\Source\PCAPTool\Private\SHMCSetupPanel.cpp(1150,54): error C4458: declaration of 'Tag' hides class member
+1>    auto BoardRow = [this](int32 Cam, const FString& Tag) -> TSharedRef<SWidget>
+1>                                                     ^
+1>C:\Program Files\Epic Games\UE_5.7\Engine\Source\Runtime\SlateCore\Public\Widgets\SWidget.h(1886,8): note: see declaration of 'SWidget::Tag'
+1>	FName Tag;
+1>	      ^
+1>Trace written to file C:/Users/mocapstaff/AppData/Local/UnrealBuildTool/Log.uba with size 3.1kb
+1>Total time in Unreal Build Accelerator local executor: 6.53 seconds
 1>
 1>Result: Failed (OtherCompilationError)
-1>Total execution time: 7.94 seconds
+1>Total execution time: 7.44 seconds
 1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
 1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
 ========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
-========== Build completed at 4:02 PM and took 08.879 seconds ==========
+========== Build completed at 5:16 PM and took 08.277 seconds ==========
