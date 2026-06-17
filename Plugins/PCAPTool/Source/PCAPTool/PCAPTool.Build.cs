@@ -51,7 +51,11 @@ public class PCAPTool : ModuleRules
         // the SDK's include path + import lib + delay-loaded DLL.
         string ViconSdkDir = Path.GetFullPath(Path.Combine(PluginDirectory, "..", "LiveLinkViconDataStream", "Source", "ThirdParty", "ViconDataStreamSDK"));
         string ViconLib = Path.Combine(ViconSdkDir, "ViconDataStreamSDK_CPP.lib");
-        if (File.Exists(ViconLib))
+        // The Vicon DataStream SDK is Windows-only (a .lib + .dll). Guard to Win64 so the
+        // plugin still links on Mac/other platforms — Phase 2 raw markers compile out
+        // there via WITH_VICON_SDK=0 (the .lib exists in-repo, so File.Exists alone is
+        // true even on Mac, which would otherwise try to link a Windows lib and fail).
+        if (Target.Platform == UnrealTargetPlatform.Win64 && File.Exists(ViconLib))
         {
             PublicIncludePaths.Add(ViconSdkDir);
             PublicAdditionalLibraries.Add(ViconLib);
