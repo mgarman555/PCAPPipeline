@@ -1147,12 +1147,12 @@ FReply SHMCSetupPanel::OnCaptureCalibEnd()
 TSharedRef<SWidget> SHMCSetupPanel::BuildCalibrationSection()
 {
     // Live coarse board state for a camera, coloured (green ok / amber framing / red none).
-    auto BoardRow = [this](int32 Cam, const FString& Tag) -> TSharedRef<SWidget>
+    auto BoardRow = [this](int32 Cam, const FString& Label) -> TSharedRef<SWidget>
     {
         return SNew(STextBlock)
-            .Text_Lambda([this, Cam, Tag]()
+            .Text_Lambda([this, Cam, Label]()
             {
-                return FText::FromString(FString::Printf(TEXT("%s: %s"), *Tag,
+                return FText::FromString(FString::Printf(TEXT("%s: %s"), *Label,
                     *UPCAPToolStatics::GetBoardStateText(BoardState(Cam))));
             })
             .ColorAndOpacity_Lambda([this, Cam]()
@@ -1413,10 +1413,10 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCheckReadout(int32 CameraIndex)
                         const FHMCFramingRef R = Sub->GetFramingRef(ActiveDeviceName, CameraIndex);
                         if (!R.bSet) return FText::FromString(TEXT("Reference: not set"));
                         const FString CamKey = FString::Printf(TEXT("%s_%d"), *ActiveDeviceName, CameraIndex);
-                        const TCHAR* Tag = RefOffTarget.Contains(CamKey)
+                        const TCHAR* Suffix = RefOffTarget.Contains(CamKey)
                             ? TEXT("  - reframe (off target)") : TEXT("  - within target");
                         return FText::FromString(FString::Printf(TEXT("Reference: set  (%.2f,%.2f · %.2f)%s"),
-                            R.Center.X, R.Center.Y, R.Size, Tag));
+                            R.Center.X, R.Center.Y, R.Size, Suffix));
                     })
                 ]
                 + SHorizontalBox::Slot().AutoWidth()
