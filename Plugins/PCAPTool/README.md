@@ -14,12 +14,12 @@ See the [repo README](../../README.md) for the big picture; this covers the plug
 
 ## Tools
 
-- **Call Sheet** — single scrollable day sheet: production/day/stage header + readiness, called actors/props/vcam (chips + searchable "+ call" picker), and the shot list.
-- **Databases** (Actor · Prop · Stage · VCam · Production) — permanent card libraries; each entry is a DataAsset (Production is a struct in the master DB). They're pure data — no Live Link — and expose the shared `SPCAPRosterCard`.
-- **Operator Console** — navigate the day's shots, drive RECORD/STOP via the Take Recorder backend.
-- **HMC Monitor** — per-camera head-mounted-camera health checks.
-- **VCam Operator** — virtual camera (WVCAM replacement; controller input over UDP).
-- **Volume Visualizer** — placeable actor; draws Vicon markers as dots + labels, to scale in the stage FBX (Live Link stand-in now; raw markers via the Vicon SDK).
+- **[Call Sheet](../../docs/tools/call-sheet.md)** — single scrollable day sheet: production/day/stage header + readiness, called actors/props/vcam (chips + searchable "+ call" picker), and the shot list.
+- **[Databases](../../docs/tools/databases.md)** (Actor · Prop · Stage · VCam · Production) — permanent card libraries; each entry is a DataAsset (Production is a struct in the master DB). They're pure data — no Live Link — and expose the shared `SPCAPRosterCard`.
+- **[Operator Console](../../docs/tools/operator-console.md)** — navigate the day's shots, drive RECORD/STOP via the Take Recorder backend.
+- **[HMC Monitor](../../docs/tools/hmc-monitor.md)** — per-camera head-mounted-camera health checks.
+- **[VCam Operator](../../docs/tools/vcam-operator.md)** — virtual camera (WVCAM replacement; controller input over UDP).
+- **[Volume Visualizer](../../docs/tools/volume-visualizer.md)** — placeable actor; draws Vicon markers as dots + labels, to scale in the stage FBX (Live Link stand-in now; raw markers via the Vicon SDK).
 
 ## Data model
 
@@ -44,4 +44,4 @@ See the [repo README](../../README.md) for the big picture; this covers the plug
 - Editor module (`PCAPTool`, `LoadingPhase: Default`). Key deps in `PCAPTool.Build.cs`: Slate/SlateCore, UnrealEd, LiveLink/LiveLinkInterface, TakeRecorder/TakesCore/MovieScene, PropertyEditor, AssetRegistry, DesktopPlatform; the Vicon DataStream SDK is referenced conditionally (`WITH_VICON_SDK`) from the sibling plugin.
 - Authored on macOS (UE 5.4 as API reference), compiled on Windows (UE 5.7.4).
 
-Design specs for each feature live in [`Docs/`](Docs/README.md).
+Design specs live in the repo's [`docs/`](../../docs/README.md); per-tool usage how-tos are in [`docs/tools/`](../../docs/tools/). See [CONTRIBUTING](../../CONTRIBUTING.md) for the build + git workflow.

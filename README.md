@@ -56,8 +56,13 @@ flowchart LR
 | `Plugins/LiveLinkViconDataStream/` | Vicon DataStream Live Link + SDK |
 | `Config/` | Project config (`.ini`) |
 | `Content/` | UE content (assets live under `Content/PCAPTool/`) |
-| `Plugins/PCAPTool/Docs/` | Design specs ([index](Plugins/PCAPTool/Docs/README.md)) |
+| `docs/` | Design specs, plans, per-tool how-tos ([index](docs/README.md)) |
+| `CONTRIBUTING.md` | Build steps + git workflow + repo conventions |
 
 ## Documentation
 
-Design specs and build notes live in [`Plugins/PCAPTool/Docs/`](Plugins/PCAPTool/Docs/README.md). Each substantial feature is brainstormed into a dated `*-design.md` spec before it's built.
+Design specs, implementation plans, and per-tool how-tos live in [`docs/`](docs/README.md) — start at the index. Each substantial feature is brainstormed into a dated `*-design.md` spec before it's built. See [CONTRIBUTING](CONTRIBUTING.md) for how the repo is worked: build steps, the Mac-authors / Windows-builds split, and the git guardrails.
+
+## License
+
+**To be determined.** No open-source license has been chosen yet, so the code is currently all-rights-reserved by default. Bundled third-party components keep their own terms — notably **Unreal Engine** (governed by the [Unreal Engine EULA](https://www.unrealengine.com/eula)) and the **Vicon DataStream SDK** (Vicon's own license). If this repository is or becomes public, the vendored Vicon SDK binary and Vicon sample content should be reviewed against Vicon's redistribution terms before relying on any project-wide license.
