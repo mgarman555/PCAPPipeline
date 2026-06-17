@@ -106,14 +106,46 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::MakeAddButton(const FText& HintText, TF
         .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(TEXT("+"))) ]
         .OnGetMenuContent_Lambda([HintText, OnCreate]() -> TSharedRef<SWidget>
         {
-            return SNew(SBox).Padding(6.f).MinDesiredWidth(190.f)
-            [ SNew(SEditableTextBox).HintText(HintText)
-              .OnTextCommitted_Lambda([OnCreate](const FText& T, ETextCommit::Type C)
-              {
-                  if (C != ETextCommit::OnEnter) return;
-                  const FString N = T.ToString().TrimStartAndEnd();
-                  if (!N.IsEmpty()) OnCreate(N);
-              }) ];
+            // Build the field first so the Create button + auto-focus timer can reference it.
+            TSharedRef<SEditableTextBox> Box = SNew(SEditableTextBox)
+                .HintText(HintText)
+                .MinDesiredWidth(170.f)
+                .OnTextCommitted_Lambda([OnCreate](const FText& T, ETextCommit::Type C)
+                {
+                    if (C != ETextCommit::OnEnter) return;            // Enter in the field commits
+                    const FString N = T.ToString().TrimStartAndEnd();
+                    if (N.IsEmpty()) return;
+                    FSlateApplication::Get().DismissAllMenus();        // close popup BEFORE rebuilding the sheet
+                    OnCreate(N);
+                });
+
+            // Combo popups don't auto-focus their content — grab keyboard focus the instant
+            // the popup appears so typing just works.
+            Box->RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateLambda(
+                [BoxWeak = TWeakPtr<SEditableTextBox>(Box)](double, float)
+                {
+                    if (TSharedPtr<SEditableTextBox> B = BoxWeak.Pin())
+                        FSlateApplication::Get().SetKeyboardFocus(B, EFocusCause::SetDirectly);
+                    return EActiveTimerReturnType::Stop;
+                }));
+
+            return SNew(SBox).Padding(6.f).MinDesiredWidth(230.f)
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)[ Box ]
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(4.f, 0.f, 0.f, 0.f)
+                [ SNew(SButton)
+                  .Text(LOCTEXT("CreateEntry", "Create"))
+                  .OnClicked_Lambda([OnCreate, BoxWeak = TWeakPtr<SEditableTextBox>(Box)]()
+                  {
+                      if (TSharedPtr<SEditableTextBox> B = BoxWeak.Pin())
+                      {
+                          const FString N = B->GetText().ToString().TrimStartAndEnd();
+                          if (!N.IsEmpty()) { FSlateApplication::Get().DismissAllMenus(); OnCreate(N); }
+                      }
+                      return FReply::Handled();
+                  }) ]
+            ];
         });
 }
 
