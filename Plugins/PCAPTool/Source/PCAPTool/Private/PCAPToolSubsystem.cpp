@@ -806,6 +806,7 @@ void UPCAPToolSubsystem::SaveConfig() const
         Obj->SetBoolField(TEXT("calibEndCaptured"), C.bCalibEndCaptured);
         Obj->SetStringField(TEXT("calibStartStillPath"), C.CalibStartStillPath);
         Obj->SetStringField(TEXT("calibEndStillPath"), C.CalibEndStillPath);
+        Obj->SetStringField(TEXT("sourceRig"), C.SourceRig.ToSoftObjectPath().ToString());
 
         auto WriteRef = [](const FHMCFramingRef& R) -> TSharedPtr<FJsonObject>
         {
@@ -876,6 +877,9 @@ void UPCAPToolSubsystem::LoadConfig()
         Obj->TryGetBoolField(TEXT("calibEndCaptured"), Config.bCalibEndCaptured);
         Obj->TryGetStringField(TEXT("calibStartStillPath"), Config.CalibStartStillPath);
         Obj->TryGetStringField(TEXT("calibEndStillPath"), Config.CalibEndStillPath);
+        FString SR;
+        if (Obj->TryGetStringField(TEXT("sourceRig"), SR) && !SR.IsEmpty())
+            Config.SourceRig = TSoftObjectPtr<UHMCRigEntry>(FSoftObjectPath(SR));
 
         auto ReadRef = [](const TSharedPtr<FJsonObject>& Parent, const TCHAR* Key, FHMCFramingRef& R)
         {

@@ -420,6 +420,7 @@ FPipelineCheckProfile UPCAPToolStatics::GetDefinition(ECapturePipeline Pipeline,
             P.bCheckBoard = true;   // checkerboard calibration take is part of stereo HMC
             break;
         case ECaptureConfiguration::MonoHeadMount:
+        case ECaptureConfiguration::PhoneHeadMount:   // phone = mono head-mount + TrueDepth; refine on rig
         default:
             break;
     }

@@ -4,6 +4,9 @@
 #include "PCAPToolSettings.h"
 #include "MocapDatabase.h"
 #include "ActorRosterEntry.h"
+#include "HMCRigEntry.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Modules/ModuleManager.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/SWindow.h"
@@ -365,6 +368,7 @@ void SHMCSetupPanel::OnActorChosen(FString DeviceName, FString ActorID)
 
 FReply SHMCSetupPanel::OnAddDeviceClicked()
 {
+    ModalSelectedRig = nullptr;
     ModalWindow = SNew(SWindow)
         .Title(FText::FromString(TEXT("Add HMC Device")))
         .ClientSize(FVector2D(380.f, 230.f))
@@ -376,6 +380,42 @@ FReply SHMCSetupPanel::OnAddDeviceClicked()
             .Padding(16.f)
             [
                 SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,4)
+                [ SNew(STextBlock).Text(FText::FromString(TEXT("From library (optional)"))) ]
+                + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)
+                [
+                    SNew(SComboButton)
+                    .ButtonContent()
+                    [
+                        SNew(STextBlock).Text_Lambda([this]()
+                        {
+                            return FText::FromString(ModalSelectedRig.IsValid()
+                                ? ModalSelectedRig->RigName : FString(TEXT("— pick a saved rig —")));
+                        })
+                    ]
+                    .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
+                    {
+                        FMenuBuilder MB(true, nullptr);
+                        FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+                        TArray<FAssetData> Found;
+                        ARM.Get().GetAssetsByClass(UHMCRigEntry::StaticClass()->GetClassPathName(), Found, false);
+                        for (const FAssetData& AD : Found)
+                        {
+                            UHMCRigEntry* Rig = Cast<UHMCRigEntry>(AD.GetAsset());
+                            if (!Rig) continue;
+                            TWeakObjectPtr<UHMCRigEntry> Weak(Rig);
+                            MB.AddMenuEntry(FText::FromString(Rig->RigName), FText::GetEmpty(), FSlateIcon(),
+                                FUIAction(FExecuteAction::CreateLambda([this, Weak]()
+                                {
+                                    if (!Weak.IsValid()) return;
+                                    ModalSelectedRig = Weak;
+                                    if (ModalNameInput.IsValid()) ModalNameInput->SetText(FText::FromString(Weak->RigName));
+                                    if (ModalIPInput.IsValid())   ModalIPInput->SetText(FText::FromString(Weak->IPAddress));
+                                })));
+                        }
+                        return MB.MakeWidget();
+                    })
+                ]
                 + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,4)
                 [ SNew(STextBlock).Text(FText::FromString(TEXT("Name"))) ]
                 + SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)
@@ -430,6 +470,11 @@ FReply SHMCSetupPanel::OnModalConnectClicked()
             FHMCDeviceConfig Config;
             Config.DeviceName = Name;
             Config.IPAddress  = IP;
+            if (ModalSelectedRig.IsValid())   // picked from the library → carry its type + link
+            {
+                Config.CaptureConfig = ModalSelectedRig->Type;
+                Config.SourceRig     = TSoftObjectPtr<UHMCRigEntry>(ModalSelectedRig.Get());
+            }
             // ActorID + WebSocketEndpoint intentionally empty.
             Sub->RegisterDevice(Config);   // persists to HMCConfig.json
         }

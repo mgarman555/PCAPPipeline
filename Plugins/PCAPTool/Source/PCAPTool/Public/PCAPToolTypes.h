@@ -234,9 +234,10 @@ enum class ECapturePipeline : uint8
 UENUM(BlueprintType)
 enum class ECaptureConfiguration : uint8
 {
-    MonoTripod      UMETA(DisplayName = "Mono - Tripod"),
+    MonoTripod      UMETA(DisplayName = "Tripod"),
     MonoHeadMount   UMETA(DisplayName = "Mono - Head Mount"),
-    StereoHeadMount UMETA(DisplayName = "Stereo - Head Mount")
+    StereoHeadMount UMETA(DisplayName = "Stereo - Head Mount"),
+    PhoneHeadMount  UMETA(DisplayName = "Phone - Head Mount")
 };
 
 // Per-camera framing reference captured at setup: where the actor's face should
@@ -254,6 +255,9 @@ struct PCAPTOOL_API FHMCFramingRef
 // ---------------------------------------------------------------------------
 // HMC Device Config — registration data (persisted to HMCConfig.json)
 // ---------------------------------------------------------------------------
+
+class UHMCRigEntry;   // library rig a live device was created from (soft ref on the config)
+
 
 USTRUCT(BlueprintType)
 struct PCAPTOOL_API FHMCDeviceConfig
@@ -311,6 +315,10 @@ struct PCAPTOOL_API FHMCDeviceConfig
     UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bCalibEndCaptured   = false;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) FString CalibStartStillPath;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) FString CalibEndStillPath;
+
+    // The library rig this device was created from (soft — survives rename). Empty for
+    // manually-added devices.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) TSoftObjectPtr<UHMCRigEntry> SourceRig;
 };
 
 // ---------------------------------------------------------------------------

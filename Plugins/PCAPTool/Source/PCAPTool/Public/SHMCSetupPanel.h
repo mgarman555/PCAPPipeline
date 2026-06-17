@@ -30,6 +30,7 @@ private:
     TSharedPtr<SWindow> ModalWindow;
     TSharedPtr<SEditableTextBox> ModalNameInput;
     TSharedPtr<SEditableTextBox> ModalIPInput;
+    TWeakObjectPtr<UHMCRigEntry> ModalSelectedRig;   // chosen library rig (optional)
 
     // ── Device list (build once + live bindings, like Preview) ────────────────
     void RefreshDeviceList();

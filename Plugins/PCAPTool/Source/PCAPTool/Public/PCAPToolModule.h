@@ -20,6 +20,7 @@ public:
     static const FName StageDBTabName;
     static const FName VCamDBTabName;
     static const FName ProdDBTabName;
+    static const FName HMCDBTabName;
 
     virtual void StartupModule() override;
     virtual void ShutdownModule() override;
@@ -34,6 +35,7 @@ private:
     TSharedRef<SDockTab> SpawnStageDBTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnVCamDBTab(const FSpawnTabArgs& Args);
     TSharedRef<SDockTab> SpawnProdDBTab(const FSpawnTabArgs& Args);
+    TSharedRef<SDockTab> SpawnHMCDBTab(const FSpawnTabArgs& Args);
 
     TSharedPtr<FWorkspaceItem> PCAPMenuGroup;        // "PCAP Tools" — operator tools
     TSharedPtr<FWorkspaceItem> DatabasesMenuGroup;   // "Databases" — separate data setup

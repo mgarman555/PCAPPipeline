@@ -34,6 +34,7 @@ namespace PCAPPaths
     inline FString PropsDir()       { return Databases() + TEXT("/Props"); }
     inline FString StagesDir()      { return Databases() + TEXT("/Stages"); }
     inline FString VCamsDir()       { return Databases() + TEXT("/VCams"); }
+    inline FString HMCRigsDir()     { return Databases() + TEXT("/HMC"); }
     inline FString MasterDatabase() { return Databases() + TEXT("/MasterPCAPDatabase"); }
 
     // Per-tool asset area, created on demand as a tool needs to write assets.

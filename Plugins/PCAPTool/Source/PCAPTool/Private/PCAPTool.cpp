@@ -5,6 +5,7 @@
 #include "SPCAPStageDatabasePanel.h"
 #include "SPCAPVCamDatabasePanel.h"
 #include "SPCAPProductionDatabasePanel.h"
+#include "SPCAPHMCDatabasePanel.h"
 #include "SPCAPOperatorConsole.h"
 #include "SPCAPCallSheetPanel.h"
 #include "SPCAPVCamPanel.h"
@@ -27,6 +28,7 @@ const FName FPCAPToolModule::PropDBTabName    = TEXT("PCAPTool_PropDB");
 const FName FPCAPToolModule::StageDBTabName   = TEXT("PCAPTool_StageDB");
 const FName FPCAPToolModule::VCamDBTabName    = TEXT("PCAPTool_VCamDB");
 const FName FPCAPToolModule::ProdDBTabName    = TEXT("PCAPTool_ProdDB");
+const FName FPCAPToolModule::HMCDBTabName     = TEXT("PCAPTool_HMCDB");
 
 void FPCAPToolModule::StartupModule()
 {
@@ -105,6 +107,13 @@ void FPCAPToolModule::StartupModule()
         .SetDisplayName(LOCTEXT("ProdDBTabTitle", "Production Database"))
         .SetTooltipText(LOCTEXT("ProdDBTabTooltip", "PCAP — the production library"))
         .SetGroup(DatabasesMenuGroup.ToSharedRef());
+
+    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
+        HMCDBTabName,
+        FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnHMCDBTab))
+        .SetDisplayName(LOCTEXT("HMCDBTabTitle", "HMC Database"))
+        .SetTooltipText(LOCTEXT("HMCDBTabTooltip", "PCAP — the HMC rig library (name + type + IP)"))
+        .SetGroup(DatabasesMenuGroup.ToSharedRef());
 }
 
 void FPCAPToolModule::ShutdownModule()
@@ -118,6 +127,7 @@ void FPCAPToolModule::ShutdownModule()
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(StageDBTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(VCamDBTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ProdDBTabName);
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(HMCDBTabName);
 }
 
 TSharedRef<SDockTab> FPCAPToolModule::SpawnHMCTab(const FSpawnTabArgs& Args)
@@ -163,6 +173,11 @@ TSharedRef<SDockTab> FPCAPToolModule::SpawnVCamDBTab(const FSpawnTabArgs& Args)
 TSharedRef<SDockTab> FPCAPToolModule::SpawnProdDBTab(const FSpawnTabArgs& Args)
 {
     return SNew(SDockTab).TabRole(ETabRole::NomadTab)[ SNew(SPCAPProductionDatabasePanel) ];
+}
+
+TSharedRef<SDockTab> FPCAPToolModule::SpawnHMCDBTab(const FSpawnTabArgs& Args)
+{
+    return SNew(SDockTab).TabRole(ETabRole::NomadTab)[ SNew(SPCAPHMCDatabasePanel) ];
 }
 
 #undef LOCTEXT_NAMESPACE
