@@ -85,20 +85,17 @@ void UPCAPToolSubsystem::UnregisterDevice(const FString& DeviceName)
     }
 
     // Prune per-camera Capture Monitor state so it doesn't accumulate across
-    // register/unregister cycles (keyed "DeviceName_Cam"; AutoFlagHold "..._Cam|bit").
+    // register/unregister cycles (keyed "DeviceName_Cam"); the agents are dropped below.
     for (int32 Cam = 0; Cam < 2; ++Cam)
     {
         const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, Cam);
         ImageMetrics.Remove(CamKey);
         LastAnalyzeTime.Remove(CamKey);
-        StableAutoFlags.Remove(CamKey);
         FrameNoFace.Remove(CamKey);
-        CentroidHistory.Remove(CamKey);
-        BumpUntil.Remove(CamKey);
+        LastFrameBGRA.Remove(CamKey);
+        LastFrameDims.Remove(CamKey);
     }
-    const FString Prefix = DeviceName + TEXT("_");
-    for (auto It = AutoFlagHold.CreateIterator(); It; ++It)
-        if (It.Key().StartsWith(Prefix)) It.RemoveCurrent();
+    AgentOrchestrator.Remove(DeviceName);   // drop both cameras' agents (debounce / stability / board)
 
     SaveConfig();
 }
@@ -130,12 +127,7 @@ void UPCAPToolSubsystem::AssignActor(const FString& DeviceName, const FString& N
     // (Preview shows "framing reference not set" until it's re-captured in Setup).
     Config->FramingRef0 = FHMCFramingRef();
     Config->FramingRef1 = FHMCFramingRef();
-    for (int32 Cam = 0; Cam < 2; ++Cam)
-    {
-        const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, Cam);
-        CentroidHistory.Remove(CamKey);
-        BumpUntil.Remove(CamKey);
-    }
+    AgentOrchestrator.Remove(DeviceName);   // reset the agents' stability/debounce for the new actor
 
     // 2. CameraFeeds is keyed by ActorID — move this device's feeds to the new key.
     TArray<FHMCCameraFeed>& NewGroup = CameraFeeds.FindOrAdd(NewActorID);
@@ -539,16 +531,11 @@ int32 UPCAPToolSubsystem::GetEffectiveIssueFlags(const FString& DeviceName, int3
     const FString Key = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
     const int32 FrameFlags = FrameNoFace.Contains(Key) ? HMC_Issue_NoFace : 0;
 
-    // Debounced automatic image-analysis flags (focus / exposure / lighting / framing).
-    const int32 AutoFlags = StableAutoFlags.Contains(Key) ? StableAutoFlags[Key] : 0;
+    // Debounced automatic image-analysis flags from this camera's agent (focus /
+    // exposure / lighting / framing / stability, incl. the latched bump).
+    const int32 AutoFlags = AgentOrchestrator.GetStableFlags(DeviceName, CameraIndex);
 
-    // Bump latch — a momentary knock stays red for its hold window (bypasses the slow
-    // hysteresis so a single-frame jump is actually visible).
-    int32 BumpFlag = 0;
-    if (const double* BU = BumpUntil.Find(Key))
-        if (FPlatformTime::Seconds() < *BU) BumpFlag = HMC_Issue_Bumped;
-
-    return Hardware | GetManualIssueFlags(DeviceName) | FrameFlags | AutoFlags | BumpFlag;
+    return Hardware | GetManualIssueFlags(DeviceName) | FrameFlags | AutoFlags;
 }
 
 // ─── Video Frames ─────────────────────────────────────────────────────────────
@@ -627,36 +614,17 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
                 LastFrameBGRA.Add(CamKey, Uncompressed);
                 LastFrameDims.Add(CamKey, FIntPoint(IW->GetWidth(), IW->GetHeight()));
 
-                // Mount stability from the subject centroid: a sudden jump = a bump
-                // (latched ~1.2s so a one-frame knock stays visible), and high variance
-                // over the window = an unstable / wobbling mount. Only with a subject.
-
-                int32 StabilityFlags = 0;
-                if (M.bHasSubject && Profile.bCheckFraming)   // skip if the pipeline doesn't frame-check
-                {
-                    TArray<FVector2D>& Hist = CentroidHistory.FindOrAdd(CamKey);
-                    if (Hist.Num() > 0 &&
-                        FVector2D::Distance(M.SubjectCenter, Hist.Last()) > Profile.BumpJumpMin)
-                    {
-                        BumpUntil.FindOrAdd(CamKey) = NowT + Profile.BumpHoldSeconds;   // latch the bump
-                    }
-                    Hist.Add(M.SubjectCenter);
-                    while (Hist.Num() > 10) Hist.RemoveAt(0);       // ~2s window @ ~5Hz
-                    if (Hist.Num() >= 5)
-                    {
-                        FVector2D Mean(0.0, 0.0);
-                        for (const FVector2D& P : Hist) Mean += P;
-                        Mean /= (double)Hist.Num();
-                        double Var = 0.0;
-                        for (const FVector2D& P : Hist) Var += FVector2D::DistSquared(P, Mean);
-                        if (FMath::Sqrt(Var / Hist.Num()) > Profile.InstabilityStdMax)
-                            StabilityFlags |= HMC_Issue_Unstable;
-                    }
-                }
-
-                const int32 RawAuto = UPCAPToolStatics::MapMetricsToAutoFlags(
-                    M, Profile, GetFramingRef(DeviceName, CameraIndex)) | StabilityFlags;
-                UpdateAutoFlagHysteresis(CamKey, RawAuto);
+                // Per-camera agent: run the pipeline×config checklist (focus / exposure /
+                // lighting / framing / stability / board) on this frame's metrics. The
+                // agent owns the debounce, the centroid history + bump latch, and board state.
+                FHMCSkillContext Ctx;
+                Ctx.Metrics     = M;
+                Ctx.Profile     = Profile;
+                Ctx.FramingRef  = GetFramingRef(DeviceName, CameraIndex);
+                Ctx.CameraIndex = CameraIndex;
+                Ctx.NowSeconds  = NowT;
+                AgentOrchestrator.OnFrame(DeviceName, CameraIndex,
+                    GetDevicePipeline(DeviceName), CaptureCfg, Ctx);
             }
         }
         LogFrameRate(CamKey, (FPlatformTime::Seconds() - DecodeT0) * 1000.0, RawBytes.Num());
@@ -1106,6 +1074,11 @@ FString UPCAPToolSubsystem::GetLightingHint(const FString& DeviceName, int32 Cam
     return UPCAPToolStatics::GetLightingHintText(M->LightDir);
 }
 
+EHMCBoardState UPCAPToolSubsystem::GetAgentBoardState(const FString& DeviceName, int32 CameraIndex) const
+{
+    return AgentOrchestrator.GetBoardState(DeviceName, CameraIndex);
+}
+
 bool UPCAPToolSubsystem::SetFramingReferenceFromCurrent(const FString& DeviceName, int32 CameraIndex)
 {
     FHMCDeviceConfig* C = RegisteredConfigs.Find(DeviceName);
@@ -1166,23 +1139,4 @@ void UPCAPToolSubsystem::MarkAllPreppedForPreview()
     SaveConfig();
 }
 
-int32 UPCAPToolSubsystem::UpdateAutoFlagHysteresis(const FString& CamKey, int32 RawFlags)
-{
-    static const int32 Bits[] = {
-        HMC_Issue_Overexposed, HMC_Issue_Underexposed,
-        HMC_Issue_OutOfFocus,  HMC_Issue_UnevenLight, HMC_Issue_FramingDrift,
-        HMC_Issue_Unstable
-    };
-    const int32 HOLD = 5;   // ~1s at the ~5Hz analysis rate
-
-    int32& Stable = StableAutoFlags.FindOrAdd(CamKey);
-    for (int32 Bit : Bits)
-    {
-        int32& Hold = AutoFlagHold.FindOrAdd(FString::Printf(TEXT("%s|%d"), *CamKey, Bit));
-        if (RawFlags & Bit) Hold = FMath::Min(HOLD, Hold + 1);
-        else                Hold = FMath::Max(0, Hold - 1);
-        if      (Hold >= HOLD) Stable |= Bit;
-        else if (Hold <= 0)    Stable &= ~Bit;
-    }
-    return Stable;
-}
+// (UpdateAutoFlagHysteresis removed — per-flag debounce now lives in FHMCCameraAgent::Tick.)

@@ -1137,9 +1137,9 @@ EHMCBoardState SHMCSetupPanel::BoardState(int32 CameraIndex) const
 {
     UPCAPToolSubsystem* Sub = GetSubsystem();
     if (!Sub || ActiveDeviceName.IsEmpty()) return EHMCBoardState::NotDetected;
-    const FPipelineCheckProfile P = UPCAPToolStatics::GetDefinition(
-        Sub->GetDevicePipeline(ActiveDeviceName), Sub->GetDeviceCaptureConfig(ActiveDeviceName));
-    return UPCAPToolStatics::ClassifyBoardFrame(Sub->GetImageMetrics(ActiveDeviceName, CameraIndex), P);
+    // Board state is computed by this camera's agent (Board skill); read it from there
+    // so there's a single source of truth rather than re-classifying in the UI.
+    return Sub->GetAgentBoardState(ActiveDeviceName, CameraIndex);
 }
 
 FReply SHMCSetupPanel::OnCaptureCalibStart()

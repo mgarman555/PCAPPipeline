@@ -6,6 +6,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "Engine/TimerHandle.h"
 #include "PCAPToolTypes.h"
+#include "HMCCameraAgent.h"
 #include "PCAPToolSubsystem.generated.h"
 
 // Same delegate signatures as UHMCMonitorComponent — widget bindings are identical.
@@ -180,6 +181,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     FString GetLightingHint(const FString& DeviceName, int32 CameraIndex) const;
 
+    // Coarse stereo board-calibration state from the camera's agent (Setup calibration
+    // section). EHMCBoardState::Good when no board check is active for this device.
+    EHMCBoardState GetAgentBoardState(const FString& DeviceName, int32 CameraIndex) const;
+
     // ─── Scan readiness (per-actor calibration gate) + focus helper ─────────────
 
     // Full device config snapshot (for the Setup gate to read its state).
@@ -256,8 +261,11 @@ private:
     // (keyed "DeviceName_Cam"). Analysis is throttled (~5Hz) off the decode path.
     TMap<FString, FHMCImageMetrics> ImageMetrics;
     TMap<FString, double>           LastAnalyzeTime;   // last analysis timestamp per cam
-    TMap<FString, int32>            StableAutoFlags;   // hysteresis-stable auto flags per cam
-    TMap<FString, int32>            AutoFlagHold;      // per "Cam|bit" integrator counter
+
+    // Per-camera agents (one per "Device_Cam"): own the image-check debounce, the
+    // stability history + bump latch, and the board state — replacing the loose
+    // StableAutoFlags / AutoFlagHold / CentroidHistory / BumpUntil maps that lived here.
+    FHMCAgentOrchestrator           AgentOrchestrator;
 
     // Latest decoded BGRA per camera (for identity-still capture). Overwritten each
     // analyzed frame; keyed "DeviceName_Cam".
@@ -268,11 +276,7 @@ private:
     // and calibration still-capture paths. False if there's no cached frame / IO fails.
     bool SaveCameraStillPng(const FString& DeviceName, int32 CameraIndex, const FString& FullPath);
 
-    // Mount-stability detection: subject-centroid history per camera (~last 2s at the
-    // ~5Hz rate) for instability variance, plus a per-camera "bumped until" timestamp
-    // so a one-frame jump stays visible ~1.2s.
-    TMap<FString, TArray<FVector2D>> CentroidHistory;
-    TMap<FString, double>            BumpUntil;
+    // (Mount-stability history + bump latch now live inside the per-camera agents.)
 
     // Continuous video pump state. Frames are NOT tied to the 2s status poll —
     // each device runs a self-sustaining chain that alternates cameras as fast as
@@ -312,10 +316,6 @@ private:
     // Reuses one persistent texture per "DeviceName_Cam", updating its pixels in
     // place via UpdateTextureRegions — no per-frame allocation or UpdateResource.
     UTexture2D* UpdateFrameTexture(const FString& Key, const TArray<uint8>& BGRA, int32 Width, int32 Height);
-
-    // Integrator hysteresis: folds this frame's raw auto-flags into the per-camera
-    // StableAutoFlags so a flag must persist ~1s before it sets/clears (no blinking).
-    int32 UpdateAutoFlagHysteresis(const FString& CamKey, int32 RawFlags);
 
     void SetConnectionState(const FString& DeviceName, EHMCConnectionState NewState);
     void MarkFeedsDisconnected(const FString& DeviceName);
