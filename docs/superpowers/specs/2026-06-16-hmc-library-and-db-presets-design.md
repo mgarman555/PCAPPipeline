@@ -27,14 +27,13 @@ One asset per physical rig, saved to `Content/Mocap/_Roster/HMCRigs/[rigName].ua
 
 | Field | Type | Notes |
 |---|---|---|
-| `RigName` | `FString` | "Orion" — the displayed name |
-| `Type` | `EHMCType` | **new enum** — `Technoprops / RokokoPhone / OneHMC / Other` (extensible: adding a type = one enum value) |
+| `RigName` | `FString` | "Orion" — the displayed name; brand/model lives here |
+| `Type` | `ECaptureConfiguration` | the rig's **mount form-factor**, which *is* the capture configuration: **phone head mount / mono head mount / stereo head mount / tripod**. One field (no separate brand). Rides along when the rig is picked and drives the watcher's per-config checklist. |
 | `IPAddress` | `FString` | per-rig IP |
-| `CaptureConfig` | `ECaptureConfiguration` | **lives on the entry** (reuses the existing enum: stereo-headmount / mono-headmount / mono-tripod). Defaulted by `Type`, editable — so the rig "remembers it's a stereo headrig" and it rides along when picked |
 | `Thumbnail` | `TSoftObjectPtr<UTexture2D>` | optional, for the database card (like Actor `Headshot`) |
 | `Notes` | `FString` | optional |
 
-**Type → CaptureConfig default** (a convenience on create, always editable): Technoprops → stereo-headmount; RokokoPhone → mono-headmount; OneHMC → stereo-headmount; Other → mono-tripod.
+**Capture-config enum:** extend `ECaptureConfiguration` to the four mount form-factors — **phone head mount / mono head mount / stereo head mount / tripod** (add `PhoneHeadMount`; today's `MonoTripod` is displayed "Tripod"). The rig's `Type` *is* this enum; there is no separate brand field (brand lives in the Name). These are all the types "for now."
 
 ### Roster + panel (match the others)
 - `MocapDatabase` gains `TArray<TSoftObjectPtr<UHMCRigEntry>> HMCRigs;` (alongside `ActorRoster` / `PropRoster` / `StageConfigs`).
@@ -60,8 +59,9 @@ A uniform mechanism on every database: **"save the current configuration as a na
 ---
 
 ## 6. Data model & code mapping (Sub-project 1)
-- **New:** `Public/HMCRigEntry.h` (`UHMCRigEntry` DataAsset) + `EHMCType` (in `PCAPToolTypes.h`).
-- **`PCAPToolTypes.h`:** `EHMCType`; reuse existing `ECaptureConfiguration`.
+- **New:** `Public/HMCRigEntry.h` (`UHMCRigEntry` DataAsset).
+- **`PCAPToolTypes.h`:** extend `ECaptureConfiguration` with `PhoneHeadMount` (label `MonoTripod` as "Tripod") → phone/mono/stereo head mount + tripod; the rig's `Type` IS this enum.
+- **`PCAPToolStatics::GetDefinition`:** add a `PhoneHeadMount` branch (treat as mono head-mount + TrueDepth distance for now; refine on the rig).
 - **`MocapDatabase.h`:** add `HMCRigs` roster + any accessor matching the others.
 - **New:** `Private/SPCAPHMCDatabasePanel.cpp` + `Public/SPCAPHMCDatabasePanel.h` (pattern: `SPCAPStageDatabasePanel`).
 - **`FHMCDeviceConfig`:** add the source-rig link; CaptureConfig seeds from the entry on register.
@@ -74,6 +74,6 @@ A uniform mechanism on every database: **"save the current configuration as a na
 - Sub-projects 2 and 3 are decomposed out — their own specs/plans.
 
 ## 8. Open decisions (for review)
-- **`EHMCType` enum vs free-text:** enum (validated, matches the codebase's enum-for-systems pattern; adding a type is a one-line change) vs free-text (no code edit to add a type, but no validation). Spec assumes **enum + `Other`**; say if you'd rather free-text.
+- **Type = capture configuration (one field); brand dropped** (Madi): the rig's `Type` is the mount form-factor (phone/mono/stereo head mount + tripod) = the capture config, so one field, no separate brand (brand lives in the Name). Flag if you want a separate brand field too.
 - **Rig link on the live device:** `FString RigName` (loose) vs `TSoftObjectPtr<UHMCRigEntry>` (hard ref, survives rename). Spec leans soft-ptr.
 - Sub-project 3's per-DB "what does a snapshot capture" is deferred to its own spec.
