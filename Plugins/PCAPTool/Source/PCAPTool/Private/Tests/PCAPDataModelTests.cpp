@@ -114,6 +114,28 @@ bool FPCAPDayCalloutTest::RunTest(const FString&)
     return true;
 }
 
+// HMC day flag — off by default, toggles on the active day.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPHMCDayTest,
+    "PCAP.DataModel.HMCDay",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPHMCDayTest::RunTest(const FString&)
+{
+    UMocapDatabase* DB = NewObject<UMocapDatabase>();
+    FProduction P; P.ProjectCode = TEXT("DA");
+    FShootDay   D; D.DayID       = TEXT("001");
+    P.Days.Add(D);
+    DB->Productions.Add(P);
+    DB->ActiveProductionCode = TEXT("DA");
+    DB->ActiveDayID          = TEXT("001");
+
+    TestFalse(TEXT("HMCs off by default"), DB->IsHMCDay());
+    DB->SetHMCDay(true);
+    TestTrue(TEXT("HMC day after set"), DB->IsHMCDay());
+    DB->SetHMCDay(false);
+    TestFalse(TEXT("HMC day cleared"), DB->IsHMCDay());
+    return true;
+}
+
 // Active-day readiness — lists what's missing; empty issues = ready.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPDayReadinessTest,
     "PCAP.DataModel.DayReadiness",

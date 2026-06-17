@@ -36,6 +36,7 @@ private:
     TSharedRef<SWidget> BuildSheet();
     TSharedRef<SWidget> BuildHeader();            // production/day/stage pickers (+ create) + readiness + spawn-viz
     TSharedRef<SWidget> BuildStageArea();         // stage dropdown + editable setup
+    TSharedRef<SWidget> BuildHMCDayToggle();      // day-level "HMCs used today?" switch
     // A "+" button whose popup is a name field → OnCreate(name). The universal add.
     TSharedRef<SWidget> MakeAddButton(const FText& HintText, TFunction<void(const FString&)> OnCreate);
     // Create-or-resolve a roster DataAsset (Actor/Prop/VCam/Stage) named Id under Dir.

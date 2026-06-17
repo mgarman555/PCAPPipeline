@@ -69,6 +69,23 @@ void SHMCSetupPanel::Construct(const FArguments& InArgs)
                 ]
             ]
 
+            // ── HMC-day hint: shown only when the active day isn't flagged for HMCs ──
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            .Padding(12.f, 0.f, 12.f, 8.f)
+            [
+                SNew(SBorder)
+                .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+                .Padding(FMargin(10.f, 6.f))
+                .Visibility_Lambda([this]() { return ShowHMCDayHint() ? EVisibility::Visible : EVisibility::Collapsed; })
+                [
+                    SNew(STextBlock)
+                    .AutoWrapText(true)
+                    .Text(FText::FromString(TEXT("Today isn't marked as an HMC day — set it in the Call Sheet if you're capturing faces.")))
+                    .ColorAndOpacity(FSlateColor(ColYellow))
+                ]
+            ]
+
             // ── Body: device list (left) + selected-device detail (right) ──
             + SVerticalBox::Slot()
             .FillHeight(1.f)
@@ -303,6 +320,16 @@ TArray<FString> SHMCSetupPanel::CalledActorIDsForActiveDay() const
             if (FShootDay* Day = DB->GetActiveDay())
                 return Day->CalledActorIDs;
     return TArray<FString>();
+}
+
+bool SHMCSetupPanel::ShowHMCDayHint() const
+{
+    // Nudge only when a day is active but unmarked; silent when no day is selected.
+    if (UPCAPToolSettings* Settings = UPCAPToolSettings::Get())
+        if (UMocapDatabase* DB = Settings->GetDatabase())
+            if (FShootDay* Day = DB->GetActiveDay())
+                return !Day->bHMCsUsed;
+    return false;
 }
 
 FString SHMCSetupPanel::ResolveActorName(const FString& ActorID) const

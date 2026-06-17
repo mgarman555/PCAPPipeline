@@ -144,6 +144,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
     return SNew(SScrollBox)
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildHeader() ]
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildStageArea() ]
+        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildHMCDayToggle() ]
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
         [ BuildCallSection(LOCTEXT("CalledActors", "Called actors"), GatherActors(),
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsActorCalled(Id); },
@@ -354,6 +355,41 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildStageArea()
         [ SNew(STextBlock).Text(LOCTEXT("StageSetup", "Stage setup — edits update this stage's preset")).ColorAndOpacity(FSlateColor(ColText2)) ]
         + SVerticalBox::Slot().AutoHeight()[ StageDetailsView.ToSharedRef() ]
     ];
+}
+
+// ── HMC day flag — a single day-level "HMCs used today?" switch ───────────────
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHMCDayToggle()
+{
+    return SNew(SBorder)
+        .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+        .Padding(FMargin(12.f, 8.f))
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+            [
+                SNew(SCheckBox)
+                .IsChecked_Lambda([this]()
+                {
+                    UMocapDatabase* D = GetDB();
+                    return (D && D->IsHMCDay()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+                })
+                .OnCheckStateChanged_Lambda([this](ECheckBoxState S)
+                {
+                    if (UMocapDatabase* D = GetDB())
+                    {
+                        D->SetHMCDay(S == ECheckBoxState::Checked);
+                        D->MarkPackageDirty();
+                    }
+                })
+            ]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f, 0.f, 0.f)
+            [ SNew(STextBlock).Text(LOCTEXT("HMCsUsedToday", "HMCs used today?")) ]
+            + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center).Padding(12.f, 0.f, 0.f, 0.f)
+            [ SNew(STextBlock).AutoWrapText(true)
+                .Text(LOCTEXT("HMCsUsedHint", "Mark the day for head-mounted facial capture. The HMC tool calls the actors checked below."))
+                .ColorAndOpacity(FSlateColor(ColText2)) ]
+        ];
 }
 
 // ── Called section — chips of called items + a "+ call" checklist picker ──────

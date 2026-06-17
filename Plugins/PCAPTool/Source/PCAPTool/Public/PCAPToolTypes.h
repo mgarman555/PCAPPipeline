@@ -945,6 +945,10 @@ struct PCAPTOOL_API FShootDay
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
     TArray<FString> CalledVCamIDs;    // → UPCAPVCamConfig asset name
+
+    // "HMCs used today?" — head-mounted facial capture planned for this day.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
+    bool bHMCsUsed = false;
 };
 
 USTRUCT(BlueprintType)

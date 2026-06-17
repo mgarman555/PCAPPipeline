@@ -212,6 +212,18 @@ void UMocapDatabase::SetVCamCalled(const FString& VCamID, bool bCalled)
     }
 }
 
+bool UMocapDatabase::IsHMCDay() const
+{
+    const FShootDay* Day = const_cast<UMocapDatabase*>(this)->GetDay(ActiveProductionCode, ActiveDayID);
+    return Day && Day->bHMCsUsed;
+}
+
+void UMocapDatabase::SetHMCDay(bool bUsed)
+{
+    if (FShootDay* Day = GetDay(ActiveProductionCode, ActiveDayID))
+        Day->bHMCsUsed = bUsed;
+}
+
 bool UMocapDatabase::GetActiveDayReadiness(TArray<FString>& OutIssues) const
 {
     OutIssues.Reset();

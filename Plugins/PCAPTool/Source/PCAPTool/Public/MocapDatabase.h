@@ -65,6 +65,10 @@ public:
     bool IsVCamCalled(const FString& VCamID) const;
     void SetVCamCalled(const FString& VCamID, bool bCalled);
 
+    // Day-level "HMCs used today?" flag (head-mounted facial capture), on the active day.
+    bool IsHMCDay() const;
+    void SetHMCDay(bool bUsed);
+
     // Is the active day ready to shoot? OutIssues lists what's missing (empty = ready).
     bool GetActiveDayReadiness(TArray<FString>& OutIssues) const;
 

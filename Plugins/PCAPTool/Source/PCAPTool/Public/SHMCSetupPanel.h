@@ -79,6 +79,9 @@ private:
     static bool BoxCheckActive(const FString& Label, const FPipelineCheckProfile& P);
     // Aggregated red status line for the selected HMC (both cameras) — empty when good.
     FString SetupStatusText() const;
+    // True only when a shoot day is active but NOT flagged "HMCs used today?" — drives
+    // the gentle Call-Sheet nudge banner. False when no day is active (nothing to nudge).
+    bool ShowHMCDayHint() const;
     static FString PipelineName(ECapturePipeline Pipeline);
     static FString ConfigName(ECaptureConfiguration Config);
 
