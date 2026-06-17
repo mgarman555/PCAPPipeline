@@ -235,6 +235,13 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDeviceRow(const FString& DeviceName)
                 [
                     BuildActorDropdown(DeviceName)
                 ]
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f, 0.f, 0.f)
+                [
+                    SNew(SButton)
+                    .Text(FText::FromString(TEXT("↻")))
+                    .ToolTipText(FText::FromString(TEXT("Refresh this HMC's data (force status poll + feeds)")))
+                    .OnClicked(this, &SHMCSetupPanel::OnRefreshDevice, DeviceName)
+                ]
 
                 + SHorizontalBox::Slot().FillWidth(1.f)
 
@@ -469,6 +476,13 @@ FReply SHMCSetupPanel::OnDisconnectDevice(FString DeviceName)
     if (ActiveDeviceName == DeviceName)
         ActiveDeviceName.Reset();
     RefreshDeviceList();   // device set changed → rebuild the list now
+    return FReply::Handled();
+}
+
+FReply SHMCSetupPanel::OnRefreshDevice(FString DeviceName)
+{
+    if (UPCAPToolSubsystem* Sub = GetSubsystem())
+        Sub->RefreshDevice(DeviceName);
     return FReply::Handled();
 }
 

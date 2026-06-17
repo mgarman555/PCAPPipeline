@@ -59,6 +59,11 @@ public:
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void ConnectAll();
 
+    // Force fresh data for one device now: clear its fail streak, force an immediate
+    // status poll, and re-kick its video feed (reconnects it if it had dropped).
+    UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
+    void RefreshDevice(const FString& DeviceName);
+
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     void DisconnectDevice(const FString& DeviceName);
 

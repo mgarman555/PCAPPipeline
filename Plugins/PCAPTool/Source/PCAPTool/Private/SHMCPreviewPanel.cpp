@@ -13,6 +13,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SWrapBox.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
 #include "Styling/AppStyle.h"
 #include "Styling/SlateColor.h"
 #include "Styling/SlateBrush.h"
@@ -221,6 +222,21 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildDeviceCard(const FString& DeviceName,
                         .Text_Lambda([this, DeviceName]() { return FText::FromString(PipelineLabel(DeviceName)); })
                         .ColorAndOpacity(FSlateColor(ColGray))
                     ]
+                ]
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                .VAlign(VAlign_Center)
+                .Padding(8.f, 0.f, 0.f, 0.f)
+                [
+                    SNew(SButton)
+                    .Text(FText::FromString(TEXT("↻")))
+                    .ToolTipText(FText::FromString(TEXT("Refresh this HMC's data (force status poll + feeds)")))
+                    .OnClicked_Lambda([this, DeviceName]()
+                    {
+                        if (UPCAPToolSubsystem* S = GetSubsystem()) S->RefreshDevice(DeviceName);
+                        return FReply::Handled();
+                    })
                 ]
             ]
 

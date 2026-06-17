@@ -42,6 +42,7 @@ private:
     FReply OnModalCancelClicked();      // closes modal
     FReply OnPreppedClicked();          // Prepped for Preview → ConnectAll + SaveConfig
     FReply OnDisconnectDevice(FString DeviceName);
+    FReply OnRefreshDevice(FString DeviceName);     // force fresh data for one HMC
     void   OnActorChosen(FString DeviceName, FString ActorID);
 
     // ── Detail panel (selected device: live feed + controls) ──────────────────

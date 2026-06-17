@@ -215,6 +215,31 @@ void UPCAPToolSubsystem::ConnectAll()
     }
 }
 
+void UPCAPToolSubsystem::RefreshDevice(const FString& DeviceName)
+{
+    if (!RegisteredConfigs.Contains(DeviceName)) return;
+
+    // Clear the failure streak so a dropped/offline device retries on this refresh.
+    PollFailCount.Remove(DeviceName);
+
+    if (PollTimers.Contains(DeviceName))
+    {
+        // Already connected — pull fresh data now without a disconnect flicker:
+        PollDevice(DeviceName);                  // immediate status fetch
+        FrameStreamDevices.Add(DeviceName);      // ensure the feed chain is armed
+        // Drop any stale in-flight guard so a stalled feed re-kicks, then pump both cams.
+        FrameInFlight.Remove(FString::Printf(TEXT("%s_0"), *DeviceName));
+        FrameInFlight.Remove(FString::Printf(TEXT("%s_1"), *DeviceName));
+        PumpFrameCam(DeviceName, 0);
+        PumpFrameCam(DeviceName, 1);
+    }
+    else
+    {
+        // Disconnected/dropped — (re)connect, which fires a poll + starts the feeds.
+        ConnectDevice(DeviceName);
+    }
+}
+
 void UPCAPToolSubsystem::DisconnectDevice(const FString& DeviceName)
 {
     if (FTimerHandle* Handle = PollTimers.Find(DeviceName))
