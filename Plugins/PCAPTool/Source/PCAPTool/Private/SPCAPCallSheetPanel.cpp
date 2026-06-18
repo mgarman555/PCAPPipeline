@@ -77,6 +77,26 @@ void SPCAPCallSheetPanel::Construct(const FArguments& InArgs)
     RebuildSheet();
 }
 
+namespace
+{
+    // Latest take time across a day (0 if nothing recorded) — drives the "last shot" label.
+    FDateTime PCAPDayLastShot(const FShootDay& Day)
+    {
+        FDateTime Latest(0);
+        for (const FSession& S : Day.Sessions)
+            for (const FShot& Sh : S.Shots)
+                for (const FTake& T : Sh.Takes)
+                    if (T.RecordedAt > Latest) Latest = T.RecordedAt;
+        return Latest;
+    }
+    FString PCAPDayShotSuffix(const FShootDay& Day)
+    {
+        const FDateTime L = PCAPDayLastShot(Day);
+        return (L == FDateTime(0)) ? FString(TEXT("not shot yet"))
+                                   : FString::Printf(TEXT("last shot %s"), *L.ToString(TEXT("%Y-%m-%d")));
+    }
+}
+
 UMocapDatabase* SPCAPCallSheetPanel::GetDB() const
 {
     UPCAPToolSettings* S = UPCAPToolSettings::Get();
@@ -187,42 +207,18 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
     }
 
     return SNew(SScrollBox)
-        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildHeader() ]
-        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildStageArea() ]
-        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildHMCDayToggle() ]
+        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildHeader() ]            // Production
+        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildStageArea() ]         // Stage Setup
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
         [ BuildCallSection(LOCTEXT("CalledActors", "Called actors"), GatherActors(),
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsActorCalled(Id); },
-            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetActorCalled(Id, b); D->MarkPackageDirty(); } },
-            [this](const FString& Id)
-            {
-                CreateAssetIn(UActorRosterEntry::StaticClass(), PCAPPaths::ActorsDir(), Id,
-                    [Id](UObject* O){ if (UActorRosterEntry* E = Cast<UActorRosterEntry>(O)) E->ActorID = Id; });
-                if (UMocapDatabase* D = GetDB()) { D->SetActorCalled(Id, true); D->MarkPackageDirty(); }
-                RebuildSheet();
-            }) ]
+            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetActorCalled(Id, b); D->MarkPackageDirty(); } }) ]
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
         [ BuildCallSection(LOCTEXT("CalledProps", "Called props"), GatherProps(),
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsPropCalled(Id); },
-            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetPropCalled(Id, b); D->MarkPackageDirty(); } },
-            [this](const FString& Id)
-            {
-                CreateAssetIn(UPropRosterEntry::StaticClass(), PCAPPaths::PropsDir(), Id,
-                    [Id](UObject* O){ if (UPropRosterEntry* E = Cast<UPropRosterEntry>(O)) E->PropID = Id; });
-                if (UMocapDatabase* D = GetDB()) { D->SetPropCalled(Id, true); D->MarkPackageDirty(); }
-                RebuildSheet();
-            }) ]
-        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
-        [ BuildCallSection(LOCTEXT("CalledVCam", "Called vcam"), GatherVCams(),
-            [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsVCamCalled(Id); },
-            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetVCamCalled(Id, b); D->MarkPackageDirty(); } },
-            [this](const FString& Id)
-            {
-                CreateAssetIn(UPCAPVCamConfig::StaticClass(), PCAPPaths::VCamsDir(), Id);
-                if (UMocapDatabase* D = GetDB()) { D->SetVCamCalled(Id, true); D->MarkPackageDirty(); }
-                RebuildSheet();
-            }) ]
-        + SScrollBox::Slot()[ BuildShotsSection() ];
+            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetPropCalled(Id, b); D->MarkPackageDirty(); } }) ]
+        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildCallToggles() ]        // Call?
+        + SScrollBox::Slot()[ BuildShotsSection() ];                                   // Shot imports
 }
 
 // ── Header — production / day / stage pickers + readiness + spawn-viz ─────────
@@ -232,8 +228,6 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
     UMocapDatabase* DB = GetDB();
     const FString Prod = DB ? DB->ActiveProductionCode : FString();
     const FString Day  = DB ? DB->ActiveDayID : FString();
-    UStageConfigAsset* Stage = DB ? DB->GetActiveStageConfig() : nullptr;
-    const FString StageName = Stage ? (Stage->ConfigName.IsEmpty() ? Stage->GetName() : Stage->ConfigName) : FString(TEXT("(no stage)"));
 
     TArray<FString> Issues;
     const bool bReady = DB && DB->GetActiveDayReadiness(Issues);
@@ -242,15 +236,14 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
         ? LOCTEXT("Ready", "Ready to shoot")
         : FText::FromString(Issues.Num() > 0 ? FString::Printf(TEXT("Not ready — %s"), *FString::Join(Issues, TEXT(", "))) : FString(TEXT("Not ready")));
 
-    TArray<FString> Systems;
-    if (Stage)
+    // Day button shows the day id + its shot status (derived from recorded takes).
+    FString DayLabel = TEXT("(pick day)");
+    if (!Day.IsEmpty())
     {
-        if (Stage->BodySystem  != EBodySystem::None)  Systems.Add(StaticEnum<EBodySystem>()->GetDisplayNameTextByValue((int64)Stage->BodySystem).ToString());
-        if (Stage->FaceSystem  != EFaceSystem::None)  Systems.Add(StaticEnum<EFaceSystem>()->GetDisplayNameTextByValue((int64)Stage->FaceSystem).ToString());
-        if (Stage->AudioSystem != EAudioSystem::None) Systems.Add(StaticEnum<EAudioSystem>()->GetDisplayNameTextByValue((int64)Stage->AudioSystem).ToString());
-        if (Stage->VCamSystem  != EVCamSystem::None)  Systems.Add(StaticEnum<EVCamSystem>()->GetDisplayNameTextByValue((int64)Stage->VCamSystem).ToString());
+        FString Suffix = TEXT("not shot yet");
+        if (DB) if (FShootDay* Dy = DB->GetActiveDay()) Suffix = PCAPDayShotSuffix(*Dy);
+        DayLabel = FString::Printf(TEXT("%s · %s"), *Day, *Suffix);
     }
-    const FString SystemsText = Systems.Num() > 0 ? FString::Join(Systems, TEXT("  ·  ")) : FString(TEXT("no systems set"));
 
     TSharedRef<SComboButton> ProdPick = SNew(SComboButton)
         .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(Prod.IsEmpty() ? TEXT("(pick production)") : Prod)).ColorAndOpacity(FSlateColor(ColGreen)) ]
@@ -272,7 +265,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
         });
 
     TSharedRef<SComboButton> DayPick = SNew(SComboButton)
-        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(Day.IsEmpty() ? TEXT("(pick day)") : (TEXT("Day_") + Day))) ]
+        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(DayLabel)) ]
         .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
         {
             FMenuBuilder MB(true, nullptr);
@@ -291,38 +284,13 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
             return MB.MakeWidget();
         });
 
-    TSharedRef<SComboButton> StagePick = SNew(SComboButton)
-        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(StageName)) ]
-        .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
-        {
-            FMenuBuilder MB(true, nullptr);
-            FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-            TArray<FAssetData> F;
-            ARM.Get().GetAssetsByClass(UStageConfigAsset::StaticClass()->GetClassPathName(), F, false);
-            TArray<UStageConfigAsset*> St;
-            for (const FAssetData& AD : F) if (UStageConfigAsset* S = Cast<UStageConfigAsset>(AD.GetAsset())) St.Add(S);
-            St.Sort([](const UStageConfigAsset& A, const UStageConfigAsset& B){ return A.ConfigName < B.ConfigName; });
-            for (UStageConfigAsset* S : St)
-            {
-                TWeakObjectPtr<UStageConfigAsset> W(S);
-                const FString L = S->ConfigName.IsEmpty() ? S->GetName() : S->ConfigName;
-                MB.AddMenuEntry(FText::FromString(L), FText::GetEmpty(), FSlateIcon(),
-                    FUIAction(FExecuteAction::CreateLambda([this, W]()
-                    {
-                        UMocapDatabase* D = GetDB();
-                        FShootDay* Dy = D ? D->GetDay(D->ActiveProductionCode, D->ActiveDayID) : nullptr;
-                        if (Dy && W.IsValid()) { Dy->ActiveStageConfig = W.Get(); D->MarkPackageDirty(); }
-                        RebuildSheet();
-                    })));
-            }
-            return MB.MakeWidget();
-        });
-
     auto Dot = [this]() { return SNew(STextBlock).Text(FText::FromString(TEXT("·"))).ColorAndOpacity(FSlateColor(ColText2)); };
 
     return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
     [
         SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
+        [ SNew(STextBlock).Text(LOCTEXT("SecProduction", "Production")).ColorAndOpacity(FSlateColor(ColGreen)) ]
         + SVerticalBox::Slot().AutoHeight()
         [
             SNew(SHorizontalBox)
@@ -350,31 +318,9 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
                       }
                   RebuildSheet();
               }) ]
-            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f)[ Dot() ]
-            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ StagePick ]
-            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
-            [ MakeAddButton(LOCTEXT("AddStage", "+ stage name  ↵"), [this](const FString& Name)
-              {
-                  UStageConfigAsset* S = Cast<UStageConfigAsset>(CreateAssetIn(UStageConfigAsset::StaticClass(), PCAPPaths::StagesDir(), Name,
-                      [Name](UObject* O){ if (UStageConfigAsset* SC = Cast<UStageConfigAsset>(O)) SC->ConfigName = Name; }));
-                  if (S)
-                      if (UMocapDatabase* D = GetDB())
-                          if (FShootDay* Dy = D->GetDay(D->ActiveProductionCode, D->ActiveDayID)) { Dy->ActiveStageConfig = S; D->MarkPackageDirty(); }
-                  RebuildSheet();
-              }) ]
             + SHorizontalBox::Slot().FillWidth(1.f)[ SNullWidget::NullWidget ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
             [ SNew(STextBlock).Text(ReadyText).ColorAndOpacity(FSlateColor(bReady ? ColGreen : ColAmber)) ]
-        ]
-        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)
-        [ SNew(STextBlock).Text(FText::FromString(SystemsText)).ColorAndOpacity(FSlateColor(ColText2)) ]
-        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)
-        [
-            SNew(SButton)
-            .Text(LOCTEXT("SpawnViz", "Spawn volume visualizer"))
-            .ToolTipText(LOCTEXT("SpawnVizTip", "Drop a Volume Visualizer into the level for this day's stage"))
-            .IsEnabled(Stage != nullptr)
-            .OnClicked_Lambda([this]() { SpawnVolumeVisualizer(); return FReply::Handled(); })
         ]
     ];
 }
@@ -386,20 +332,70 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildStageArea()
     UMocapDatabase* DB = GetDB();
     UStageConfigAsset* Stage = DB ? DB->GetActiveStageConfig() : nullptr;
     if (StageDetailsView.IsValid()) StageDetailsView->SetObject(Stage);
+    const FString StageName = Stage ? (Stage->ConfigName.IsEmpty() ? Stage->GetName() : Stage->ConfigName) : FString(TEXT("(pick stage)"));
 
-    if (!Stage)
+    // Read-only summary of the called stage's configured systems.
+    TArray<FString> Systems;
+    if (Stage)
     {
-        return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
-        [ SNew(STextBlock).Text(LOCTEXT("NoStage", "No stage called — pick one in the header (manage the library in the Stage Database).")).ColorAndOpacity(FSlateColor(ColText2)) ];
+        if (Stage->BodySystem  != EBodySystem::None)  Systems.Add(StaticEnum<EBodySystem>()->GetDisplayNameTextByValue((int64)Stage->BodySystem).ToString());
+        if (Stage->FaceSystem  != EFaceSystem::None)  Systems.Add(StaticEnum<EFaceSystem>()->GetDisplayNameTextByValue((int64)Stage->FaceSystem).ToString());
+        if (Stage->AudioSystem != EAudioSystem::None) Systems.Add(StaticEnum<EAudioSystem>()->GetDisplayNameTextByValue((int64)Stage->AudioSystem).ToString());
+        if (Stage->VCamSystem  != EVCamSystem::None)  Systems.Add(StaticEnum<EVCamSystem>()->GetDisplayNameTextByValue((int64)Stage->VCamSystem).ToString());
     }
+    const FString SystemsText = Systems.Num() > 0 ? FString::Join(Systems, TEXT("  ·  ")) : FString(TEXT("no systems set"));
+
+    // Stage picker — pick an existing stage (new stages are made in the Stage Database).
+    TSharedRef<SComboButton> StagePick = SNew(SComboButton)
+        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(StageName)) ]
+        .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
+        {
+            FMenuBuilder MB(true, nullptr);
+            FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+            TArray<FAssetData> F;
+            ARM.Get().GetAssetsByClass(UStageConfigAsset::StaticClass()->GetClassPathName(), F, false);
+            TArray<UStageConfigAsset*> St;
+            for (const FAssetData& AD : F) if (UStageConfigAsset* S = Cast<UStageConfigAsset>(AD.GetAsset())) St.Add(S);
+            St.Sort([](const UStageConfigAsset& A, const UStageConfigAsset& B){ return A.ConfigName < B.ConfigName; });
+            for (UStageConfigAsset* S : St)
+            {
+                TWeakObjectPtr<UStageConfigAsset> W(S);
+                const FString L = S->ConfigName.IsEmpty() ? S->GetName() : S->ConfigName;
+                MB.AddMenuEntry(FText::FromString(L), FText::GetEmpty(), FSlateIcon(),
+                    FUIAction(FExecuteAction::CreateLambda([this, W]()
+                    {
+                        UMocapDatabase* D = GetDB();
+                        FShootDay* Dy = D ? D->GetDay(D->ActiveProductionCode, D->ActiveDayID) : nullptr;
+                        if (Dy && W.IsValid()) { Dy->ActiveStageConfig = W.Get(); D->MarkPackageDirty(); }
+                        RebuildSheet();
+                    })));
+            }
+            return MB.MakeWidget();
+        });
+
+    TSharedRef<SVerticalBox> Body = SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
+        [ SNew(STextBlock).Text(LOCTEXT("SecStage", "Stage Setup")).ColorAndOpacity(FSlateColor(ColGreen)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ StagePick ]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(12.f, 0.f, 0.f, 0.f)
+            [ SNew(STextBlock).Text(FText::FromString(SystemsText)).ColorAndOpacity(FSlateColor(ColText2)) ]
+            + SHorizontalBox::Slot().FillWidth(1.f)[ SNullWidget::NullWidget ]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+            [ SNew(SButton)
+              .Text(LOCTEXT("SpawnViz", "Spawn volume visualizer"))
+              .ToolTipText(LOCTEXT("SpawnVizTip", "Drop a Volume Visualizer into the level for this day's stage"))
+              .IsEnabled(Stage != nullptr)
+              .OnClicked_Lambda([this]() { SpawnVolumeVisualizer(); return FReply::Handled(); }) ]
+        ];
+
+    if (Stage)
+        Body->AddSlot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[ StageDetailsView.ToSharedRef() ];
 
     return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
-    [
-        SNew(SVerticalBox)
-        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
-        [ SNew(STextBlock).Text(LOCTEXT("StageSetup", "Stage setup — edits update this stage's preset")).ColorAndOpacity(FSlateColor(ColText2)) ]
-        + SVerticalBox::Slot().AutoHeight()[ StageDetailsView.ToSharedRef() ]
-    ];
+    [ Body ];
 }
 
 // ── HMC day flag — a single day-level "HMCs used today?" switch ───────────────
@@ -437,13 +433,56 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHMCDayToggle()
         ];
 }
 
+// ── Call? — day-level HMC / VCam / Audio "used today?" toggles ────────────────
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallToggles()
+{
+    auto Toggle = [this](const FText& Label, bool FShootDay::* Flag) -> TSharedRef<SWidget>
+    {
+        return SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+            [ SNew(SCheckBox)
+              .IsChecked_Lambda([this, Flag]()
+              {
+                  UMocapDatabase* D = GetDB();
+                  FShootDay* Dy = D ? D->GetActiveDay() : nullptr;
+                  return (Dy && Dy->*Flag) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+              })
+              .OnCheckStateChanged_Lambda([this, Flag](ECheckBoxState S)
+              {
+                  UMocapDatabase* D = GetDB();
+                  if (FShootDay* Dy = D ? D->GetActiveDay() : nullptr)
+                  {
+                      Dy->*Flag = (S == ECheckBoxState::Checked);
+                      D->MarkPackageDirty();
+                      RebuildSheet();
+                  }
+              }) ]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(6.f, 0.f, 20.f, 0.f)
+            [ SNew(STextBlock).Text(Label) ];
+    };
+
+    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
+    [
+        SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
+        [ SNew(STextBlock).Text(LOCTEXT("SecCall", "Call?")).ColorAndOpacity(FSlateColor(ColGreen)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth()[ Toggle(LOCTEXT("CallHMC", "HMC"), &FShootDay::bHMCsUsed) ]
+            + SHorizontalBox::Slot().AutoWidth()[ Toggle(LOCTEXT("CallVCam", "VCam"), &FShootDay::bVCamUsed) ]
+            + SHorizontalBox::Slot().AutoWidth()[ Toggle(LOCTEXT("CallAudio", "Audio"), &FShootDay::bAudioUsed) ]
+        ]
+    ];
+}
+
 // ── Called section — chips of called items + a "+ call" checklist picker ──────
 
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
     const TArray<TPair<FString, FString>>& Items,
     TFunction<bool(const FString&)> IsCalled,
-    TFunction<void(const FString&, bool)> SetCalled,
-    TFunction<void(const FString&)> CreateNew)
+    TFunction<void(const FString&, bool)> SetCalled)
 {
     TSharedRef<SWrapBox> Chips = SNew(SWrapBox).UseAllottedSize(true);
     int32 Count = 0;
@@ -473,7 +512,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
     TSharedRef<SComboButton> AddBtn = SNew(SComboButton)
         .ButtonContent()[ SNew(STextBlock).Text(LOCTEXT("CallAdd", "+ call")) ]
         .OnMenuOpenChanged_Lambda([this](bool bOpen) { if (!bOpen) RebuildSheet(); })   // refresh chips when the picker closes
-        .OnGetMenuContent_Lambda([Items, IsCalled, SetCalled, CreateNew]() -> TSharedRef<SWidget>
+        .OnGetMenuContent_Lambda([Items, IsCalled, SetCalled]() -> TSharedRef<SWidget>
         {
             TSharedRef<FString> Filter = MakeShared<FString>();
             TSharedRef<SBox> ListHost = SNew(SBox);
@@ -509,15 +548,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
             [
                 SNew(SVerticalBox)
                 + SVerticalBox::Slot().AutoHeight().Padding(4.f)
-                [ SNew(SEditableTextBox).HintText(LOCTEXT("CreateNewHint", "+ new (creates in database)  ↵"))
-                  .OnTextCommitted_Lambda([CreateNew](const FText& T, ETextCommit::Type C)
-                  {
-                      if (C != ETextCommit::OnEnter) return;
-                      const FString N = T.ToString().TrimStartAndEnd();
-                      if (!N.IsEmpty()) CreateNew(N);
-                  }) ]
-                + SVerticalBox::Slot().AutoHeight().Padding(4.f)
-                [ SNew(SSearchBox).HintText(LOCTEXT("SearchLib", "search…"))
+                [ SNew(SSearchBox).HintText(LOCTEXT("SearchLib", "search preset…"))
                   .OnTextChanged_Lambda([Filter, Rebuild](const FText& T) { *Filter = T.ToString(); (*Rebuild)(); }) ]
                 + SVerticalBox::Slot().AutoHeight()
                 [ SNew(SBox).MaxDesiredHeight(320.f)[ ListHost ] ]

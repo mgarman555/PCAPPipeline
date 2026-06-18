@@ -37,20 +37,20 @@ private:
     TSharedRef<SWidget> BuildSheet();
     TSharedRef<SWidget> BuildHeader();            // production/day/stage pickers (+ create) + readiness + spawn-viz
     TSharedRef<SWidget> BuildStageArea();         // stage dropdown + editable setup
-    TSharedRef<SWidget> BuildHMCDayToggle();      // day-level "HMCs used today?" switch
+    TSharedRef<SWidget> BuildHMCDayToggle();      // day-level "HMCs used today?" switch (legacy; folded into Call?)
+    TSharedRef<SWidget> BuildCallToggles();       // "Call?" row — HMC / VCam / Audio used-today flags
     // A "+" button whose popup is a name field → OnCreate(name). The universal add.
     TSharedRef<SWidget> MakeAddButton(const FText& HintText, TFunction<void(const FString&)> OnCreate);
     // Create-or-resolve a roster DataAsset (Actor/Prop/VCam/Stage) named Id under Dir.
     // If it already exists, returns the existing asset; if new, runs Init (to set type
     // fields) BEFORE saving so they persist, then saves. Returns null only on bad input.
     static UObject* CreateAssetIn(UClass* Class, const FString& Dir, const FString& Id, TFunction<void(UObject*)> Init = nullptr);
-    // One shared called-section builder, type-erased via lambdas (actors/props/vcam).
-    // CreateNew(id) makes a new DB entry from the Call Sheet and calls it to the day.
+    // One shared called-section builder, type-erased via lambdas. Calls existing
+    // (preset) library entries only — create new ones in their Database tabs.
     TSharedRef<SWidget> BuildCallSection(const FText& Title,
         const TArray<TPair<FString, FString>>& Items,
         TFunction<bool(const FString&)> IsCalled,
-        TFunction<void(const FString&, bool)> SetCalled,
-        TFunction<void(const FString&)> CreateNew);
+        TFunction<void(const FString&, bool)> SetCalled);
     TArray<TPair<FString, FString>> GatherActors() const;   // id, display
     TArray<TPair<FString, FString>> GatherProps() const;
     TArray<TPair<FString, FString>> GatherVCams() const;

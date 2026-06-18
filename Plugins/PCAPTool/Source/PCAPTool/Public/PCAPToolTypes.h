@@ -949,6 +949,13 @@ struct PCAPTOOL_API FShootDay
     // "HMCs used today?" — head-mounted facial capture planned for this day.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
     bool bHMCsUsed = false;
+
+    // VCam / Audio "used today?" — companions to bHMCsUsed (the Call? row in the Call Sheet).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
+    bool bVCamUsed = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
+    bool bAudioUsed = false;
 };
 
 USTRUCT(BlueprintType)
