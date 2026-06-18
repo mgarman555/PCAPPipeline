@@ -151,7 +151,20 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::MakeAddButton(const FText& HintText, TF
 
 void SPCAPCallSheetPanel::RebuildSheet()
 {
+    SaveDB();   // persist any pending master-DB edits (productions/days/calls) before re-rendering
     if (SheetBox.IsValid()) SheetBox->SetContent(BuildSheet());
+}
+
+void SPCAPCallSheetPanel::SaveDB()
+{
+    // Productions / days / sessions / call-outs live in the master DB asset. Unlike the
+    // roster libraries (separate assets saved on create), DB edits only MarkPackageDirty,
+    // so without this they'd never reach disk. Save when dirty so setup actually persists.
+    UMocapDatabase* D = GetDB();
+    if (!D) return;
+    UPackage* Pkg = D->GetPackage();
+    if (Pkg && Pkg->IsDirty())
+        FEditorFileUtils::PromptForCheckoutAndSave({ Pkg }, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
 }
 
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()

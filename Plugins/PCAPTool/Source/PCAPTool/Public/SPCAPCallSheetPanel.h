@@ -32,6 +32,7 @@ private:
 
     UMocapDatabase* GetDB() const;
     void RebuildSheet();                          // re-render the whole page (replaces section-switching)
+    void SaveDB();                                // persist master-DB edits (productions/days/calls) to disk if dirty
 
     TSharedRef<SWidget> BuildSheet();
     TSharedRef<SWidget> BuildHeader();            // production/day/stage pickers (+ create) + readiness + spawn-viz
