@@ -122,58 +122,56 @@ UObject* SPCAPCallSheetPanel::CreateAssetIn(UClass* Class, const FString& Dir, c
     return Obj;
 }
 
-TSharedRef<SWidget> SPCAPCallSheetPanel::MakeAddInline(const FString& Key, const TArray<FText>& Hints, TFunction<void(const TArray<FString>&)> OnCreate)
+TSharedRef<SWidget> SPCAPCallSheetPanel::MakeAddPopup(const TArray<FText>& Hints, TFunction<void(const TArray<FString>&)> OnCreate)
 {
-    // Collapsed: a plain "+" button (no dropdown). Click expands inline fields in the row.
-    if (AddingField != Key)
-    {
-        return SNew(SButton)
-            .Text(FText::FromString(TEXT("+")))
-            .OnClicked_Lambda([this, Key]() { AddingField = Key; RebuildSheet(); return FReply::Handled(); });
-    }
+    // A plain "+" (no down-arrow) that opens a small popup window anchored at the button.
+    // The popup is a compact panel of one field per hint + a Create button — not a dropdown
+    // list, and it doesn't shift the header row.
+    return SNew(SComboButton)
+        .HasDownArrow(false)
+        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(TEXT("+"))) ]
+        .OnGetMenuContent_Lambda([Hints, OnCreate]() -> TSharedRef<SWidget>
+        {
+            TSharedRef<TArray<TSharedPtr<SEditableTextBox>>> Boxes = MakeShared<TArray<TSharedPtr<SEditableTextBox>>>();
 
-    // Expanded: text field(s) inline + Create + cancel — no popup.
-    TSharedRef<TArray<TSharedPtr<SEditableTextBox>>> Boxes = MakeShared<TArray<TSharedPtr<SEditableTextBox>>>();
-
-    auto Commit = [this, Boxes, OnCreate]()
-    {
-        TArray<FString> Vals;
-        for (const TSharedPtr<SEditableTextBox>& B : *Boxes)
-            Vals.Add(B.IsValid() ? B->GetText().ToString().TrimStartAndEnd() : FString());
-        AddingField.Reset();              // collapse first; OnCreate then validates + creates + RebuildSheet
-        OnCreate(Vals);
-    };
-
-    TSharedRef<SHorizontalBox> Row = SNew(SHorizontalBox);
-    for (int32 i = 0; i < Hints.Num(); ++i)
-    {
-        TSharedRef<SEditableTextBox> B = SNew(SEditableTextBox)
-            .HintText(Hints[i])
-            .MinDesiredWidth(110.f)
-            .OnTextCommitted_Lambda([Commit](const FText&, ETextCommit::Type C){ if (C == ETextCommit::OnEnter) Commit(); });
-        Boxes->Add(B);
-        Row->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 4.f, 0.f)[ B ];
-    }
-
-    // Focus the first field the instant it appears.
-    if (Boxes->Num() > 0)
-    {
-        (*Boxes)[0]->RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateLambda(
-            [BoxWeak = TWeakPtr<SEditableTextBox>((*Boxes)[0])](double, float)
+            auto Commit = [Boxes, OnCreate]()
             {
-                if (TSharedPtr<SEditableTextBox> B = BoxWeak.Pin())
-                    FSlateApplication::Get().SetKeyboardFocus(B, EFocusCause::SetDirectly);
-                return EActiveTimerReturnType::Stop;
-            }));
-    }
+                TArray<FString> Vals;
+                for (const TSharedPtr<SEditableTextBox>& B : *Boxes)
+                    Vals.Add(B.IsValid() ? B->GetText().ToString().TrimStartAndEnd() : FString());
+                FSlateApplication::Get().DismissAllMenus();   // close the popup before the sheet rebuilds
+                OnCreate(Vals);
+            };
 
-    Row->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
-        [ SNew(SButton).Text(LOCTEXT("CreateEntry", "Create")).OnClicked_Lambda([Commit]() { Commit(); return FReply::Handled(); }) ];
-    Row->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
-        [ SNew(SButton).ButtonStyle(FAppStyle::Get(), "NoBorder").Text(FText::FromString(TEXT("✕")))
-          .OnClicked_Lambda([this]() { AddingField.Reset(); RebuildSheet(); return FReply::Handled(); }) ];
+            TSharedRef<SVerticalBox> Fields = SNew(SVerticalBox);
+            for (int32 i = 0; i < Hints.Num(); ++i)
+            {
+                TSharedRef<SEditableTextBox> B = SNew(SEditableTextBox)
+                    .HintText(Hints[i])
+                    .MinDesiredWidth(170.f)
+                    .OnTextCommitted_Lambda([Commit](const FText&, ETextCommit::Type C){ if (C == ETextCommit::OnEnter) Commit(); });
+                Boxes->Add(B);
+                Fields->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)[ B ];
+            }
 
-    return Row;
+            // Focus the first field the instant the popup appears.
+            if (Boxes->Num() > 0)
+            {
+                (*Boxes)[0]->RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateLambda(
+                    [BoxWeak = TWeakPtr<SEditableTextBox>((*Boxes)[0])](double, float)
+                    {
+                        if (TSharedPtr<SEditableTextBox> B = BoxWeak.Pin())
+                            FSlateApplication::Get().SetKeyboardFocus(B, EFocusCause::SetDirectly);
+                        return EActiveTimerReturnType::Stop;
+                    }));
+            }
+
+            Fields->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 0.f)
+                [ SNew(SButton).HAlign(HAlign_Center).Text(LOCTEXT("CreateEntry", "Create"))
+                  .OnClicked_Lambda([Commit]() { Commit(); return FReply::Handled(); }) ];
+
+            return SNew(SBox).Padding(8.f).MinDesiredWidth(190.f)[ Fields ];
+        });
 }
 
 void SPCAPCallSheetPanel::RebuildSheet()
@@ -216,11 +214,9 @@ void SPCAPCallSheetPanel::SaveDayConfiguration()
 
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSaveBar()
 {
-    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
+    return SNew(SBox).HAlign(HAlign_Right).Padding(0.f, 4.f, 0.f, 0.f)
     [
         SNew(SButton)
-        .HAlign(HAlign_Center)
-        .ContentPadding(FMargin(12.f, 6.f))
         .Text(LOCTEXT("SaveDay", "Save day configuration"))
         .ToolTipText(LOCTEXT("SaveDayTip", "Save the master database + the called stage's setup for this shoot day"))
         .OnClicked_Lambda([this]() { SaveDayConfiguration(); return FReply::Handled(); })
@@ -343,7 +339,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ ProdPick ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
-            [ MakeAddInline(TEXT("prod"), { LOCTEXT("ProdNameHint", "name"), LOCTEXT("ProdNumHint", "number") },
+            [ MakeAddPopup({ LOCTEXT("ProdNameHint", "name"), LOCTEXT("ProdNumHint", "number") },
               [this](const TArray<FString>& V)
               {
                   const FString Name = V.IsValidIndex(0) ? V[0] : FString();
@@ -359,7 +355,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f)[ Dot() ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ DayPick ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
-            [ MakeAddInline(TEXT("day"), { LOCTEXT("DayIdHint", "day id") },
+            [ MakeAddPopup({ LOCTEXT("DayIdHint", "day id") },
               [this](const TArray<FString>& V)
               {
                   const FString Id = V.IsValidIndex(0) ? V[0] : FString();

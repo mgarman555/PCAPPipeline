@@ -29,7 +29,6 @@ public:
 private:
     TSharedPtr<SBox> SheetBox;                    // the single scrollable page
     TSharedPtr<IDetailsView> StageDetailsView;    // inline editor for the called stage's setup
-    FString AddingField;                          // which inline "+" is open ("" = none; "prod" / "day")
 
     UMocapDatabase* GetDB() const;
     void RebuildSheet();                          // re-render the whole page (replaces section-switching)
@@ -42,9 +41,9 @@ private:
     TSharedRef<SWidget> BuildStageArea();         // stage dropdown + editable setup
     TSharedRef<SWidget> BuildHMCDayToggle();      // day-level "HMCs used today?" switch (legacy; folded into Call?)
     TSharedRef<SWidget> BuildCallToggles();       // "Call?" row — HMC / VCam / Audio used-today flags
-    // Inline "+" → expands to text field(s) in the row (no popup); OnCreate gets the values.
-    // AddingField tracks which inline add is open ("prod" / "day").
-    TSharedRef<SWidget> MakeAddInline(const FString& Key, const TArray<FText>& Hints, TFunction<void(const TArray<FString>&)> OnCreate);
+    // A "+" that opens a small popup window at the button (not a dropdown list, not inline).
+    // The popup holds one field per hint; OnCreate gets the trimmed values on commit.
+    TSharedRef<SWidget> MakeAddPopup(const TArray<FText>& Hints, TFunction<void(const TArray<FString>&)> OnCreate);
     // Create-or-resolve a roster DataAsset (Actor/Prop/VCam/Stage) named Id under Dir.
     // If it already exists, returns the existing asset; if new, runs Init (to set type
     // fields) BEFORE saving so they persist, then saves. Returns null only on bad input.
