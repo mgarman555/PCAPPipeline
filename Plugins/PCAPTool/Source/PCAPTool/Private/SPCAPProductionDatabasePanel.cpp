@@ -129,8 +129,8 @@ TSharedRef<ITableRow> SPCAPProductionDatabasePanel::OnGenerateTile(TSharedPtr<FS
         .Padding(4.f)
         [
             SNew(SPCAPRosterCard)
-            .Title(FText::FromString(Code))
-            .Subtitle(FText::FromString(Name))
+            .Title(FText::FromString(Name))
+            .Subtitle(FText::FromString(Code))
             .Accent(ColGreen)
             .OnClicked(FSimpleDelegate::CreateLambda([this, Code]() { OpenDetail(Code); }))
         ];
@@ -189,7 +189,7 @@ TSharedRef<SWidget> SPCAPProductionDatabasePanel::BuildDetailFor(const FString& 
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
-            [ SNew(STextBlock).Text(FText::FromString(Code)).ColorAndOpacity(FSlateColor(ColGreen)) ]
+            [ SNew(STextBlock).Text(FText::FromString(P->ProductionName)).ColorAndOpacity(FSlateColor(ColGreen)) ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Top)
             [ SNew(SButton).ButtonStyle(FAppStyle::Get(), "NoBorder")
               .OnClicked_Lambda([this]() { CloseDetail(); return FReply::Handled(); })
