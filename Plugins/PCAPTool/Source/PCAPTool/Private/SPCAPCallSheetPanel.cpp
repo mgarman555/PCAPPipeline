@@ -120,53 +120,58 @@ UObject* SPCAPCallSheetPanel::CreateAssetIn(UClass* Class, const FString& Dir, c
     return Obj;
 }
 
-TSharedRef<SWidget> SPCAPCallSheetPanel::MakeAddButton(const FText& HintText, TFunction<void(const FString&)> OnCreate)
+TSharedRef<SWidget> SPCAPCallSheetPanel::MakeAddInline(const FString& Key, const TArray<FText>& Hints, TFunction<void(const TArray<FString>&)> OnCreate)
 {
-    return SNew(SComboButton)
-        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(TEXT("+"))) ]
-        .OnGetMenuContent_Lambda([HintText, OnCreate]() -> TSharedRef<SWidget>
-        {
-            // Build the field first so the Create button + auto-focus timer can reference it.
-            TSharedRef<SEditableTextBox> Box = SNew(SEditableTextBox)
-                .HintText(HintText)
-                .MinDesiredWidth(170.f)
-                .OnTextCommitted_Lambda([OnCreate](const FText& T, ETextCommit::Type C)
-                {
-                    if (C != ETextCommit::OnEnter) return;            // Enter in the field commits
-                    const FString N = T.ToString().TrimStartAndEnd();
-                    if (N.IsEmpty()) return;
-                    FSlateApplication::Get().DismissAllMenus();        // close popup BEFORE rebuilding the sheet
-                    OnCreate(N);
-                });
+    // Collapsed: a plain "+" button (no dropdown). Click expands inline fields in the row.
+    if (AddingField != Key)
+    {
+        return SNew(SButton)
+            .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(TEXT("+"))) ]
+            .OnClicked_Lambda([this, Key]() { AddingField = Key; RebuildSheet(); return FReply::Handled(); });
+    }
 
-            // Combo popups don't auto-focus their content — grab keyboard focus the instant
-            // the popup appears so typing just works.
-            Box->RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateLambda(
-                [BoxWeak = TWeakPtr<SEditableTextBox>(Box)](double, float)
-                {
-                    if (TSharedPtr<SEditableTextBox> B = BoxWeak.Pin())
-                        FSlateApplication::Get().SetKeyboardFocus(B, EFocusCause::SetDirectly);
-                    return EActiveTimerReturnType::Stop;
-                }));
+    // Expanded: text field(s) inline + Create + cancel — no popup.
+    TSharedRef<TArray<TSharedPtr<SEditableTextBox>>> Boxes = MakeShared<TArray<TSharedPtr<SEditableTextBox>>>();
 
-            return SNew(SBox).Padding(6.f).MinDesiredWidth(230.f)
-            [
-                SNew(SHorizontalBox)
-                + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)[ Box ]
-                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(4.f, 0.f, 0.f, 0.f)
-                [ SNew(SButton)
-                  .Text(LOCTEXT("CreateEntry", "Create"))
-                  .OnClicked_Lambda([OnCreate, BoxWeak = TWeakPtr<SEditableTextBox>(Box)]()
-                  {
-                      if (TSharedPtr<SEditableTextBox> B = BoxWeak.Pin())
-                      {
-                          const FString N = B->GetText().ToString().TrimStartAndEnd();
-                          if (!N.IsEmpty()) { FSlateApplication::Get().DismissAllMenus(); OnCreate(N); }
-                      }
-                      return FReply::Handled();
-                  }) ]
-            ];
-        });
+    auto Commit = [this, Boxes, OnCreate]()
+    {
+        TArray<FString> Vals;
+        for (const TSharedPtr<SEditableTextBox>& B : *Boxes)
+            Vals.Add(B.IsValid() ? B->GetText().ToString().TrimStartAndEnd() : FString());
+        AddingField.Reset();              // collapse first; OnCreate then validates + creates + RebuildSheet
+        OnCreate(Vals);
+    };
+
+    TSharedRef<SHorizontalBox> Row = SNew(SHorizontalBox);
+    for (int32 i = 0; i < Hints.Num(); ++i)
+    {
+        TSharedRef<SEditableTextBox> B = SNew(SEditableTextBox)
+            .HintText(Hints[i])
+            .MinDesiredWidth(110.f)
+            .OnTextCommitted_Lambda([Commit](const FText&, ETextCommit::Type C){ if (C == ETextCommit::OnEnter) Commit(); });
+        Boxes->Add(B);
+        Row->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 4.f, 0.f)[ B ];
+    }
+
+    // Focus the first field the instant it appears.
+    if (Boxes->Num() > 0)
+    {
+        (*Boxes)[0]->RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateLambda(
+            [BoxWeak = TWeakPtr<SEditableTextBox>((*Boxes)[0])](double, float)
+            {
+                if (TSharedPtr<SEditableTextBox> B = BoxWeak.Pin())
+                    FSlateApplication::Get().SetKeyboardFocus(B, EFocusCause::SetDirectly);
+                return EActiveTimerReturnType::Stop;
+            }));
+    }
+
+    Row->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
+        [ SNew(SButton).Text(LOCTEXT("CreateEntry", "Create")).OnClicked_Lambda([Commit]() { Commit(); return FReply::Handled(); }) ];
+    Row->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
+        [ SNew(SButton).ButtonStyle(FAppStyle::Get(), "NoBorder").Text(FText::FromString(TEXT("✕")))
+          .OnClicked_Lambda([this]() { AddingField.Reset(); RebuildSheet(); return FReply::Handled(); }) ];
+
+    return Row;
 }
 
 void SPCAPCallSheetPanel::RebuildSheet()
@@ -245,19 +250,25 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
         DayLabel = FString::Printf(TEXT("%s · %s"), *Day, *Suffix);
     }
 
+    // Production button shows "Name - Number" for the active production.
+    FString ProdLabel = TEXT("(pick production)");
+    if (DB)
+        if (FProduction* P = DB->GetProductionByCode(Prod))
+            ProdLabel = FString::Printf(TEXT("%s - %s"), *P->ProductionName, *P->ProjectCode);
+
     TSharedRef<SComboButton> ProdPick = SNew(SComboButton)
-        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(Prod.IsEmpty() ? TEXT("(pick production)") : Prod)).ColorAndOpacity(FSlateColor(ColGreen)) ]
+        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(ProdLabel)).ColorAndOpacity(FSlateColor(ColGreen)) ]
         .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
         {
             FMenuBuilder MB(true, nullptr);
             if (UMocapDatabase* D = GetDB())
             {
                 TArray<FProduction> P = D->Productions;
-                P.Sort([](const FProduction& A, const FProduction& B){ return A.ProjectCode < B.ProjectCode; });
+                P.Sort([](const FProduction& A, const FProduction& B){ return A.ProductionName < B.ProductionName; });
                 for (const FProduction& Pr : P)
                 {
                     const FString C = Pr.ProjectCode;
-                    MB.AddMenuEntry(FText::FromString(FString::Printf(TEXT("%s — %s"), *C, *Pr.ProductionName)), FText::GetEmpty(), FSlateIcon(),
+                    MB.AddMenuEntry(FText::FromString(FString::Printf(TEXT("%s - %s"), *Pr.ProductionName, *Pr.ProjectCode)), FText::GetEmpty(), FSlateIcon(),
                         FUIAction(FExecuteAction::CreateLambda([this, C]() { if (UMocapDatabase* D2 = GetDB()) { D2->ActiveProductionCode = C; } RebuildSheet(); })));
                 }
             }
@@ -277,7 +288,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
                     for (const FShootDay& Dy : Days)
                     {
                         const FString Id = Dy.DayID;
-                        MB.AddMenuEntry(FText::FromString(TEXT("Day_") + Id), FText::GetEmpty(), FSlateIcon(),
+                        MB.AddMenuEntry(FText::FromString(Id), FText::GetEmpty(), FSlateIcon(),
                             FUIAction(FExecuteAction::CreateLambda([this, Id]() { if (UMocapDatabase* D2 = GetDB()) { D2->ActiveDayID = Id; } RebuildSheet(); })));
                     }
                 }
@@ -296,26 +307,33 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ ProdPick ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
-            [ MakeAddButton(LOCTEXT("AddProd", "+ production code  ↵"), [this](const FString& Code)
+            [ MakeAddInline(TEXT("prod"), { LOCTEXT("ProdNameHint", "name"), LOCTEXT("ProdNumHint", "number") },
+              [this](const TArray<FString>& V)
               {
-                  if (UMocapDatabase* D = GetDB())
-                  {
-                      if (!D->GetProductionByCode(Code)) { FProduction P; P.ProjectCode = Code; P.ProductionName = Code; D->Productions.Add(P); D->MarkPackageDirty(); }
-                      D->ActiveProductionCode = Code;
-                  }
+                  const FString Name = V.IsValidIndex(0) ? V[0] : FString();
+                  const FString Num  = V.IsValidIndex(1) ? V[1] : FString();
+                  if (!Name.IsEmpty() && !Num.IsEmpty())
+                      if (UMocapDatabase* D = GetDB())
+                      {
+                          if (!D->GetProductionByCode(Num)) { FProduction P; P.ProjectCode = Num; P.ProductionName = Name; D->Productions.Add(P); D->MarkPackageDirty(); }
+                          D->ActiveProductionCode = Num;
+                      }
                   RebuildSheet();
               }) ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f)[ Dot() ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ DayPick ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(2.f, 0.f, 0.f, 0.f)
-            [ MakeAddButton(LOCTEXT("AddDay", "+ day id  ↵"), [this](const FString& Id)
+            [ MakeAddInline(TEXT("day"), { LOCTEXT("DayIdHint", "day id") },
+              [this](const TArray<FString>& V)
               {
-                  if (UMocapDatabase* D = GetDB())
-                      if (FProduction* P = D->GetProductionByCode(D->ActiveProductionCode))
-                      {
-                          if (!D->GetDay(D->ActiveProductionCode, Id)) { FShootDay Dy; Dy.DayID = Id; P->Days.Add(Dy); D->MarkPackageDirty(); }
-                          D->ActiveDayID = Id;
-                      }
+                  const FString Id = V.IsValidIndex(0) ? V[0] : FString();
+                  if (!Id.IsEmpty())
+                      if (UMocapDatabase* D = GetDB())
+                          if (FProduction* P = D->GetProductionByCode(D->ActiveProductionCode))
+                          {
+                              if (!D->GetDay(D->ActiveProductionCode, Id)) { FShootDay Dy; Dy.DayID = Id; P->Days.Add(Dy); D->MarkPackageDirty(); }
+                              D->ActiveDayID = Id;
+                          }
                   RebuildSheet();
               }) ]
             + SHorizontalBox::Slot().FillWidth(1.f)[ SNullWidget::NullWidget ]
