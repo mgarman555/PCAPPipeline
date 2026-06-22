@@ -14,6 +14,8 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Views/STableRow.h"
 #include "Styling/AppStyle.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "PCAPProductionDatabase"
 
@@ -187,7 +189,7 @@ TSharedRef<SWidget> SPCAPProductionDatabasePanel::BuildDetailFor(const FString& 
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
-            [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("%s   (code locked)"), *Code))).ColorAndOpacity(FSlateColor(ColGreen)) ]
+            [ SNew(STextBlock).Text(FText::FromString(Code)).ColorAndOpacity(FSlateColor(ColGreen)) ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Top)
             [ SNew(SButton).ButtonStyle(FAppStyle::Get(), "NoBorder")
               .OnClicked_Lambda([this]() { CloseDetail(); return FReply::Handled(); })
@@ -203,6 +205,41 @@ TSharedRef<SWidget> SPCAPProductionDatabasePanel::BuildDetailFor(const FString& 
               if (UMocapDatabase* D = GetDB()) if (FProduction* Pr = D->GetProductionByCode(Code))
               { Pr->ProductionName = T.ToString(); D->MarkPackageDirty(); Reload(); }
           }) ]
+
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 2.f)
+        [ SNew(STextBlock).Text(LOCTEXT("Number", "Production number")).ColorAndOpacity(FSlateColor(ColText2)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [ SNew(SEditableTextBox).Text(FText::FromString(P->ProjectCode))
+          .OnTextCommitted_Lambda([this, Code](const FText& T, ETextCommit::Type CommitType)
+          {
+              if (CommitType != ETextCommit::OnEnter) return;
+              const FString NewCode = T.ToString().TrimStartAndEnd();
+              if (NewCode.IsEmpty() || NewCode == Code) return;
+              UMocapDatabase* D = GetDB();
+              if (!D) return;
+              if (D->GetProductionByCode(NewCode))   // collision — another production already uses it
+              {
+                  FNotificationInfo Info(FText::FromString(FString::Printf(TEXT("Number \"%s\" is already in use."), *NewCode)));
+                  Info.ExpireDuration = 3.0f;
+                  FSlateNotificationManager::Get().AddNotification(Info);
+                  Reload();   // revert the field
+                  return;
+              }
+              // Safe re-key: only FProduction.ProjectCode and the active selection reference the
+              // number persistently (days/sessions/shots/takes are nested inside the production).
+              if (FProduction* Pr = D->GetProductionByCode(Code))
+              {
+                  Pr->ProjectCode = NewCode;
+                  if (D->ActiveProductionCode == Code) D->ActiveProductionCode = NewCode;
+                  D->MarkPackageDirty();
+              }
+              Reload();
+              OpenDetail(NewCode);   // reopen the detail under the new number
+          }) ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)
+        [ SNew(STextBlock).AutoWrapText(true)
+            .Text(LOCTEXT("RenumberNote", "Renumber before shooting — once takes are recorded, their folders stay under the old number."))
+            .ColorAndOpacity(FSlateColor(ColText2)) ]
 
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)
         [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("%d shoot day%s  ·  manage days in the Call Sheet"), DayCount, DayCount == 1 ? TEXT("") : TEXT("s")))).ColorAndOpacity(FSlateColor(ColText2)) ]
