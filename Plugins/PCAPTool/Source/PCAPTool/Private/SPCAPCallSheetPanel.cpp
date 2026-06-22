@@ -128,7 +128,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::MakeAddInline(const FString& Key, const
     if (AddingField != Key)
     {
         return SNew(SButton)
-            .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(TEXT("+"))) ]
+            .Text(FText::FromString(TEXT("+")))
             .OnClicked_Lambda([this, Key]() { AddingField = Key; RebuildSheet(); return FReply::Handled(); });
     }
 
