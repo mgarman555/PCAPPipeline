@@ -68,8 +68,8 @@ void SPCAPCallSheetPanel::Construct(const FArguments& InArgs)
             SNew(SVerticalBox)
             + SVerticalBox::Slot().AutoHeight()
             [
-                SNew(SBorder).BorderImage(&CardBrush).Padding(FMargin(8.f, 6.f))
-                [ SNew(STextBlock).Text(LOCTEXT("Title", "CALL SHEET")).ColorAndOpacity(FSlateColor(ColHeader)) ]
+                SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(8.f, 6.f))
+                [ SNew(STextBlock).Text(LOCTEXT("Title", "CALL SHEET")).ColorAndOpacity(FSlateColor(ColGreen)) ]
             ]
             + SVerticalBox::Slot().FillHeight(1.f).Padding(FMargin(6.f))
             [ SAssignNew(SheetBox, SBox) ]
@@ -235,7 +235,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
             + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildHeader() ]
             + SScrollBox::Slot()
             [
-                SNew(SBorder).BorderImage(&CardBrush).Padding(24.f).HAlign(HAlign_Center).VAlign(VAlign_Center)
+                SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(24.f).HAlign(HAlign_Center).VAlign(VAlign_Center)
                 [ SNew(STextBlock).AutoWrapText(true)
                     .Text(LOCTEXT("PickFirst", "Pick a production and shoot day above to start calling out the day."))
                     .ColorAndOpacity(FSlateColor(ColText2)) ]
@@ -289,7 +289,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
             ProdLabel = FString::Printf(TEXT("%s - %s"), *P->ProductionName, *P->ProjectCode);
 
     TSharedRef<SComboButton> ProdPick = SNew(SComboButton)
-        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(ProdLabel)).ColorAndOpacity(FSlateColor(ColHeader)) ]
+        .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(ProdLabel)).ColorAndOpacity(FSlateColor(ColGreen)) ]
         .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
         {
             FMenuBuilder MB(true, nullptr);
@@ -329,11 +329,11 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
 
     auto Dot = [this]() { return SNew(STextBlock).Text(FText::FromString(TEXT("·"))).ColorAndOpacity(FSlateColor(ColText2)); };
 
-    return SNew(SBorder).BorderImage(&CardBrush).Padding(FMargin(12.f, 10.f))
+    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
     [
         SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
-        [ SNew(STextBlock).Text(LOCTEXT("SecProduction", "Production")).ColorAndOpacity(FSlateColor(ColHeader)) ]
+        [ SNew(STextBlock).Text(LOCTEXT("SecProduction", "Production")).ColorAndOpacity(FSlateColor(ColGreen)) ]
         + SVerticalBox::Slot().AutoHeight()
         [
             SNew(SHorizontalBox)
@@ -425,7 +425,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildStageArea()
 
     TSharedRef<SVerticalBox> Body = SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
-        [ SNew(STextBlock).Text(LOCTEXT("SecStage", "Stage Setup")).ColorAndOpacity(FSlateColor(ColHeader)) ]
+        [ SNew(STextBlock).Text(LOCTEXT("SecStage", "Stage Setup")).ColorAndOpacity(FSlateColor(ColGreen)) ]
         + SVerticalBox::Slot().AutoHeight()
         [
             SNew(SHorizontalBox)
@@ -444,7 +444,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildStageArea()
     if (Stage)
         Body->AddSlot().AutoHeight().Padding(0.f, 8.f, 0.f, 0.f)[ StageDetailsView.ToSharedRef() ];
 
-    return SNew(SBorder).BorderImage(&CardBrush).Padding(FMargin(12.f, 10.f))
+    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
     [ Body ];
 }
 
@@ -453,7 +453,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildStageArea()
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHMCDayToggle()
 {
     return SNew(SBorder)
-        .BorderImage(&CardBrush)
+        .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
         .Padding(FMargin(12.f, 8.f))
         [
             SNew(SHorizontalBox)
@@ -512,11 +512,11 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallToggles()
             [ SNew(STextBlock).Text(Label) ];
     };
 
-    return SNew(SBorder).BorderImage(&CardBrush).Padding(FMargin(12.f, 10.f))
+    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
     [
         SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
-        [ SNew(STextBlock).Text(LOCTEXT("SecCall", "Call?")).ColorAndOpacity(FSlateColor(ColHeader)) ]
+        [ SNew(STextBlock).Text(LOCTEXT("SecCall", "Call?")).ColorAndOpacity(FSlateColor(ColGreen)) ]
         + SVerticalBox::Slot().AutoHeight()
         [
             SNew(SHorizontalBox)
@@ -543,7 +543,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
         const FString Id = It.Key;
         Chips->AddSlot().Padding(3.f)
         [
-            SNew(SBorder).BorderImage(&RecessBrush).Padding(FMargin(8.f, 4.f))
+            SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(8.f, 4.f))
             [
                 SNew(SHorizontalBox)
                 + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ SNew(STextBlock).Text(FText::FromString(Id)) ]
@@ -605,14 +605,14 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
             ];
         });
 
-    return SNew(SBorder).BorderImage(&CardBrush).Padding(FMargin(12.f, 10.f))
+    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
     [
         SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
-            [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("%s · %d"), *Title.ToString(), Count))).ColorAndOpacity(FSlateColor(ColHeader)) ]
+            [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("%s · %d"), *Title.ToString(), Count))).ColorAndOpacity(FSlateColor(ColGreen)) ]
             + SHorizontalBox::Slot().AutoWidth()[ AddBtn ]
         ]
         + SVerticalBox::Slot().AutoHeight()[ Chips ]
@@ -892,11 +892,11 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShotsSection()
                 *ShotTypeName(S.ShotType), S.Subjects.Num(), S.Props.Num());
             List->AddSlot().AutoHeight().Padding(0.f, 2.f)
             [
-                SNew(SBorder).BorderImage(&RecessBrush).Padding(FMargin(10.f, 6.f))
+                SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(10.f, 6.f))
                 [
                     SNew(SHorizontalBox)
                     + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 12.f, 0.f)
-                    [ SNew(STextBlock).Text(FText::FromString(ShotID)).ColorAndOpacity(FSlateColor(ColHeader)) ]
+                    [ SNew(STextBlock).Text(FText::FromString(ShotID)).ColorAndOpacity(FSlateColor(ColGreen)) ]
                     + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
                     [
                         SNew(SVerticalBox)
@@ -917,11 +917,11 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShotsSection()
 
     const FString SessLabel = Sess ? FString::Printf(TEXT("Session %s"), *Sess->SessionID) : FString(TEXT("(no session)"));
 
-    return SNew(SBorder).BorderImage(&CardBrush).Padding(FMargin(12.f, 10.f))
+    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
     [
         SNew(SVerticalBox)
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
-        [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("Shots — %s"), *SessLabel))).ColorAndOpacity(FSlateColor(ColHeader)) ]
+        [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("Shots — %s"), *SessLabel))).ColorAndOpacity(FSlateColor(ColGreen)) ]
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 10.f)[ Toolbar ]
         + SVerticalBox::Slot().AutoHeight()[ List ]
     ];
