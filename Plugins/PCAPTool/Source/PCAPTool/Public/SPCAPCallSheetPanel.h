@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
+#include "Brushes/SlateColorBrush.h"
 
 class SBox;
 class UMocapDatabase;
@@ -74,6 +75,11 @@ private:
     static EShotType ShotTypeFor(const FString& TypeText, const FString& Slot);
     static FString   ShotTypeName(EShotType Type);
 
-    const FLinearColor ColGreen = FLinearColor(0.290f, 0.878f, 0.502f);
-    const FLinearColor ColText2 = FLinearColor(0.478f, 0.541f, 0.502f);
+    const FLinearColor ColGreen  = FLinearColor(0.290f, 0.878f, 0.502f);   // accent — status / active only
+    const FLinearColor ColHeader = FLinearColor(0.820f, 0.840f, 0.860f);   // neutral section headers
+    const FLinearColor ColText2  = FLinearColor(0.560f, 0.575f, 0.600f);   // neutral muted text
+
+    // Flat UE5-style surfaces (replace the textured ToolPanel.GroupBorder).
+    FSlateColorBrush CardBrush   = FSlateColorBrush(FColor(0x2B, 0x2B, 0x2F));   // section cards
+    FSlateColorBrush RecessBrush = FSlateColorBrush(FColor(0x1B, 0x1B, 0x1F));   // inset chips / shot rows
 };
