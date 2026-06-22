@@ -37,6 +37,8 @@
 #include "DesktopPlatformModule.h"
 #include "IDesktopPlatform.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
@@ -192,6 +194,39 @@ void SPCAPCallSheetPanel::SaveDB()
         FEditorFileUtils::PromptForCheckoutAndSave({ Pkg }, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
 }
 
+void SPCAPCallSheetPanel::SaveDayConfiguration()
+{
+    // Persist everything the day depends on: the master DB (production/day/sessions/calls/
+    // flags/shots) and the called stage's config asset (the volume setup, edited inline —
+    // that one isn't covered by the auto-save in RebuildSheet).
+    TArray<UPackage*> Pkgs;
+    if (UMocapDatabase* D = GetDB())
+    {
+        if (UPackage* P = D->GetPackage()) Pkgs.Add(P);
+        if (UStageConfigAsset* S = D->GetActiveStageConfig())
+            if (UPackage* P = S->GetPackage()) Pkgs.AddUnique(P);
+    }
+    if (Pkgs.Num() > 0)
+        FEditorFileUtils::PromptForCheckoutAndSave(Pkgs, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
+
+    FNotificationInfo Info(LOCTEXT("DaySaved", "Day configuration saved."));
+    Info.ExpireDuration = 3.0f;
+    FSlateNotificationManager::Get().AddNotification(Info);
+}
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSaveBar()
+{
+    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
+    [
+        SNew(SButton)
+        .HAlign(HAlign_Center)
+        .ContentPadding(FMargin(12.f, 6.f))
+        .Text(LOCTEXT("SaveDay", "Save day configuration"))
+        .ToolTipText(LOCTEXT("SaveDayTip", "Save the master database + the called stage's setup for this shoot day"))
+        .OnClicked_Lambda([this]() { SaveDayConfiguration(); return FReply::Handled(); })
+    ];
+}
+
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
 {
     UMocapDatabase* DB = GetDB();
@@ -223,7 +258,8 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsPropCalled(Id); },
             [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetPropCalled(Id, b); D->MarkPackageDirty(); } }) ]
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildCallToggles() ]        // Call?
-        + SScrollBox::Slot()[ BuildShotsSection() ];                                   // Shot imports
+        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildShotsSection() ]        // Shot imports
+        + SScrollBox::Slot()[ BuildSaveBar() ];                                         // Save day
 }
 
 // ── Header — production / day / stage pickers + readiness + spawn-viz ─────────

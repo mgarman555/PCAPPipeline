@@ -34,6 +34,8 @@ private:
     UMocapDatabase* GetDB() const;
     void RebuildSheet();                          // re-render the whole page (replaces section-switching)
     void SaveDB();                                // persist master-DB edits (productions/days/calls) to disk if dirty
+    void SaveDayConfiguration();                  // explicit "Save day" — master DB + the called stage's config asset
+    TSharedRef<SWidget> BuildSaveBar();           // bottom "Save day configuration" button
 
     TSharedRef<SWidget> BuildSheet();
     TSharedRef<SWidget> BuildHeader();            // production/day/stage pickers (+ create) + readiness + spawn-viz
