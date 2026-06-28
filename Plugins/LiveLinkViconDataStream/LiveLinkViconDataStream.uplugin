@@ -4,7 +4,7 @@
   "FriendlyName" : "Vicon DataStream LiveLink",
   "Version" : 11,
   "VersionName" : "1.12.0",
-  "EngineVersion" : "5.7.0",
+  "EngineVersion" : "5.8.0",
   "CreatedBy" : "Vicon Motion Systems Ltd",
   "CreatedByURL" : "http://www.vicon.com",
   "DocsURL" : "https://docs.vicon.com/display/Unreal5Plugin16/",

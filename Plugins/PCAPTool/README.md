@@ -1,6 +1,6 @@
 # PCAPTool
 
-The performance-capture toolset for Unreal Engine 5.7 — a workflow-organized set of editor tools on top of one shared data model. Drops into any UE5 project as an editor plugin.
+The performance-capture toolset for Unreal Engine 5.8 — a workflow-organized set of editor tools on top of one shared data model. Drops into any UE5 project as an editor plugin.
 
 See the [repo README](../../README.md) for the big picture; this covers the plugin itself.
 
@@ -42,6 +42,6 @@ See the [repo README](../../README.md) for the big picture; this covers the plug
 ## Build notes
 
 - Editor module (`PCAPTool`, `LoadingPhase: Default`). Key deps in `PCAPTool.Build.cs`: Slate/SlateCore, UnrealEd, LiveLink/LiveLinkInterface, TakeRecorder/TakesCore/MovieScene, PropertyEditor, AssetRegistry, DesktopPlatform; the Vicon DataStream SDK is referenced conditionally (`WITH_VICON_SDK`) from the sibling plugin.
-- Authored on macOS (UE 5.4 as API reference), compiled on Windows (UE 5.7.4).
+- Authored against the UE 5.8 API, compiled on Windows (UE 5.8).
 
 Design specs live in the repo's [`docs/`](../../docs/README.md); per-tool usage how-tos are in [`docs/tools/`](../../docs/tools/). See [CONTRIBUTING](../../CONTRIBUTING.md) for the build + git workflow.

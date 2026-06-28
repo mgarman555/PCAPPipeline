@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.7",
+	"EngineAssociation": "5.8",
 	"Category": "",
 	"Description": "Performance capture pipeline",
 	"Modules": [
@@ -57,6 +57,14 @@
 		},
 		{
 			"Name": "LiveLinkViconDataStream",
+			"Enabled": true
+		},
+		{
+			"Name": "PerformanceCaptureCore",
+			"Enabled": true
+		},
+		{
+			"Name": "PerformanceCaptureWorkflow",
 			"Enabled": true
 		}
 	]

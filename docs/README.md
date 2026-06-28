@@ -17,6 +17,9 @@ Short usage pages, one per tool (also linked from the [plugin README](../Plugins
 
 ## Design specs & plans — [`specs/`](specs/)
 
+**Performance Capture migration (current)**
+- [2026-06-28 Performance Capture integration](specs/2026-06-28-performance-capture-integration-design.md) — **current, overarching.** Move to UE 5.8 and build on top of Epic's Performance Capture Core + Workflow (Mocap Manager): adopt their data model, keep our unique tools (HMC · VCam · Vicon volume), rebuild the UI. Supersedes the older standalone data-model direction where they overlap.
+
 **Call Sheet**
 - [2026-06-16 single-page Call Sheet + Production library](specs/2026-06-16-callsheet-singlepage-design.md) — **current.** One scrollable sheet; header pickers; chip + searchable "+ call" callouts.
 - [2026-06-15 Call Sheet prep hub + shared widgets](specs/2026-06-15-callsheet-prep-hub-design.md) — the prior step: databases as pure libraries, `SPCAPRosterCard`, VCam database.
@@ -43,5 +46,7 @@ Short usage pages, one per tool (also linked from the [plugin README](../Plugins
 Step-by-step guides for hand-building the HMC UMG widget blueprints: [Monitor](build-guides/WBP_HMCMonitorPanel_BuildGuide.md) · [Operator](build-guides/WBP_HMCOperatorPanel_BuildGuide.md) · [Preview](build-guides/WBP_HMCPreview_BuildGuide.md) · [Setup](build-guides/WBP_HMCSetup_BuildGuide.md).
 
 ## Handoffs — [`handoffs/`](handoffs/)
+
+- **[Transfer to a UE 5.8 machine](handoffs/UE58_TRANSFER_HANDOFF.md)** — **current.** Clone + build PCAPPipeline on another computer running UE 5.8: prerequisites, engine plugins, the Vicon runtime DLL (not in the repo), build steps, and a first-run checklist.
 
 Historical session handoff notes (point-in-time; may be stale): [HMC session 5](handoffs/HMC_SESSION5_HANDOFF.md) · [Realtime Operator](handoffs/REALTIME_OPERATOR_HANDOFF.md) (the `claude/gallant-cerf-fe61d0` branch's pending work).

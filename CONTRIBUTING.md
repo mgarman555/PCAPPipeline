@@ -5,7 +5,7 @@ This repo has an unusual but deliberate workflow. Read this before you build or 
 ## The big convention: Mac authors, Windows builds
 
 - **Code is authored on macOS**, where the engine that's installed is **UE 5.4** — used only as an **API reference** (header lookups, signatures, patterns). The Mac **cannot compile** this project.
-- **The project compiles and runs on Windows** against **Unreal Engine 5.7.4** (MSVC).
+- **The project compiles and runs on Windows** against **Unreal Engine 5.8** (MSVC).
 - Practical upshot: a change authored on the Mac is *not verified* until it builds on Windows. Author carefully against the real headers; treat "it compiles on Windows" as the acceptance gate.
 
 So a typical change is: **author on Mac → push → pull & build on Windows → confirm → restart editor.**
