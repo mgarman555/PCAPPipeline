@@ -14,3 +14,10 @@ Build/
 
 # Brainstorming visual companion (local only)
 .superpowers/
+
+# Engine plugin source kept locally only as a reference while matching the
+# Performance Capture API. We build on top of the engine's copy, so there's no
+# reason to vendor it into git (it's a large tree we don't maintain). Drop it
+# here locally or share via Google Drive.
+Reference/
+_vendor/

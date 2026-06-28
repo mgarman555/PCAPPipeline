@@ -1,6 +1,8 @@
 # PCAP Pipeline
 
-A performance-capture session-management pipeline for **Unreal Engine 5.7**, built for a solo operator (or small team) running a mocap volume end to end: **prep the day → run the takes → watch the floor.**
+A performance-capture session-management pipeline for **Unreal Engine 5.8**, built for a solo operator (or small team) running a mocap volume end to end: **prep the day → run the takes → watch the floor.**
+
+> **In progress (June 2026):** migrating onto Epic's **Performance Capture** plugins (Performance Capture Core + Workflow / Mocap Manager) shipped in UE 5.8 — adopting their data model where it overlaps, keeping our unique tools (HMC, VCam, Vicon volume), and building a better UI on top. See [`docs/specs/2026-06-28-performance-capture-integration-design.md`](docs/specs/2026-06-28-performance-capture-integration-design.md).
 
 The heart of the project is the **PCAPTool** editor plugin — a workflow-organized toolset on top of one shared data model — plus **LiveLinkViconDataStream** for getting Vicon data into the engine.
 
@@ -42,7 +44,7 @@ flowchart LR
 
 ## Build & run
 
-- **Engine:** Unreal Engine **5.7.4**. The project builds on **Windows** (MSVC).
+- **Engine:** Unreal Engine **5.8**. The project builds on **Windows** (MSVC).
 - Right-click `PCAPPipeline.uproject` → **Generate Visual Studio project files**, then build **Development Editor / Win64** (or open the `.uproject` and let it compile the modules).
 - After a successful build, **restart the editor** — the tool tabs register at module startup — and find them under **Window ▸ Tools**.
 

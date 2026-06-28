@@ -28,6 +28,8 @@
         {"Name": "LiveLinkControlRig", "Enabled": true},
         {"Name": "Takes", "Enabled": true},
         {"Name": "IKRig", "Enabled": true},
-        {"Name": "SequencerScripting", "Enabled": true}
+        {"Name": "SequencerScripting", "Enabled": true},
+        {"Name": "PerformanceCaptureCore", "Enabled": true},
+        {"Name": "PerformanceCaptureWorkflow", "Enabled": true}
     ]
 }

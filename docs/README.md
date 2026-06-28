@@ -17,6 +17,9 @@ Short usage pages, one per tool (also linked from the [plugin README](../Plugins
 
 ## Design specs & plans — [`specs/`](specs/)
 
+**Performance Capture migration (current)**
+- [2026-06-28 Performance Capture integration](specs/2026-06-28-performance-capture-integration-design.md) — **current, overarching.** Move to UE 5.8 and build on top of Epic's Performance Capture Core + Workflow (Mocap Manager): adopt their data model, keep our unique tools (HMC · VCam · Vicon volume), rebuild the UI. Supersedes the older standalone data-model direction where they overlap.
+
 **Call Sheet**
 - [2026-06-16 single-page Call Sheet + Production library](specs/2026-06-16-callsheet-singlepage-design.md) — **current.** One scrollable sheet; header pickers; chip + searchable "+ call" callouts.
 - [2026-06-15 Call Sheet prep hub + shared widgets](specs/2026-06-15-callsheet-prep-hub-design.md) — the prior step: databases as pure libraries, `SPCAPRosterCard`, VCam database.
