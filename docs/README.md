@@ -47,4 +47,6 @@ Step-by-step guides for hand-building the HMC UMG widget blueprints: [Monitor](b
 
 ## Handoffs — [`handoffs/`](handoffs/)
 
+- **[Transfer to a UE 5.8 machine](handoffs/UE58_TRANSFER_HANDOFF.md)** — **current.** Clone + build PCAPPipeline on another computer running UE 5.8: prerequisites, engine plugins, the Vicon runtime DLL (not in the repo), build steps, and a first-run checklist.
+
 Historical session handoff notes (point-in-time; may be stale): [HMC session 5](handoffs/HMC_SESSION5_HANDOFF.md) · [Realtime Operator](handoffs/REALTIME_OPERATOR_HANDOFF.md) (the `claude/gallant-cerf-fe61d0` branch's pending work).
