@@ -784,7 +784,7 @@ bool FViconStreamFrameReader::AddSubjectStaticDataToLiveLink(const FString& i_rS
     // marker names
     if (m_DataStream.GetMarkerNamesForSubject(TCHAR_TO_UTF8(*i_rSubjectName), o_rMarkerNames) != ESuccess)
     {
-      UE_LOG(LogViconStream, Error, TEXT("Failed to get marker names for &s"), *i_rSubjectName);
+      UE_LOG(LogViconStream, Error, TEXT("Failed to get marker names for %s"), *i_rSubjectName);
       return false;
     }
     StaticData.PropertyNames = MarkerPropertiesFromNames(o_rMarkerNames);
