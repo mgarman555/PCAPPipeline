@@ -4,6 +4,7 @@
 
 #include "LiveLinkTypes.h"                       // FLiveLinkSubjectName
 #include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
 #include "UObject/UnrealType.h"                   // FNameProperty / FStructProperty / FSoftObjectProperty
 #include "UObject/TopLevelAssetPath.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -105,6 +106,70 @@ TArray<FPCAPPerformerInfo> UPCAPMocapData::GetAllPerformers()
         Info.LiveLinkSubject  = ReadSubjectName(Asset, TEXT("LiveLinkSubject"));
         Info.AssetUID         = ReadGuid(Asset, TEXT("AssetUID"));
         Info.BaseSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(ReadSoftPath(Asset, TEXT("BaseSkeletalMesh")));
+        Result.Add(MoveTemp(Info));
+    }
+#endif
+
+    return Result;
+}
+
+TArray<FPCAPPropInfo> UPCAPMocapData::GetAllProps()
+{
+    TArray<FPCAPPropInfo> Result;
+
+#if WITH_PCAP_WORKFLOW
+    IAssetRegistry* AR = GetAssetRegistry();
+    if (!AR) { return Result; }
+
+    TArray<FAssetData> Found;
+    const FTopLevelAssetPath ClassPath(TEXT("/Script/PerformanceCaptureWorkflow"), TEXT("PCapPropDataAsset"));
+    AR->GetAssetsByClass(ClassPath, Found, /*bSearchSubClasses*/ true);
+
+    Result.Reserve(Found.Num());
+    for (const FAssetData& AssetData : Found)
+    {
+        UObject* Asset = AssetData.GetAsset();
+        if (!Asset) { continue; }
+
+        FPCAPPropInfo Info;
+        Info.Asset            = Asset;
+        Info.PropName         = ReadName(Asset, TEXT("PropName"));
+        Info.LiveLinkSubject  = ReadSubjectName(Asset, TEXT("LiveLinkSubject"));
+        Info.AssetUID         = ReadGuid(Asset, TEXT("AssetUID"));
+        Info.PropStaticMesh   = TSoftObjectPtr<UStaticMesh>(ReadSoftPath(Asset, TEXT("PropStaticMesh")));
+        Info.PropSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(ReadSoftPath(Asset, TEXT("PropSkeletalMesh")));
+        Result.Add(MoveTemp(Info));
+    }
+#endif
+
+    return Result;
+}
+
+TArray<FPCAPCharacterInfo> UPCAPMocapData::GetAllCharacters()
+{
+    TArray<FPCAPCharacterInfo> Result;
+
+#if WITH_PCAP_WORKFLOW
+    IAssetRegistry* AR = GetAssetRegistry();
+    if (!AR) { return Result; }
+
+    TArray<FAssetData> Found;
+    const FTopLevelAssetPath ClassPath(TEXT("/Script/PerformanceCaptureWorkflow"), TEXT("PCapCharacterDataAsset"));
+    AR->GetAssetsByClass(ClassPath, Found, /*bSearchSubClasses*/ true);
+
+    Result.Reserve(Found.Num());
+    for (const FAssetData& AssetData : Found)
+    {
+        UObject* Asset = AssetData.GetAsset();
+        if (!Asset) { continue; }
+
+        FPCAPCharacterInfo Info;
+        Info.Asset                = Asset;
+        Info.CharacterName        = ReadName(Asset, TEXT("CharacterName"));
+        Info.AssetUID             = ReadGuid(Asset, TEXT("AssetUID"));
+        Info.SkeletalMesh         = TSoftObjectPtr<USkeletalMesh>(ReadSoftPath(Asset, TEXT("SkeletalMesh")));
+        Info.SourcePerformerAsset = TSoftObjectPtr<UObject>(ReadSoftPath(Asset, TEXT("SourcePerformerAsset")));
+        Info.Retargeter           = TSoftObjectPtr<UObject>(ReadSoftPath(Asset, TEXT("Retargeter")));
         Result.Add(MoveTemp(Info));
     }
 #endif

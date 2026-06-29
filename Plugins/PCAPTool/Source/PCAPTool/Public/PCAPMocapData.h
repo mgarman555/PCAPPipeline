@@ -5,6 +5,7 @@
 #include "PCAPMocapData.generated.h"
 
 class USkeletalMesh;
+class UStaticMesh;
 class UPCAPPerformerExtension;
 
 // Lightweight read-out of an Epic UPCapPerformerDataAsset (Mocap Manager,
@@ -32,6 +33,58 @@ struct PCAPTOOL_API FPCAPPerformerInfo
     TSoftObjectPtr<USkeletalMesh> BaseSkeletalMesh;
 };
 
+// Read-out of an Epic UPCapPropDataAsset.
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FPCAPPropInfo
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    FName PropName;
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    FName LiveLinkSubject;
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    FGuid AssetUID;
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    TSoftObjectPtr<UObject> Asset;
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    TSoftObjectPtr<UStaticMesh> PropStaticMesh;
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    TSoftObjectPtr<USkeletalMesh> PropSkeletalMesh;
+};
+
+// Read-out of an Epic UPCapCharacterDataAsset.
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FPCAPCharacterInfo
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    FName CharacterName;
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    FGuid AssetUID;
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    TSoftObjectPtr<UObject> Asset;
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    TSoftObjectPtr<USkeletalMesh> SkeletalMesh;
+
+    // Source performer asset + retargeter, kept as UObject soft-refs (the concrete
+    // types live in the plugin's private module / IKRig).
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    TSoftObjectPtr<UObject> SourcePerformerAsset;
+
+    UPROPERTY(BlueprintReadOnly, Category="PCAP")
+    TSoftObjectPtr<UObject> Retargeter;
+};
+
 // ---------------------------------------------------------------------------
 // Reflection read-layer over Epic's Performance Capture data model.
 //
@@ -55,6 +108,14 @@ public:
     // read via the Asset Registry + reflection.
     UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
     static TArray<FPCAPPerformerInfo> GetAllPerformers();
+
+    // Every UPCapPropDataAsset in the project.
+    UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
+    static TArray<FPCAPPropInfo> GetAllProps();
+
+    // Every UPCapCharacterDataAsset in the project.
+    UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
+    static TArray<FPCAPCharacterInfo> GetAllCharacters();
 
     // The PCAPTool extension paired to an Epic performer by AssetUID, or null.
     UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
