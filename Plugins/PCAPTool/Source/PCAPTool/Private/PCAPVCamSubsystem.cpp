@@ -64,7 +64,7 @@ void UPCAPVCamSubsystem::Tick(float DeltaTime)
         }
         if (bGot)
         {
-            InputLayer.Layout = (EVCamButtonLayout)FMath::Clamp(ActiveConfig->ActiveButtonLayout, 0, 2);
+            InputLayer.Layout = (EVCamButtonLayout)FMath::Clamp(ActiveConfig->ActiveButtonLayout, 0, 1);
             ApplyInputIntents(InputLayer.Process(In, DeltaTime));
         }
     }
@@ -77,10 +77,13 @@ void UPCAPVCamSubsystem::Tick(float DeltaTime)
     }
     SetStreamStatus(EStreamStatus::Connected);
 
-    // Accumulate joystick/d-pad navigation (rate * dt) before processing this frame.
-    // Uses last frame's smoothed rotation as the flight-mode basis (changes slowly vs dt).
+    // Accumulate joystick navigation (rate * dt) before processing this frame. Uses last frame's
+    // smoothed rotation as the flight-mode basis (changes slowly vs dt). Translation, rotation,
+    // and zoom rates all come from the input layer's per-frame speeds.
     FPCAPVCamProcessor::AccumulateNavigate(*ActiveConfig, RuntimeState.NavigateRate,
         RuntimeState.SmoothedRotation, RuntimeState.bFlightMode, DeltaTime);
+    FPCAPVCamProcessor::AccumulateNavigateRotation(*ActiveConfig, RuntimeState.NavigateRotationRate, DeltaTime);
+    FPCAPVCamProcessor::AccumulateZoom(*ActiveConfig, RuntimeState.ZoomRate, DeltaTime);
 
     const FTransform Out = FPCAPVCamProcessor::Process(*ActiveConfig, RuntimeState, Raw, DeltaTime);
 
@@ -288,7 +291,7 @@ void UPCAPVCamSubsystem::SetNavigateRate(FVector Rate)
 
 void UPCAPVCamSubsystem::SetActiveButtonLayout(int32 Layout)
 {
-    if (ActiveConfig) { ActiveConfig->ActiveButtonLayout = FMath::Clamp(Layout, 0, 2); }
+    if (ActiveConfig) { ActiveConfig->ActiveButtonLayout = FMath::Clamp(Layout, 0, 1); }
 }
 
 void UPCAPVCamSubsystem::AddFocalLengthDelta(float DeltaMm)
@@ -391,17 +394,21 @@ void UPCAPVCamSubsystem::OnInputPacket(const FArrayReaderPtr& Data, const FIPv4E
     auto Axis = [&Obj](const TCHAR* Key) -> float { double V = 0.0; Obj->TryGetNumberField(Key, V); return (float)V; };
     auto Btn  = [&Obj](const TCHAR* Key) -> bool  { double V = 0.0; Obj->TryGetNumberField(Key, V); return V != 0.0; };
 
+    // Keys match the WVCAM "vcam" device map (device_maps.py) emitted by pcap_vcam_raw_broadcast.py.
     FVCamControllerInput In;
-    In.LeftJoyX  = Axis(TEXT("left_joy_x"));  In.LeftJoyY  = Axis(TEXT("left_joy_y"));
-    In.RightJoyX = Axis(TEXT("right_joy_x")); In.RightJoyY = Axis(TEXT("right_joy_y"));
-    In.LeftEnc   = Axis(TEXT("left_enc"));    In.RightEnc  = Axis(TEXT("right_enc"));
-    In.LeftTrigger = Btn(TEXT("left_trigger"));  In.RightTrigger = Btn(TEXT("right_trigger"));
-    In.LeftUp   = Btn(TEXT("left_up"));   In.LeftDown  = Btn(TEXT("left_down"));
+    In.LeftLeftX   = Axis(TEXT("left_left_x"));   In.LeftLeftY   = Axis(TEXT("left_left_y"));
+    In.LeftRightX  = Axis(TEXT("left_right_x"));  In.LeftRightY  = Axis(TEXT("left_right_y"));
+    In.RightLeftX  = Axis(TEXT("right_left_x"));  In.RightLeftY  = Axis(TEXT("right_left_y"));
+    In.RightRightX = Axis(TEXT("right_right_x")); In.RightRightY = Axis(TEXT("right_right_y"));
+    In.LeftGain    = Axis(TEXT("left_gain"));     In.RightGain   = Axis(TEXT("right_gain"));
+    In.LeftX  = Btn(TEXT("left_x"));   In.LeftY  = Btn(TEXT("left_y"));
+    In.LeftA  = Btn(TEXT("left_a"));   In.LeftB  = Btn(TEXT("left_b"));
+    In.LeftUp = Btn(TEXT("left_up"));  In.LeftDown = Btn(TEXT("left_down"));
     In.LeftLeft = Btn(TEXT("left_left")); In.LeftRight = Btn(TEXT("left_right"));
-    In.RightUp  = Btn(TEXT("right_up"));  In.RightDown = Btn(TEXT("right_down"));
-    In.RightLeft= Btn(TEXT("right_left"));In.RightRight= Btn(TEXT("right_right"));
-    In.LeftA = Btn(TEXT("left_a")); In.LeftB = Btn(TEXT("left_b"));
-    In.RightA= Btn(TEXT("right_a"));In.RightB= Btn(TEXT("right_b"));
+    In.RightX = Btn(TEXT("right_x"));  In.RightY = Btn(TEXT("right_y"));
+    In.RightA = Btn(TEXT("right_a"));  In.RightB = Btn(TEXT("right_b"));
+    In.RightUp = Btn(TEXT("right_up")); In.RightDown = Btn(TEXT("right_down"));
+    In.RightLeft = Btn(TEXT("right_left")); In.RightRight = Btn(TEXT("right_right"));
 
     FScopeLock Lock(&InputMutex);
     LatestInput = In;
@@ -411,15 +418,21 @@ void UPCAPVCamSubsystem::OnInputPacket(const FArrayReaderPtr& Data, const FIPv4E
 
 void UPCAPVCamSubsystem::ApplyInputIntents(const FVCamInputIntents& Intents)
 {
-    SetNavigateRate(Intents.NavigateRate);
-    RuntimeState.ActiveMapping = Intents.bShifted ? TEXT("SHIFTED") : TEXT("STANDARD");
+    // Per-frame speeds — integrated (rate * dt) in Tick by Accumulate{Navigate,NavigateRotation,Zoom}.
+    RuntimeState.NavigateRate         = Intents.TranslationSpeed;
+    RuntimeState.NavigateRotationRate = Intents.RotationSpeed;
+    RuntimeState.ZoomRate             = Intents.ZoomSpeed;
+    RuntimeState.TranslationGain      = Intents.TranslationGain;   // left_gain/4095 (HUD readout)
+    RuntimeState.ZoomGain             = Intents.ZoomGainTrim;      // 1 - right_gain/4095 (HUD readout)
 
-    if (Intents.bHold != bPrevInputHold) { SetHold(Intents.bHold); bPrevInputHold = Intents.bHold; }
+    switch (Intents.Mapping)
+    {
+        case EVCamMapping::Shifted: RuntimeState.ActiveMapping = TEXT("SHIFTED"); break;
+        case EVCamMapping::Sony:    RuntimeState.ActiveMapping = TEXT("SONY");    break;
+        default:                    RuntimeState.ActiveMapping = TEXT("STANDARD"); break;
+    }
 
-    if (!FMath::IsNearlyZero(Intents.ZoomDelta)) { AddFocalLengthDelta(Intents.ZoomDelta); }
-    if (Intents.bSetTranslationGain) { SetTranslationGain(Intents.TranslationGain); }
-    if (Intents.bSetZoomGain)        { SetZoomGain(Intents.ZoomGain); }
-
+    // Edge actions.
     if (Intents.bZeroEverything) { ZeroSpace(); }
     if (Intents.bSavePosition)   { SaveCurrentPosition(); }
     if (Intents.bLensNext)       { CycleFocalLengthUp(); }
@@ -427,19 +440,34 @@ void UPCAPVCamSubsystem::ApplyInputIntents(const FVCamInputIntents& Intents)
     if (Intents.bWorldScaleNext) { SelectNextWorldScale(); }
     if (Intents.bWorldScalePrev) { SelectPreviousWorldScale(); }
 
-    if (ActiveConfig)
+    if (Intents.bToggleFlightMode) { SetFlightMode(!RuntimeState.bFlightMode); }
+    if (Intents.bToggleHold)
     {
-        if (Intents.bDeletePosition) { DeleteSavedPosition(ActiveConfig->ActiveSavedPositionIndex); }
-        if (Intents.bGotoPrev && ActiveConfig->SavedPositions.Num() > 0)
+        const bool bNew = !RuntimeState.bHold;
+        SetHold(bNew);
+        bPrevInputHold = bNew;
+    }
+    if (Intents.bToggleLocked)
+    {
+        // WVCAM toggleLocked: if EITHER lock is on, unlock both; otherwise lock both.
+        const bool bLocked = RuntimeState.bLockPosition || RuntimeState.bLockRotation;
+        SetLockPosition(!bLocked);
+        SetLockRotation(!bLocked);
+    }
+
+    if (ActiveConfig && ActiveConfig->SavedPositions.Num() > 0)
+    {
+        if (Intents.bGotoCurrent) { GotoSavedPosition(ActiveConfig->ActiveSavedPositionIndex); }
+        if (Intents.bGotoPrev)
         {
-            GotoSavedPosition(FMath::Max(0, ActiveConfig->ActiveSavedPositionIndex - 1));
-        }
-        if (Intents.bGotoNext && ActiveConfig->SavedPositions.Num() > 0)
-        {
-            GotoSavedPosition(FMath::Min(ActiveConfig->SavedPositions.Num() - 1, ActiveConfig->ActiveSavedPositionIndex + 1));
+            const int32 N = ActiveConfig->SavedPositions.Num();
+            int32 Prev = ActiveConfig->ActiveSavedPositionIndex - 1;
+            if (Prev < 0) { Prev = N - 1; }   // WVCAM gotoPreviousPosition wraps
+            GotoSavedPosition(Prev);
         }
     }
-    // Intents.bResetSonyXY → platform offset (deferred — platforming not modelled yet).
+    // Deferred (no UE equivalent yet): playback transport (bPlaybackToggle/bScrubFwd/bScrubBack),
+    // and Sony platforming (bResetSonyXY → SonyRawX/Y offset).
 }
 
 FVCamControllerInput UPCAPVCamSubsystem::GetLatestInput() const

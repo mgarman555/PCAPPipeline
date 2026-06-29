@@ -55,13 +55,19 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamScaleConfig     Scaling;
 
     // World-scale presets the controller cycles through (SelectNext/PreviousWorldScale).
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") TArray<FVector> WorldScalePresets = {FVector(1.f), FVector(2.f), FVector(5.f), FVector(10.f)};
+    // WVCAM worldScales SeekingTable: [1, 2, 3, 5, 10] (non-looping). == native Tgain.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") TArray<FVector> WorldScalePresets = {FVector(1.f), FVector(2.f), FVector(3.f), FVector(5.f), FVector(10.f)};
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") int32 ActiveWorldScaleIndex = 0;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") TArray<float> FocalLengthPresets = {18.f, 24.f, 35.f, 50.f, 85.f};
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") float ActiveFocalLength = 35.f;
+    // WVCAM default lens SeekingTable (mm), non-looping, clamps at the ends.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") TArray<float> FocalLengthPresets = {18.f, 25.f, 32.f, 40.f, 50.f, 75.f, 100.f};
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") float ActiveFocalLength = 32.f;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") int32 ActiveButtonLayout = 0;   // 0 Default, 1 Var1, 2 Inverted
+    // Zoom integration clamp (syncLensesToVcam widens min/max to the lens table extents: 18..100).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") float MinFocalLength = 18.f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") float MaxFocalLength = 100.f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") int32 ActiveButtonLayout = 0;   // 0 Default, 1 Sony
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") TArray<FPCAPVCamAlignOffset> SavedPositions;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") int32 ActiveSavedPositionIndex = -1;

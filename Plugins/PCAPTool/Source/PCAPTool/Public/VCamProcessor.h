@@ -24,9 +24,11 @@ struct FPCAPVCamRuntimeState
     bool    bOverrideZoomGain         = false;
     FString ActiveMapping             = TEXT("STANDARD");
 
-    // Current joystick/d-pad translation rate (units/sec), set by the input layer;
-    // the subsystem tick accumulates it into Config.Navigate via AccumulateNavigate.
-    FVector NavigateRate = FVector::ZeroVector;
+    // Current joystick translation/rotation/zoom rates, set by the input layer each frame;
+    // the subsystem tick integrates them (rate * dt) via Accumulate{Navigate,NavigateRotation,Zoom}.
+    FVector NavigateRate         = FVector::ZeroVector;   // X=U, Y=W, Z=V translation (units/sec)
+    FVector NavigateRotationRate = FVector::ZeroVector;   // X=Roll, Y=Yaw, Z=Pitch (deg/sec)
+    float   ZoomRate             = 0.f;                    // focal-length mm/sec
 
     // Last-known values for the lock/kill steps (captured while the lock is off).
     FVector LockedPosition = FVector::ZeroVector;
@@ -69,6 +71,16 @@ public:
     // world axes. Matches the WVCAM "Rate | Speed" mechanism (PDF) — Navigate stacks over time.
     static void AccumulateNavigate(UPCAPVCamConfig& Config, const FVector& Rate,
                                    const FQuat& CameraRot, bool bFlightMode, float DeltaSeconds);
+
+    // Accumulates the joystick rotation rate (Roll,Yaw,Pitch deg/sec) into Config.Navigate.Rotation
+    // (rate * dt). WVCAM's Ruvw integrates camera-local rotation with Euler order XYZ; this is the
+    // recoverable Euler-accumulation approximation (the exact native integration is unavailable).
+    static void AccumulateNavigateRotation(UPCAPVCamConfig& Config, const FVector& RollYawPitchRate,
+                                           float DeltaSeconds);
+
+    // Integrates a focal-length speed (mm/sec) onto Config.ActiveFocalLength, clamped to the
+    // config's [MinFocalLength, MaxFocalLength] (WVCAM native zoom integration + clamp).
+    static void AccumulateZoom(UPCAPVCamConfig& Config, float ZoomSpeed, float DeltaSeconds);
 
 private:
     // Step 2 of the chain, also the basis ZeroSpace/SetHold solve against.

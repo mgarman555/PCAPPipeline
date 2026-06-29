@@ -15,6 +15,10 @@ Build/
 # Brainstorming visual companion (local only)
 .superpowers/
 
+# Host-side VCam test harness build artifact (rebuilt via HostTests/run.sh)
+Plugins/PCAPTool/HostTests/run_tests
+Plugins/PCAPTool/HostTests/*.dSYM/
+
 # Engine plugin source kept locally as a coding reference — never committed.
 # Drop UE 5.8 plugin Source/ trees here (see Reference/README.md). Engine source
 # is Epic-licensed; this folder exists only so the bridge can be matched to the

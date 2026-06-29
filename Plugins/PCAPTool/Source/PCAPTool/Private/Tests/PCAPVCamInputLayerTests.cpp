@@ -3,109 +3,139 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 
+// These mirror the host-side tests (Plugins/PCAPTool/HostTests) so the logic is verified both
+// in-editor and standalone. Ground truth: vcam_default.py / vcam_sony.py.
+
 namespace
 {
-    FVCamControllerInput Idle() { return FVCamControllerInput(); }
+    FVCamControllerInput Idle()
+    {
+        // Centre the absolute thumbwheels mid-scale so gains aren't pinned to 0/1 by default.
+        FVCamControllerInput In;
+        In.LeftGain = 2048.f; In.RightGain = 2048.f;
+        return In;
+    }
+    const float Dt = 1.f / 60.f;
 }
 
-// Shift follows the shift trigger (held-state, not an edge).
+// Default: SHIFT is the left_x button held (not a trigger).
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInShiftTest,
-    "PCAP.VCam.Input.ShiftState",
+    "PCAP.VCam.Input.ShiftIsLeftX",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPVCamInShiftTest::RunTest(const FString&)
 {
     FVCamInputLayer L; L.Layout = EVCamButtonLayout::Default;
-    TestFalse(TEXT("idle not shifted"), L.Process(Idle(), 1.f / 60.f).bShifted);
-
-    FVCamControllerInput In = Idle(); In.LeftTrigger = true;
-    TestTrue(TEXT("Default: left_trigger held = shifted"), L.Process(In, 1.f / 60.f).bShifted);
+    TestFalse(TEXT("idle not shifted"), L.Process(Idle(), Dt).bShifted);
+    FVCamControllerInput In = Idle(); In.LeftX = true;
+    TestTrue(TEXT("left_x held = shifted"), L.Process(In, Dt).bShifted);
     return true;
 }
 
-// Default STANDARD actions fire on the right buttons, and only on the press edge.
+// Default STANDARD actions fire on press edge only.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInStdActionsTest,
     "PCAP.VCam.Input.DefaultStandardActions",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPVCamInStdActionsTest::RunTest(const FString&)
 {
     FVCamInputLayer L; L.Layout = EVCamButtonLayout::Default;
-    L.Process(Idle(), 1.f / 60.f);                       // baseline
+    L.Process(Idle(), Dt);
 
-    FVCamControllerInput A = Idle(); A.LeftA = true;
-    TestTrue(TEXT("left_a -> zero everything"), L.Process(A, 1.f / 60.f).bZeroEverything);
-    TestFalse(TEXT("held left_a does not re-fire"), L.Process(A, 1.f / 60.f).bZeroEverything);
+    FVCamControllerInput RA = Idle(); RA.RightA = true;
+    TestTrue(TEXT("right_a -> zero everything"), L.Process(RA, Dt).bZeroEverything);
+    TestFalse(TEXT("held right_a does not re-fire"), L.Process(RA, Dt).bZeroEverything);
 
-    FVCamInputLayer L2; L2.Layout = EVCamButtonLayout::Default;
-    L2.Process(Idle(), 1.f / 60.f);
-    FVCamControllerInput B = Idle(); B.LeftB = true;
-    TestTrue(TEXT("left_b -> save position"), L2.Process(B, 1.f / 60.f).bSavePosition);
-
-    FVCamInputLayer L3; L3.Layout = EVCamButtonLayout::Default;
-    L3.Process(Idle(), 1.f / 60.f);
+    FVCamInputLayer L2; L2.Layout = EVCamButtonLayout::Default; L2.Process(Idle(), Dt);
     FVCamControllerInput RB = Idle(); RB.RightB = true;
-    TestTrue(TEXT("right_b -> lens next"), L3.Process(RB, 1.f / 60.f).bLensNext);
+    TestTrue(TEXT("right_b -> lens prev"), L2.Process(RB, Dt).bLensPrev);
+
+    FVCamInputLayer L3; L3.Layout = EVCamButtonLayout::Default; L3.Process(Idle(), Dt);
+    FVCamControllerInput LB = Idle(); LB.LeftB = true;
+    TestTrue(TEXT("left_b -> save position"), L3.Process(LB, Dt).bSavePosition);
     return true;
 }
 
-// Default SHIFTED remaps the same buttons (delete cone, world scale).
+// Default SHIFTED remaps right_y/right_b to world scale and left_a to flight-mode toggle.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInShiftedActionsTest,
     "PCAP.VCam.Input.DefaultShiftedActions",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPVCamInShiftedActionsTest::RunTest(const FString&)
 {
-    FVCamControllerInput Shift = Idle(); Shift.LeftTrigger = true;
+    FVCamControllerInput Shift = Idle(); Shift.LeftX = true;
 
-    FVCamInputLayer L; L.Layout = EVCamButtonLayout::Default;
-    L.Process(Shift, 1.f / 60.f);
-    FVCamControllerInput D = Shift; D.LeftB = true;
-    TestTrue(TEXT("shifted left_b -> delete position"), L.Process(D, 1.f / 60.f).bDeletePosition);
+    FVCamInputLayer L; L.Layout = EVCamButtonLayout::Default; L.Process(Shift, Dt);
+    FVCamControllerInput W = Shift; W.RightY = true;
+    TestTrue(TEXT("shifted right_y -> world scale next"), L.Process(W, Dt).bWorldScaleNext);
 
-    FVCamInputLayer L2; L2.Layout = EVCamButtonLayout::Default;
-    L2.Process(Shift, 1.f / 60.f);
-    FVCamControllerInput W = Shift; W.RightB = true;
-    TestTrue(TEXT("shifted right_b -> world scale next"), L2.Process(W, 1.f / 60.f).bWorldScaleNext);
+    FVCamInputLayer L2; L2.Layout = EVCamButtonLayout::Default; L2.Process(Shift, Dt);
+    FVCamControllerInput F = Shift; F.LeftA = true;
+    TestTrue(TEXT("shifted left_a -> toggle flight"), L2.Process(F, Dt).bToggleFlightMode);
     return true;
 }
 
-// Translation gain accumulates from the gain encoder (SHIFTED), clamped 0.01–1.0.
+// Translation gain comes from the absolute left_gain axis (left_gain/4095), scaling translation speed.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInGainTest,
-    "PCAP.VCam.Input.TransGainEncoder",
+    "PCAP.VCam.Input.LeftGainTrim",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPVCamInGainTest::RunTest(const FString&)
 {
     FVCamInputLayer L; L.Layout = EVCamButtonLayout::Default;
-    FVCamControllerInput Shift = Idle(); Shift.LeftTrigger = true; Shift.LeftEnc = 0.f;
-    L.Process(Shift, 1.f / 60.f);                        // baseline (gain 0.5)
+    FVCamControllerInput Base = Idle(); Base.LeftGain = 0.f;
+    L.Process(Base, Dt);   // baseline captured at full-scale stick zero
 
-    FVCamControllerInput G = Shift; G.LeftEnc = 16384.f; // +1 rev -> +1.0 -> clamp to 1.0
-    const FVCamInputIntents O = L.Process(G, 1.f / 60.f);
-    TestTrue(TEXT("encoder sets translation gain"), O.bSetTranslationGain);
-    TestTrue(TEXT("gain clamped to 1.0"), FMath::IsNearlyEqual(O.TranslationGain, 1.0f, 0.001f));
+    // Push left_left_y well past deadband, gain at full scale.
+    FVCamControllerInput G = Idle(); G.LeftGain = 4095.f; G.LeftLeftY = 1000.f;
+    const FVCamInputIntents O = L.Process(G, Dt);
+    TestTrue(TEXT("translation gain ~1.0"), FMath::IsNearlyEqual(O.TranslationGain, 1.0f, 0.001f));
+    // finalTu = 1000 * 1.0 * 10 * (1/800) = 12.5
+    TestTrue(TEXT("translation speed = counts*gain*10/800"),
+        FMath::IsNearlyEqual(O.TranslationSpeed.X, 12.5f, 0.01f));
     return true;
 }
 
-// Variation 1 d-pad drives a translation rate while held, zero when released.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInDpadTest,
-    "PCAP.VCam.Input.Variation1Dpad",
+// Zoom gain stage-0 is INVERTED: right_gain low -> trim high; and zoom only when NOT shifted.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInZoomTest,
+    "PCAP.VCam.Input.ZoomInvertedGain",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-bool FPCAPVCamInDpadTest::RunTest(const FString&)
+bool FPCAPVCamInZoomTest::RunTest(const FString&)
 {
-    FVCamInputLayer L; L.Layout = EVCamButtonLayout::Variation1;
-    FVCamControllerInput Up = Idle(); Up.RightUp = true;          // +U
-    TestTrue(TEXT("right_up -> +U rate"), L.Process(Up, 1.f / 60.f).NavigateRate.X > 0.f);
-    TestTrue(TEXT("released -> zero rate"), L.Process(Idle(), 1.f / 60.f).NavigateRate.IsNearlyZero());
+    FVCamInputLayer L; L.Layout = EVCamButtonLayout::Default;
+    FVCamControllerInput Base = Idle(); Base.RightGain = 0.f; L.Process(Base, Dt);
+
+    FVCamControllerInput Z = Idle(); Z.RightGain = 0.f; Z.RightRightY = 1000.f;  // trim = 1-0 = 1
+    const FVCamInputIntents O = L.Process(Z, Dt);
+    TestTrue(TEXT("zoom trim ~1.0 at right_gain=0"), FMath::IsNearlyEqual(O.ZoomGainTrim, 1.0f, 0.001f));
+    // finalZoom = 1000 * 1.0 * 10 * (1/100) = 100
+    TestTrue(TEXT("zoom speed = counts*trim*10/100"), FMath::IsNearlyEqual(O.ZoomSpeed, 100.f, 0.01f));
     return true;
 }
 
-// Inverted layout flips the shift trigger to the right side.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInInvertedShiftTest,
-    "PCAP.VCam.Input.InvertedShift",
+// Deadband: a stick movement below 100 counts produces zero speed.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInDeadbandTest,
+    "PCAP.VCam.Input.Deadband",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-bool FPCAPVCamInInvertedShiftTest::RunTest(const FString&)
+bool FPCAPVCamInDeadbandTest::RunTest(const FString&)
 {
-    FVCamInputLayer L; L.Layout = EVCamButtonLayout::InvertedDefault;
-    FVCamControllerInput In = Idle(); In.RightTrigger = true;
-    TestTrue(TEXT("Inverted: right_trigger = shifted"), L.Process(In, 1.f / 60.f).bShifted);
+    FVCamInputLayer L; L.Layout = EVCamButtonLayout::Default;
+    L.Process(Idle(), Dt);
+    FVCamControllerInput Small = Idle(); Small.LeftGain = 4095.f; Small.LeftLeftY = 50.f;  // < 100
+    TestTrue(TEXT("sub-deadband stick = zero"), L.Process(Small, Dt).TranslationSpeed.IsNearlyZero());
+    return true;
+}
+
+// Sony: holding left_x past the 2s hold-once cycles the latched map (init SONY -> STANDARD).
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInSonyMapTest,
+    "PCAP.VCam.Input.SonyMapCycle",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPVCamInSonyMapTest::RunTest(const FString&)
+{
+    FVCamInputLayer L; L.Layout = EVCamButtonLayout::Sony;
+    TestEqual(TEXT("init map = SONY"), (int32)L.Process(Idle(), Dt).Mapping, (int32)EVCamMapping::Sony);
+
+    // Hold left_x for >2s of accumulated dt, then it should advance to STANDARD on the hold-once.
+    FVCamControllerInput Hold = Idle(); Hold.LeftX = true;
+    EVCamMapping M = EVCamMapping::Sony;
+    for (int32 i = 0; i < 200; ++i) { M = L.Process(Hold, Dt).Mapping; }   // ~3.3s
+    TestEqual(TEXT("after left_x hold-once: SONY -> STANDARD"), (int32)M, (int32)EVCamMapping::Standard);
     return true;
 }
 

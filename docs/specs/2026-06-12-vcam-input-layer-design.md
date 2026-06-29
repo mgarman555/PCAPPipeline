@@ -8,6 +8,47 @@
 
 ---
 
+> ## ⚠️ CORRECTED 2026-06-29 against the real WVCAM sources
+>
+> This design was written from script *names that don't exist* in the actual WVCAM
+> distribution (`vcamv4_default.py` etc. were guessed). The real Fox VFX Lab WVCAM Python
+> (now on Drive: `vcontrols/bindings/vcam_default.py`, `vcam_sony.py`, `controller.py`,
+> `device_maps.py`) is the ground truth, and the port was realigned to it. **Where this
+> document and the list below disagree, the list wins** (it matches the shipping code +
+> the host tests in `Plugins/PCAPTool/HostTests`).
+>
+> **Real device ("vcam", device_maps.py).** Two sticks per hand grip, not single joysticks:
+> `left_left_x/y`, `left_right_x/y`, `right_left_x/y`, `right_right_x/y`; two **absolute
+> thumbwheels** `left_gain`, `right_gain` (0..4095); 16 buttons (`left_x/y/a/b` + left d-pad,
+> `right_x/y/a/b` + right d-pad). **There is no trigger and no encoder.**
+>
+> **SHIFT = the `left_x` button held** (momentary, Default layout) — not a trigger.
+>
+> **Real layouts = Default (`vcam_default.py`) + Sony (`vcam_sony.py`).** The invented
+> "Variation 1 / Inverted Default" are gone. Sony is a *latched* 3-state map machine
+> (SONY → STANDARD → SHIFTED, cycled by a 2 s hold-once on `left_x`).
+>
+> **WVCAM computes per-frame *speeds*, not positions** (a native module integrates them).
+> The input layer therefore outputs gain-stacked speeds:
+> - translation/rotation share `masterGain = (left_gain/4095) · 10 · (1/800)`
+> - zoom uses an **inverted** stage-0: `(1 − right_gain/4095) · 10 · (1/100)`
+> - movement sticks are read start-relative with a **100-count deadband**.
+>
+> **Tables:** lens `(18,25,32,40,50,75,100)` mm, focal clamp `[18,100]`; world-scale
+> `[1,2,3,5,10]`.
+>
+> **Wire format (corrected):** the broadcast (`pcap_vcam_raw_broadcast.py`) now sends the 10
+> real axes (`left_left_x` … `right_gain`, raw absolute counts) + the 16 real buttons over
+> UDP `:7401`; `PCAPVCamSubsystem::OnInputPacket` parses those exact keys.
+>
+> **Not recoverable from Python (native `vcam` module, not on Drive):** the exact transform
+> composition, motion integration clock, and hold/zeroSpace re-solve. `FPCAPVCamProcessor`
+> is a faithful reconstruction of these; final feel must be tuned on the rig.
+>
+> Sections 2–onward below are the original (guessed) model, kept for history.
+
+---
+
 ## 1. The data-flow reality (resolves the handoff contradiction)
 
 The three `.py` files run **inside WVCAM** (`import vcam`). Each does two jobs:
