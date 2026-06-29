@@ -35,6 +35,9 @@ Short usage pages, one per tool (also linked from the [plugin README](../Plugins
 **Operator**
 - [2026-06-12 Operator Console comfort + integration](specs/2026-06-12-operator-console-comfort-integration.md).
 
+**Engine / platform**
+- [2026-06-29 UE 5.8 — Mocap Manager / Performance Capture integration](specs/2026-06-29-ue58-mocap-manager-integration-design.md) — **current.** Engine bump to 5.8; `UPCAPMocapBridge` drives Epic's `ACapturePerformer` / `UPCapPropComponent` from the called shot.
+
 **VCam**
 - [2026-06-12 VCam panel design](specs/2026-06-12-vcam-panel-design.md) ([core plan](specs/2026-06-12-vcam-panel-c++-core.md)) + [input-layer design](specs/2026-06-12-vcam-input-layer-design.md) — WVCAM replacement; controller input over UDP.
 

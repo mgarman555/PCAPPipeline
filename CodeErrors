@@ -1,0 +1,35 @@
+Build started at 3:22 PM...
+1>------ Build started: Project: PCAPPipeline, Configuration: Development_Editor x64 ------
+1>Using bundled DotNet SDK version: 10.0 win-x64
+1>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64
+1>Log file: C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Log.txt
+1>Determining max actions to execute in parallel (32 physical cores, 64 logical cores)
+1>  Executing up to 32 processes, one per physical core
+1>Using 'git status' to determine working set for adaptive non-unity build (C:\Users\mocapstaff\Desktop\PCAPPipeline).
+1>Creating makefile for PCAPPipelineEditor (Build.version is newer)
+1>UbaServer - Listening on 0.0.0.0:1345
+1>EXEC : warning : [Upgrade]
+1>EXEC : warning : [Upgrade] Using backward-compatible build settings. The latest version of UE sets the following values by default, which may require code changes:
+1>EXEC : warning : [Upgrade]     FPSemantics = Precise                              => Updates default floating point semantics for Editor and Program targets to Precise for Microsoft platforms. Game, Client, & Server default remains Imprecise. (Previously: Imprecise for MSVC, Precise for Clang)
+1>EXEC : warning : [Upgrade]     ReturnTypeWarningLevel = WarningLevel.Error        => Validates that non-void functions return a value. (Previously: Off for VCClang, Error for MSVC and non-VC Clang).
+1>EXEC : warning : [Upgrade]     DanglingWarningLevel = WarningLevel.Error          => Enables clang warnings related possible dangling references or pointers. (Previously: Off for VCClang, Error for non-VC Clang).
+1>EXEC : warning : [Upgrade]     UnreachableCodeWarningLevel = WarningLevel.Error   => Enables compile-time validation of unreachable code. (Previously: Error for MSVC, Off for Clang).
+1>EXEC : warning : [Upgrade] Suppress this message by setting 'DefaultBuildSettings = BuildSettingsVersion.V7;' in PCAPPipelineEditor.Target.cs, and explicitly overriding settings that differ from the new defaults.
+1>EXEC : warning : [Upgrade]
+1>EXEC : warning : [Upgrade]
+1>EXEC : warning : [Upgrade] Using backward-compatible include order. The latest version of UE has changed the order of includes, which may require code changes. The current setting is:
+1>EXEC : warning : [Upgrade]     IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7
+1>EXEC : warning : [Upgrade] Suppress this message by setting 'IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;' in PCAPPipelineEditor.Target.cs.
+1>EXEC : warning : [Upgrade] Alternatively you can set this to 'EngineIncludeOrderVersion.Latest' to always use the latest include order. This will potentially cause compile errors when integrating new versions of the engine.
+1>EXEC : warning : [Upgrade]
+1>Wrote partial receipt to C:\Users\mocapstaff\Desktop\PCAPPipeline\Binaries\Win64\PCAPPipelineEditor.target
+1>PCAPPipelineEditor modifies the values of properties: [ UnreachableCodeWarningLevel: Off != Error, ReturnTypeWarningLevel: Off != Error, DanglingWarningLevel: Off != Error ]. This is not allowed, as PCAPPipelineEditor has build products in common with UnrealEditor.
+1>Remove the modified setting, change PCAPPipelineEditor to use a unique build environment by setting 'BuildEnvironment = TargetBuildEnvironment.Unique;' in the PCAPPipelineEditorTarget constructor, or set bOverrideBuildEnvironment = true to force this setting on.
+1>
+1>Result: Failed (OtherCompilationError)
+1>Total execution time: 0.80 seconds
+1>Trace written to file C:\Users\mocapstaff\AppData\Local\UnrealBuildTool\Trace.uba with size 1.7kb
+1>C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(44,5): error MSB3073: The command ""C:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat" PCAPPipelineEditor Win64 Development -Project="C:\Users\mocapstaff\Desktop\PCAPPipeline\PCAPPipeline.uproject" -WaitMutex -FromMsBuild -architecture=x64" exited with code 6.
+1>Done building project "PCAPPipeline.vcxproj" -- FAILED.
+========== Build: 0 succeeded, 1 failed, 0 up-to-date, 0 skipped ==========
+========== Build completed at 3:22 PM and took 01.838 seconds ==========

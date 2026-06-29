@@ -39,10 +39,20 @@ public class PCAPTool : ModuleRules
             "PropertyEditor",       // SObjectPropertyEntryBox — asset-picker slots in DB forms
             "LiveLink",             // FLiveLinkClientReference / plugin module
             "LiveLinkInterface",    // ILiveLinkClient, transform role + frame-data types — TPVCam read
+            "LiveLinkAnimationCore",// LiveLinkInstance.h — pulled in transitively by CapturePerformer.h
             "Networking",           // FUdpSocketBuilder / FUdpSocketReceiver — WVCAM raw-broadcast listener
             "Sockets",              // FSocket / ISocketSubsystem
             "DesktopPlatform",      // IDesktopPlatform open/save file dialogs — shot-list CSV import/export
+            "PerformanceCaptureCore",            // ACapturePerformer / UPerformerComponent — Mocap Manager bridge (UE 5.8)
+            "PerformanceCaptureWorkflowRuntime", // UPCapPropComponent — tracked-prop bridge (Workflow plugin, Engine/Plugins/VirtualProduction/)
         });
+
+        // UPCapPropComponent lives in the Performance Capture *Workflow* plugin
+        // (Engine/Plugins/VirtualProduction/PerformanceCaptureWorkflow) — present in
+        // this install, so the prop bridge is compiled in. If a target machine lacks
+        // the Workflow plugin, set this to 0 and drop the module above + the plugin
+        // entries in PCAPPipeline.uproject / PCAPTool.uplugin.
+        PublicDefinitions.Add("WITH_PCAP_WORKFLOW=1");
 
         // ── Vicon DataStream SDK (Phase 2 raw markers) ───────────────────────────
         // Reference the SDK bundled in the sibling LiveLinkViconDataStream plugin if it

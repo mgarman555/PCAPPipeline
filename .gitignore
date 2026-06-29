@@ -14,3 +14,10 @@ Build/
 
 # Brainstorming visual companion (local only)
 .superpowers/
+
+# Engine plugin source kept locally as a coding reference — never committed.
+# Drop UE 5.8 plugin Source/ trees here (see Reference/README.md). Engine source
+# is Epic-licensed; this folder exists only so the bridge can be matched to the
+# real API. The README itself is tracked; everything else under Reference/ is not.
+/Reference/*
+!/Reference/README.md

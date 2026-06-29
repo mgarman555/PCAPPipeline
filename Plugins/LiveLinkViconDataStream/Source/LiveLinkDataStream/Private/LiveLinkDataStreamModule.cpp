@@ -74,7 +74,7 @@ private:
       }
       else
       {
-        PostEngineInitHandle = FCoreDelegates::OnPostEngineInit.AddLambda(RegisterModels);
+        PostEngineInitHandle = FCoreDelegates::GetOnPostEngineInit().AddLambda(RegisterModels);
       }
     }
   }
@@ -92,7 +92,7 @@ private:
 
     if (PostEngineInitHandle.IsValid())
     {
-      FCoreDelegates::OnPostEngineInit.Remove(PostEngineInitHandle);
+      FCoreDelegates::GetOnPostEngineInit().Remove(PostEngineInitHandle);
     }
   }
   FDelegateHandle PostEngineInitHandle;
