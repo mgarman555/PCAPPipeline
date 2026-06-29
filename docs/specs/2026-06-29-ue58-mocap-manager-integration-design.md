@@ -29,29 +29,41 @@ onto spawned/placed actors, not converting our DataAssets into theirs.
 
 ## Plugin availability (verified against the install)
 
-The headers were checked against an actual UE 5.8 install (via `Reference/` /
-Drive), which resolved two things:
+Both plugins were located in the UE 5.8 install and the bridge APIs verified
+against the real headers (via Drive):
 
-- **`PerformanceCaptureCore` is present** and the performer API is confirmed:
+- **`PerformanceCaptureCore`** — `Engine/Plugins/Animation/PerformanceCaptureCore`.
   `ACapturePerformer : ASkeletalMeshActor` with `SetLiveLinkSubject(FLiveLinkSubjectName)`,
   `SetMocapMesh(USkeletalMesh*)`, `SetEvaluateLiveLinkData(bool)`; module path
-  `/Script/PerformanceCaptureCore`. The performer bridge matches exactly.
-- **`PerformanceCaptureWorkflow` is NOT on disk** in this install (only Core ships
-  standalone). `UPCapPropComponent` and the Mocap Manager UI live there, so the
-  project builds on **Core alone** and the prop bridge sits behind
-  `WITH_PCAP_WORKFLOW` (default `0`). Flip it on — and re-add the Workflow plugin
-  (`.uproject` + `.uplugin`) and the `PerformanceCaptureWorkflowRuntime` module
-  (`PCAPTool.Build.cs`) — once the Workflow plugin is installed.
+  `/Script/PerformanceCaptureCore`. Performer bridge matches exactly.
+- **`PerformanceCaptureWorkflow`** — `Engine/Plugins/**VirtualProduction**/PerformanceCaptureWorkflow`
+  (not `Animation/`, which is why a first look missed it). `PCapPropComponent.h`
+  confirms `UPCapPropComponent : UActorComponent` (`PERFORMANCECAPTUREWORKFLOWRUNTIME_API`)
+  with `SetControlledComponent(USceneComponent*)`, `SetLiveLinkSubject(FLiveLinkSubjectName)`,
+  `SetEvaluateLiveLinkData(bool)`; module `PerformanceCaptureWorkflowRuntime`. Prop
+  bridge matches exactly.
+
+Both plugins are present, so `WITH_PCAP_WORKFLOW=1` and the full bridge (performers
++ props) compiles in. Set it to `0` (and drop the Workflow plugin/module) only to
+target a machine that has Core but not Workflow.
+
+The Workflow plugin also ships its **own** Mocap Manager data model —
+`UPCapPerformerDataAsset` / `UPCapPropDataAsset` / `UPCapCharacterDataAsset`,
+`UPCapSessionTemplate`, and `FPCapProductionRecord` / `FPCapTakeRecord` DataTable
+rows (`PCapDatabase.h`). Mapping PCAPTool's `UMocapDatabase` onto *those* records
+(not just spawning actors) is the deeper "build on Epic's data model" step — see
+follow-ups.
 
 ## What landed in this pass
 
 - **Engine bump 5.7 → 5.8**: `PCAPPipeline.uproject` (EngineAssociation +
-  `PerformanceCaptureCore` enabled), `LiveLinkViconDataStream.uplugin` EngineVersion,
-  `PCAPTool.uplugin` deps, README. Include order pinned to `Unreal5_7` in the
-  `.Target.cs` files to keep existing modules compiling under their original IWYU rules.
-- **Build deps**: `PerformanceCaptureCore` added to `PCAPTool.Build.cs`;
-  `WITH_PCAP_WORKFLOW=0` defined (the prop module is added only when the Workflow
-  plugin is installed).
+  `PerformanceCaptureCore` and `PerformanceCaptureWorkflow` enabled),
+  `LiveLinkViconDataStream.uplugin` EngineVersion, `PCAPTool.uplugin` deps, README.
+  Include order pinned to `Unreal5_7` in the `.Target.cs` files to keep existing
+  modules compiling under their original IWYU rules.
+- **Build deps**: `PerformanceCaptureCore` + `PerformanceCaptureWorkflowRuntime`
+  added to `PCAPTool.Build.cs`; `WITH_PCAP_WORKFLOW=1` (both plugins present, so the
+  prop bridge compiles in — flip to `0` to target a Core-only machine).
 - **`UPCAPMocapBridge`** (`PCAPMocapBridge.h/.cpp`) — the adapter:
   - `ResolvePerformerSubject(FShotSubject)` → body subject, else face.
   - `SpawnPerformerForSubject` / `ConfigurePerformer` → `ACapturePerformer`,
@@ -86,6 +98,11 @@ Drive), which resolved two things:
 2. **Retarget → `ACaptureCharacter`.** Map `FRetargetConfig` /
    `UActorRosterEntry.MetaHuman` onto `URetargetComponent` so performers drive
    their digital double, not just a mocap mesh.
+2b. **Adopt the PCap database records.** Map `UMocapDatabase` onto the Workflow
+   plugin's own data model (`UPCapPerformerDataAsset` / `UPCapPropDataAsset` /
+   `UPCapCharacterDataAsset`, `FPCapTakeRecord`) so the Mocap Manager's own
+   Motion/Review tabs read our roster directly — the deeper integration beyond
+   spawning actors.
 3. **Stage alignment.** Reconcile `UStageConfigAsset` with the Mocap Manager
    Stage tab / `BP_DemoStage`.
 4. **Take Recorder reconciliation.** Decide whether `PCAPTakeRecorderSubsystem`
@@ -95,10 +112,11 @@ Drive), which resolved two things:
 
 ## Build / verify note
 
-These changes target UE 5.8 and compile on the Windows toolchain. The
-**performer path is header-verified** against the actual install
-(`CapturePerformer.h`): `SetLiveLinkSubject`, `SetMocapMesh`,
-`SetEvaluateLiveLinkData` all match. Still confirmed only at first build:
-`USkeletalMeshComponent::SetSkeletalMeshAsset` / `SetStaticMesh`, and — when
-`WITH_PCAP_WORKFLOW` is enabled — the `UPCapPropComponent` API. The Linux
-authoring environment has no engine, so those rest on Epic's published 5.8 API.
+These changes target UE 5.8 and compile on the Windows toolchain. Both bridge
+APIs are **header-verified** against the actual install: the performer path
+against `CapturePerformer.h` (`SetLiveLinkSubject`, `SetMocapMesh`,
+`SetEvaluateLiveLinkData`) and the prop path against `PCapPropComponent.h`
+(`SetControlledComponent`, `SetLiveLinkSubject`, `SetEvaluateLiveLinkData`). The
+only calls not header-checked are the engine-stock mesh setters
+`USkeletalMeshComponent::SetSkeletalMeshAsset` / `UStaticMeshComponent::SetStaticMesh`;
+confirm those at first build.

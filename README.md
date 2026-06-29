@@ -2,7 +2,7 @@
 
 A performance-capture session-management pipeline for **Unreal Engine 5.8**, built for a solo operator (or small team) running a mocap volume end to end: **prep the day → run the takes → watch the floor.**
 
-The heart of the project is the **PCAPTool** editor plugin — a workflow-organized toolset on top of one shared data model — plus **LiveLinkViconDataStream** for getting Vicon data into the engine. On 5.8, PCAPTool's data model drives Epic's official **Performance Capture Core** plugin: the databases are the source of truth and a bridge spawns/configures the engine's `ACapturePerformer` actors from the called shot. (The prop bridge and Mocap Manager UI live in the separate Performance Capture **Workflow** plugin — wired in behind `WITH_PCAP_WORKFLOW` when that plugin is installed.)
+The heart of the project is the **PCAPTool** editor plugin — a workflow-organized toolset on top of one shared data model — plus **LiveLinkViconDataStream** for getting Vicon data into the engine. On 5.8, PCAPTool's data model drives Epic's official **Performance Capture** plugins (the **Mocap Manager**): the databases are the source of truth and a bridge spawns/configures the engine's `ACapturePerformer` actors (Performance Capture **Core**) and `UPCapPropComponent` props (Performance Capture **Workflow**) from the called shot.
 
 ---
 
@@ -39,11 +39,11 @@ flowchart LR
 |---|---|
 | [`PCAPTool`](Plugins/PCAPTool) | The toolset + data model. Editor module; drops into any UE5 project. |
 | `LiveLinkViconDataStream` | Vicon DataStream → Live Link, and the bundled Vicon DataStream SDK that the Volume Visualizer uses for the raw marker cloud. |
-| `Performance Capture Core` *(engine)* | Epic's official performer actors. PCAPTool builds on its data model — `UPCAPMocapBridge` maps called actors onto `ACapturePerformer`. The prop bridge (`UPCapPropComponent`) and Mocap Manager UI come from the optional Performance Capture **Workflow** plugin (`WITH_PCAP_WORKFLOW`). |
+| `Performance Capture` *(engine)* | Epic's official Mocap Manager. PCAPTool builds on its data model — `UPCAPMocapBridge` maps called actors onto `ACapturePerformer` (Core) and props onto `UPCapPropComponent` (Workflow, under `Engine/Plugins/VirtualProduction/`). |
 
 ## Build & run
 
-- **Engine:** Unreal Engine **5.8**. The project builds on **Windows** (MSVC). Enable the **Performance Capture Core** plugin (ships with the engine) — PCAPTool depends on its `PerformanceCaptureCore` module. The prop bridge additionally needs the **Performance Capture Workflow** plugin; it's compiled out (`WITH_PCAP_WORKFLOW=0`) until that's installed.
+- **Engine:** Unreal Engine **5.8**. The project builds on **Windows** (MSVC). Enable the **Performance Capture Core** and **Performance Capture Workflow** plugins (both ship with the engine — Core under `Engine/Plugins/Animation/`, Workflow under `Engine/Plugins/VirtualProduction/`). PCAPTool depends on their `PerformanceCaptureCore` / `PerformanceCaptureWorkflowRuntime` modules. To build against Core alone, set `WITH_PCAP_WORKFLOW=0` in `PCAPTool.Build.cs`.
 - Right-click `PCAPPipeline.uproject` → **Generate Visual Studio project files**, then build **Development Editor / Win64** (or open the `.uproject` and let it compile the modules).
 - After a successful build, **restart the editor** — the tool tabs register at module startup — and find them under **Window ▸ Tools**.
 

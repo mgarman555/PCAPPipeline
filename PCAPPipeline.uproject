@@ -20,6 +20,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "PerformanceCaptureWorkflow",
+			"Enabled": true
+		},
+		{
 			"Name": "PythonScriptPlugin",
 			"Enabled": true
 		},
