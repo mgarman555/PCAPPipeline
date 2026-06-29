@@ -59,8 +59,10 @@ follow-ups.
 - **Engine bump 5.7 → 5.8**: `PCAPPipeline.uproject` (EngineAssociation +
   `PerformanceCaptureCore` and `PerformanceCaptureWorkflow` enabled),
   `LiveLinkViconDataStream.uplugin` EngineVersion, `PCAPTool.uplugin` deps, README.
-  Include order pinned to `Unreal5_7` in the `.Target.cs` files to keep existing
-  modules compiling under their original IWYU rules.
+  `.Target.cs`: `DefaultBuildSettings` bumped to `V7` (required on an installed
+  5.8 engine — V6 diverges from the shared `UnrealEditor` warning-level settings
+  and UBT rejects it), with `IncludeOrderVersion` pinned to `Unreal5_7` to keep
+  existing modules compiling under their original IWYU rules.
 - **Build deps**: `PerformanceCaptureCore` + `PerformanceCaptureWorkflowRuntime`
   added to `PCAPTool.Build.cs`; `WITH_PCAP_WORKFLOW=1` (both plugins present, so the
   prop bridge compiles in — flip to `0` to target a Core-only machine).
