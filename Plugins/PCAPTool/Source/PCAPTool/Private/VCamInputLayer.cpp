@@ -1,174 +1,187 @@
 #include "VCamInputLayer.h"
 
+// Faithful port of WVCAM vcam_default.py / vcam_sony.py (updateMovement + updateButtons).
+// All numeric constants come from controller.py + the binding ctors (see header / design doc).
+
 FVCamInputIntents FVCamInputLayer::Process(const FVCamControllerInput& In, float DtSeconds)
 {
     FVCamInputIntents Out;
 
     if (!bInit)
     {
-        Prev = In;
-        PrevLeftEnc = In.LeftEnc;
-        PrevRightEnc = In.RightEnc;
+        // getAxisValue(normalize=True) is relative to the value at (re)load; capture the baseline.
+        Base  = In;
         bInit = true;
     }
 
-    switch (Layout)
-    {
-        case EVCamButtonLayout::Variation1:      ProcessVariation1(In, DtSeconds, Out); break;
-        case EVCamButtonLayout::InvertedDefault: ProcessInverted(In, DtSeconds, Out);   break;
-        default:                                 ProcessDefault(In, DtSeconds, Out);    break;
-    }
+    if (Layout == EVCamButtonLayout::Sony) { ProcessSony(In, DtSeconds, Out); }
+    else                                   { ProcessDefault(In, DtSeconds, Out); }
 
-    Out.bShifted = bShifted;
-    Out.bHold    = bHold;
-
-    Prev = In;
-    PrevLeftEnc = In.LeftEnc;
-    PrevRightEnc = In.RightEnc;
     return Out;
 }
 
-void FVCamInputLayer::AccumulateSony(float JoyX, float JoyY)
+// ── Layout 0: Default (vcam_default.py) — momentary shift on held left_x ───────
+void FVCamInputLayer::ProcessDefault(const FVCamControllerInput& In, float Dt, FVCamInputIntents& Out)
 {
-    // Parity with the scripts; the platform offset itself is deferred (platforming).
-    const float GAIN_m_TO_cm = 100.0f;
-    SonyRawX += DB(JoyX) * GAIN_m_TO_cm / 4095.0f * TransGain;
-    SonyRawY += DB(JoyY) * GAIN_m_TO_cm / 4095.0f * TransGain;
-}
+    const bool bShifted = In.LeftX;   // isShifted() = isButtonPressed('left_x')
+    Out.bShifted = bShifted;
+    Out.Mapping  = bShifted ? EVCamMapping::Shifted : EVCamMapping::Standard;
 
-// ── Layout 0: Default — joystick translation + encoders ──────────────────────
-void FVCamInputLayer::ProcessDefault(const FVCamControllerInput& In, float /*Dt*/, FVCamInputIntents& Out)
-{
-    bShifted = In.LeftTrigger;                 // left_trigger held = SHIFTED
-    bHold    = In.RightTrigger && !bShifted;   // right_trigger = momentary Hold (STANDARD)
+    // ── Gain stacks (shared master gain for translation + rotation) ──
+    const float TransGain01 = Gain01(In.LeftGain);                 // left_gain/4095
+    const float ZoomTrim    = 1.f - Gain01(In.RightGain);          // INVERTED: 1 - right_gain/4095
+    const float MasterTrans = TransGain01 * TransGainStage1 * TransGainStage2;   // *10*(1/800)
+    const float MasterZoom  = ZoomTrim    * ZoomGainStage1  * ZoomGainStage2;    // *10*(1/100)
+    Out.TranslationGain = TransGain01;
+    Out.ZoomGainTrim    = ZoomTrim;
 
-    // Gain encoder = left_enc. STANDARD: zoom gain; SHIFTED: translation gain.
-    const float dGainEnc = In.LeftEnc - PrevLeftEnc;
-    if (dGainEnc != 0.f)
+    // ── Translation (Vector(tu, tv, tw) → X=U, Y=W, Z=V) ──
+    const float tu = Move(In.LeftLeftY, Base.LeftLeftY);
+    const float tw = Move(In.LeftLeftX, Base.LeftLeftX);
+    const float tv = bShifted ? 0.f : Move(In.RightLeftY, Base.RightLeftY);
+    Out.TranslationSpeed = FVector(tu, tw, tv) * MasterTrans;
+
+    // ── Rotation (shifted) vs Zoom (standard) ──
+    if (bShifted)
     {
-        const float dGain = dGainEnc / CountsPerRev;
-        if (!bShifted) { ZoomGain  = FMath::Clamp(ZoomGain + dGain, 0.05f, 1.0f); Out.bSetZoomGain = true;        Out.ZoomGain = ZoomGain; }
-        else           { TransGain = FMath::Clamp(TransGain + dGain, 0.01f, 1.0f); Out.bSetTranslationGain = true; Out.TranslationGain = TransGain; }
-    }
-
-    // Translation rate from joysticks. tu=left_joy_y, tw=left_joy_x, tv=right_joy_y (STANDARD only).
-    const float tu = DB(In.LeftJoyY);
-    const float tw = DB(In.LeftJoyX);
-    const float tv = bShifted ? 0.f : DB(In.RightJoyY);
-    const float Scale = TransGain * TranslationRateScale;   // TUNE ON RIG
-    Out.NavigateRate = FVector(tu * Scale, tw * Scale, tv * Scale);   // X=U, Y=W, Z=V
-
-    // Zoom encoder = right_enc → focal delta.
-    const float dZoomEnc = In.RightEnc - PrevRightEnc;
-    if (dZoomEnc != 0.f) { Out.ZoomDelta += dZoomEnc * ZoomPrecisionDefault / CountsPerRev; }
-
-    if (!bShifted)
-    {
-        if (Pressed(In.RightB, Prev.RightB)) Out.bLensNext = true;
-        if (Pressed(In.RightA, Prev.RightA)) Out.bLensPrev = true;
-        if (Pressed(In.LeftA,  Prev.LeftA))  Out.bZeroEverything = true;
-        if (Pressed(In.LeftB,  Prev.LeftB))  Out.bSavePosition = true;
-        // Transport (right d-pad play/record/stop, left d-pad take/scrub) deferred — V-IN-D3.
+        const float Roll  =  Move(In.RightRightX, Base.RightRightX);
+        const float Yaw   = -Move(In.RightLeftX,  Base.RightLeftX);
+        const float Pitch =  Move(In.RightLeftY,  Base.RightLeftY);
+        Out.RotationSpeed = FVector(Roll, Yaw, Pitch) * MasterTrans;
     }
     else
     {
-        if (Released(In.LeftLeft,  Prev.LeftLeft))  Out.bGotoPrev = true;   // onRelease in the script
-        if (Released(In.LeftRight, Prev.LeftRight)) Out.bGotoNext = true;
-        if (Pressed(In.RightB, Prev.RightB)) Out.bWorldScaleNext = true;
-        if (Pressed(In.RightA, Prev.RightA)) Out.bWorldScalePrev = true;
-        if (Pressed(In.LeftA,  Prev.LeftA)) { Out.bResetSonyXY = true; SonyRawX = 0.f; SonyRawY = 0.f; }
-        if (Pressed(In.LeftB,  Prev.LeftB))  Out.bDeletePosition = true;
-        AccumulateSony(In.RightJoyX, In.RightJoyY);
-    }
-}
-
-// ── Layout 1: Variation 1 — d-pad translation + joystick zoom (matches the photos) ──
-void FVCamInputLayer::ProcessVariation1(const FVCamControllerInput& In, float /*Dt*/, FVCamInputIntents& Out)
-{
-    bShifted = In.LeftTrigger;
-    bHold    = In.RightTrigger && !bShifted;
-
-    // D-pad translation (both maps): U=right_up/down, W=right_right/left, V=left_up/down.
-    const float u = (In.RightUp    ? 1.f : 0.f) - (In.RightDown ? 1.f : 0.f);
-    const float w = (In.RightRight ? 1.f : 0.f) - (In.RightLeft ? 1.f : 0.f);
-    const float v = (In.LeftUp     ? 1.f : 0.f) - (In.LeftDown  ? 1.f : 0.f);
-    const float Scale = DpadStep * TransGain * TranslationRateScale;   // TUNE ON RIG
-    Out.NavigateRate = FVector(u * Scale, w * Scale, v * Scale);
-
-    if (bShifted)   // SHIFTED: left_enc → translation gain
-    {
-        const float dGainEnc = In.LeftEnc - PrevLeftEnc;
-        if (dGainEnc != 0.f) { TransGain = FMath::Clamp(TransGain + dGainEnc / CountsPerRev, 0.01f, 1.0f); Out.bSetTranslationGain = true; Out.TranslationGain = TransGain; }
+        Out.ZoomSpeed = Move(In.RightRightY, Base.RightRightY) * MasterZoom;
     }
 
-    // Zoom gain (always): left_joy_y → axis/(4095*200).
-    const float dZoomGain = DB(In.LeftJoyY) / (4095.0f * ZoomGainPrecision);
-    if (dZoomGain != 0.f) { ZoomGain = FMath::Clamp(ZoomGain + dZoomGain, 0.01f, 1.0f); Out.bSetZoomGain = true; Out.ZoomGain = ZoomGain; }
+    // ── Buttons ──
+    const float Hold = HoldOnceDelay();
+    const auto eLY  = Edges[BLY    ].Update(In.LeftY,     Dt, Hold);
+    const auto eLB  = Edges[BLB    ].Update(In.LeftB,     Dt, Hold);
+    const auto eLA  = Edges[BLA    ].Update(In.LeftA,     Dt, Hold);
+    const auto eLD  = Edges[BLDown ].Update(In.LeftDown,  Dt, Hold);
+    const auto eLLe = Edges[BLLeft ].Update(In.LeftLeft,  Dt, Hold);
+    const auto eLRi = Edges[BLRight].Update(In.LeftRight, Dt, Hold);
+    const auto eRA  = Edges[BRA    ].Update(In.RightA,    Dt, Hold);
+    const auto eRY  = Edges[BRY    ].Update(In.RightY,    Dt, Hold);
+    const auto eRB  = Edges[BRB    ].Update(In.RightB,    Dt, Hold);
+    const auto eRLe = Edges[BRLeft ].Update(In.RightLeft, Dt, Hold);
+    const auto eRRi = Edges[BRRight].Update(In.RightRight,Dt, Hold);
+    // Keep the remaining timers advancing (right_up/down, left_up, left_x) even if unbound here.
+    Edges[BLX].Update(In.LeftX, Dt, Hold); Edges[BLUp].Update(In.LeftUp, Dt, Hold);
+    Edges[BRUp].Update(In.RightUp, Dt, Hold); Edges[BRDown].Update(In.RightDown, Dt, Hold);
+    Edges[BRX].Update(In.RightX, Dt, Hold);
 
-    // Zoom (STANDARD): right_joy_y → focal delta axis*10/4095.
-    if (!bShifted) { Out.ZoomDelta += DB(In.RightJoyY) * ZoomPrecisionJoy / 4095.0f; }
+    if (eLY.bReleasedShort) { Out.bGotoPrev = true; }
+    if (eLY.bHoldOnce)      { Out.bGotoCurrent = true; }
+    if (eLB.bPressed)       { Out.bSavePosition = true; }
+    if (eLD.bPressed)       { Out.bPlaybackToggle = true; }
+    if (eLLe.bReleasedShort || eRLe.bPressed) { Out.bScrubBack = true; }
+    if (eLRi.bReleasedShort || eRRi.bPressed) { Out.bScrubFwd  = true; }
 
     if (!bShifted)
     {
-        if (Pressed(In.RightB, Prev.RightB)) Out.bLensNext = true;
-        if (Pressed(In.RightA, Prev.RightA)) Out.bLensPrev = true;
-        if (Pressed(In.LeftA,  Prev.LeftA))  Out.bZeroEverything = true;
-        if (Pressed(In.LeftB,  Prev.LeftB))  Out.bSavePosition = true;
+        if (eRA.bPressed) { Out.bZeroEverything = true; }
+        if (eRY.bPressed) { Out.bLensNext = true; }
+        if (eRB.bPressed) { Out.bLensPrev = true; }
+        if (eLA.bPressed) { Out.bToggleLocked = true; }
     }
     else
     {
-        if (Released(In.LeftLeft,  Prev.LeftLeft))  Out.bGotoPrev = true;
-        if (Released(In.LeftRight, Prev.LeftRight)) Out.bGotoNext = true;
-        if (Pressed(In.RightB, Prev.RightB)) Out.bWorldScaleNext = true;
-        if (Pressed(In.RightA, Prev.RightA)) Out.bWorldScalePrev = true;
-        if (Pressed(In.LeftA,  Prev.LeftA)) { Out.bResetSonyXY = true; SonyRawX = 0.f; SonyRawY = 0.f; }
-        if (Pressed(In.LeftB,  Prev.LeftB))  Out.bDeletePosition = true;
-        AccumulateSony(In.RightJoyX, In.RightJoyY);
+        if (eRY.bPressed) { Out.bWorldScaleNext = true; }
+        if (eRB.bPressed) { Out.bWorldScalePrev = true; }
+        if (eLA.bPressed) { Out.bToggleFlightMode = true; }
     }
 }
 
-// ── Layout 2: Inverted Default — Variation 1 mirrored L<->R ──────────────────
-void FVCamInputLayer::ProcessInverted(const FVCamControllerInput& In, float /*Dt*/, FVCamInputIntents& Out)
+// ── Layout 1: Sony (vcam_sony.py) — latched 3-state map machine ───────────────
+void FVCamInputLayer::ProcessSony(const FVCamControllerInput& In, float Dt, FVCamInputIntents& Out)
 {
-    bShifted = In.RightTrigger;                 // mirrored: right_trigger = SHIFTED
-    bHold    = In.LeftTrigger && !bShifted;     // left_trigger = Hold
+    const float Hold = HoldOnceDelay();
 
-    // D-pad translation mirrored: U=left_up/down, W=left_right/left, V=right_up/down.
-    const float u = (In.LeftUp     ? 1.f : 0.f) - (In.LeftDown  ? 1.f : 0.f);
-    const float w = (In.LeftRight  ? 1.f : 0.f) - (In.LeftLeft  ? 1.f : 0.f);
-    const float v = (In.RightUp    ? 1.f : 0.f) - (In.RightDown ? 1.f : 0.f);
-    const float Scale = DpadStep * TransGain * TranslationRateScale;   // TUNE ON RIG
-    Out.NavigateRate = FVector(u * Scale, w * Scale, v * Scale);
-
-    if (bShifted)   // left_enc → translation gain (the inverted script keeps left_enc here)
+    // left_x hold-once cycles the latched map (init SONY): STANDARD→SHIFTED→SONY→STANDARD.
+    if (Edges[BLX].Update(In.LeftX, Dt, Hold).bHoldOnce)
     {
-        const float dGainEnc = In.LeftEnc - PrevLeftEnc;
-        if (dGainEnc != 0.f) { TransGain = FMath::Clamp(TransGain + dGainEnc / CountsPerRev, 0.01f, 1.0f); Out.bSetTranslationGain = true; Out.TranslationGain = TransGain; }
+        switch (Mapping)
+        {
+            case EVCamMapping::Standard: Mapping = EVCamMapping::Shifted;  break;
+            case EVCamMapping::Shifted:  Mapping = EVCamMapping::Sony;     break;
+            default:                     Mapping = EVCamMapping::Standard; break;
+        }
     }
+    Out.Mapping  = Mapping;
+    Out.bShifted = (Mapping == EVCamMapping::Shifted);
 
-    // Zoom gain mirrored to right joy; zoom (STANDARD) mirrored to left joy.
-    const float dZoomGain = DB(In.RightJoyY) / (4095.0f * ZoomGainPrecision);
-    if (dZoomGain != 0.f) { ZoomGain = FMath::Clamp(ZoomGain + dZoomGain, 0.01f, 1.0f); Out.bSetZoomGain = true; Out.ZoomGain = ZoomGain; }
-    if (!bShifted) { Out.ZoomDelta += DB(In.LeftJoyY) * ZoomPrecisionJoy / 4095.0f; }
+    const bool bStdOrSony = (Mapping == EVCamMapping::Standard || Mapping == EVCamMapping::Sony);
 
-    // Buttons mirrored L<->R. NOTE: the source script double-binds left_a/left_b (lens AND
-    // zero/cone), losing lens cycling — here we implement the sensible mirror (lens restored).
-    // Confirm intent — V-IN-D2.
-    if (!bShifted)
+    // ── Gains ──
+    const float TransGain01 = Gain01(In.LeftGain);
+    const float ZoomTrim    = 1.f - Gain01(In.RightGain);
+    const float MasterTrans = TransGain01 * TransGainStage1 * TransGainStage2;
+    const float MasterZoom  = ZoomTrim    * ZoomGainStage1  * ZoomGainStage2;
+    Out.TranslationGain = TransGain01;
+    Out.ZoomGainTrim    = ZoomTrim;
+
+    // ── Translation — Sony's vertical-translate axis is right_right_y (not right_left_y) ──
+    const float tu = Move(In.LeftLeftY, Base.LeftLeftY);
+    const float tw = Move(In.LeftLeftX, Base.LeftLeftX);
+    const float tv = bStdOrSony ? Move(In.RightRightY, Base.RightRightY) : 0.f;
+    Out.TranslationSpeed = FVector(tu, tw, tv) * MasterTrans;
+
+    // ── Rotation (SHIFTED) vs Zoom (else); Sony swaps the rotation/zoom axes vs Default ──
+    if (Mapping == EVCamMapping::Shifted)
     {
-        if (Pressed(In.LeftB,  Prev.LeftB))  Out.bLensNext = true;
-        if (Pressed(In.LeftA,  Prev.LeftA))  Out.bLensPrev = true;
-        if (Pressed(In.RightA, Prev.RightA)) Out.bZeroEverything = true;
-        if (Pressed(In.RightB, Prev.RightB)) Out.bSavePosition = true;
+        const float Roll  =  Move(In.RightLeftX,  Base.RightLeftX);
+        const float Yaw   = -Move(In.RightRightX, Base.RightRightX);
+        const float Pitch =  Move(In.RightRightY, Base.RightRightY);
+        Out.RotationSpeed = FVector(Roll, Yaw, Pitch) * MasterTrans;
     }
     else
     {
-        if (Released(In.RightLeft,  Prev.RightLeft))  Out.bGotoPrev = true;
-        if (Released(In.RightRight, Prev.RightRight)) Out.bGotoNext = true;
-        if (Pressed(In.LeftB, Prev.LeftB)) Out.bWorldScaleNext = true;
-        if (Pressed(In.LeftA, Prev.LeftA)) Out.bWorldScalePrev = true;
-        if (Pressed(In.RightA, Prev.RightA)) { Out.bResetSonyXY = true; SonyRawX = 0.f; SonyRawY = 0.f; }
-        if (Pressed(In.RightB, Prev.RightB)) Out.bDeletePosition = true;
-        AccumulateSony(In.LeftJoyX, In.LeftJoyY);
+        Out.ZoomSpeed = Move(In.RightLeftY, Base.RightLeftY) * MasterZoom;
+    }
+
+    // ── Sony XY accumulator (the only axis WVCAM integrates; fixed per-tick, no dt) ──
+    const float xRateRaw = Move(In.LeftRightX, Base.LeftRightX) * SonyMetersToCm / AxisCounts;
+    const float yRateRaw = Move(In.LeftRightY, Base.LeftRightY) * SonyMetersToCm / AxisCounts;
+    SonyRawX += xRateRaw * TransGain01;
+    SonyRawY += yRateRaw * TransGain01;
+
+    // ── Buttons ──
+    const auto eLY = Edges[BLY].Update(In.LeftY, Dt, Hold);
+    const auto eLA = Edges[BLA].Update(In.LeftA, Dt, Hold);
+    const auto eLB = Edges[BLB].Update(In.LeftB, Dt, Hold);
+    const auto eRA = Edges[BRA].Update(In.RightA, Dt, Hold);
+    const auto eRY = Edges[BRY].Update(In.RightY, Dt, Hold);
+    const auto eRB = Edges[BRB].Update(In.RightB, Dt, Hold);
+    const auto eRX = Edges[BRX].Update(In.RightX, Dt, Hold);
+    // advance the rest
+    Edges[BLUp].Update(In.LeftUp, Dt, Hold); Edges[BLDown].Update(In.LeftDown, Dt, Hold);
+    Edges[BLLeft].Update(In.LeftLeft, Dt, Hold); Edges[BLRight].Update(In.LeftRight, Dt, Hold);
+    Edges[BRUp].Update(In.RightUp, Dt, Hold); Edges[BRDown].Update(In.RightDown, Dt, Hold);
+    Edges[BRLeft].Update(In.RightLeft, Dt, Hold); Edges[BRRight].Update(In.RightRight, Dt, Hold);
+
+    if (eLY.bReleasedShort) { Out.bGotoPrev = true; }
+    if (eLY.bHoldOnce)      { Out.bGotoCurrent = true; }
+
+    if (Mapping == EVCamMapping::Standard)
+    {
+        if (eRA.bPressed) { Out.bZeroEverything = true; }
+        if (eRY.bPressed) { Out.bLensNext = true; }
+        if (eRB.bPressed) { Out.bLensPrev = true; }
+        if (eLA.bPressed) { Out.bToggleHold = true; }
+        if (eLB.bPressed) { Out.bSavePosition = true; }
+    }
+    else if (Mapping == EVCamMapping::Shifted)
+    {
+        if (eRY.bPressed) { Out.bWorldScaleNext = true; }
+        if (eRB.bPressed) { Out.bWorldScalePrev = true; }
+        if (eLA.bPressed) { Out.bToggleFlightMode = true; }
+        if (eLB.bPressed) { Out.bSavePosition = true; }
+    }
+    else // SONY — transport / take / live / cone / save-file are deferred (no UE equivalents yet).
+    {
+        if (eRA.bPressed) { Out.bZeroEverything = true; }
+        if (eRX.bPressed) { Out.bResetSonyXY = true; SonyRawX = 0.f; SonyRawY = 0.f; }
     }
 }

@@ -213,10 +213,10 @@ void SPCAPVCamPanel::RebuildInputMonitor()
 
     TSharedRef<SHorizontalBox> Btns = SNew(SHorizontalBox);
     const TArray<TPair<FString, bool>> ButtonStates = {
-        {TEXT("LT"), In.LeftTrigger}, {TEXT("RT"), In.RightTrigger},
+        {TEXT("LX⇧"), In.LeftX}, {TEXT("LY"), In.LeftY}, {TEXT("LA"), In.LeftA}, {TEXT("LB"), In.LeftB},
         {TEXT("L↑"), In.LeftUp}, {TEXT("L↓"), In.LeftDown}, {TEXT("L←"), In.LeftLeft}, {TEXT("L→"), In.LeftRight},
+        {TEXT("RX"), In.RightX}, {TEXT("RY"), In.RightY}, {TEXT("RA"), In.RightA}, {TEXT("RB"), In.RightB},
         {TEXT("R↑"), In.RightUp}, {TEXT("R↓"), In.RightDown}, {TEXT("R←"), In.RightLeft}, {TEXT("R→"), In.RightRight},
-        {TEXT("LA"), In.LeftA}, {TEXT("LB"), In.LeftB}, {TEXT("RA"), In.RightA}, {TEXT("RB"), In.RightB},
     };
     for (const TPair<FString, bool>& B : ButtonStates)
     {
@@ -224,8 +224,9 @@ void SPCAPVCamPanel::RebuildInputMonitor()
     }
 
     const FString Axes = FString::Printf(
-        TEXT("Lx %5.0f   Ly %5.0f   Rx %5.0f   Ry %5.0f      L-enc %6.0f   R-enc %6.0f"),
-        In.LeftJoyX, In.LeftJoyY, In.RightJoyX, In.RightJoyY, In.LeftEnc, In.RightEnc);
+        TEXT("LLx %5.0f  LLy %5.0f   RLx %5.0f  RLy %5.0f   RRx %5.0f  RRy %5.0f      Lgain %5.0f  Rgain %5.0f"),
+        In.LeftLeftX, In.LeftLeftY, In.RightLeftX, In.RightLeftY, In.RightRightX, In.RightRightY,
+        In.LeftGain, In.RightGain);
 
     InputMonitorBox->SetContent(
         SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(8.f))
@@ -530,14 +531,14 @@ TSharedRef<SWidget> SPCAPVCamPanel::BuildControllerSection()
                 {
                     UPCAPVCamSubsystem* S=GetVCam(); UPCAPVCamConfig* C=S?S->GetActiveConfig():nullptr;
                     const int32 L = C ? C->ActiveButtonLayout : 0;
-                    static const TCHAR* Names[] = { TEXT("Default"), TEXT("Variation 1"), TEXT("Inverted Default") };
-                    return FText::FromString((L >= 0 && L < 3) ? Names[L] : TEXT("Default"));
+                    static const TCHAR* Names[] = { TEXT("Default"), TEXT("Sony") };
+                    return FText::FromString((L >= 0 && L < 2) ? Names[L] : TEXT("Default"));
                 }) ]
             .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
             {
                 FMenuBuilder MB(true, nullptr);
-                const TCHAR* Names[] = { TEXT("Default"), TEXT("Variation 1"), TEXT("Inverted Default") };
-                for (int32 i = 0; i < 3; ++i)
+                const TCHAR* Names[] = { TEXT("Default"), TEXT("Sony") };
+                for (int32 i = 0; i < 2; ++i)
                 {
                     const int32 Idx = i;
                     MB.AddMenuEntry(FText::FromString(Names[i]), FText::GetEmpty(), FSlateIcon(),

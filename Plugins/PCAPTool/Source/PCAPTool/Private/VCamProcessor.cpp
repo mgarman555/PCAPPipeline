@@ -141,3 +141,20 @@ void FPCAPVCamProcessor::AccumulateNavigate(UPCAPVCamConfig& Config, const FVect
     const FVector WorldDelta = (bFlightMode ? CameraRot.RotateVector(Rate) : Rate) * DeltaSeconds;
     Config.Navigate.Translation += WorldDelta;
 }
+
+void FPCAPVCamProcessor::AccumulateNavigateRotation(UPCAPVCamConfig& Config,
+                                                    const FVector& RollYawPitchRate, float DeltaSeconds)
+{
+    if (RollYawPitchRate.IsNearlyZero()) { return; }
+    // FVector carries (X=Roll, Y=Yaw, Z=Pitch) deg/sec; FRotator is (Pitch, Yaw, Roll).
+    Config.Navigate.Rotation.Roll  += RollYawPitchRate.X * DeltaSeconds;
+    Config.Navigate.Rotation.Yaw   += RollYawPitchRate.Y * DeltaSeconds;
+    Config.Navigate.Rotation.Pitch += RollYawPitchRate.Z * DeltaSeconds;
+}
+
+void FPCAPVCamProcessor::AccumulateZoom(UPCAPVCamConfig& Config, float ZoomSpeed, float DeltaSeconds)
+{
+    if (FMath::IsNearlyZero(ZoomSpeed)) { return; }
+    Config.ActiveFocalLength = FMath::Clamp(Config.ActiveFocalLength + ZoomSpeed * DeltaSeconds,
+                                            Config.MinFocalLength, Config.MaxFocalLength);
+}
