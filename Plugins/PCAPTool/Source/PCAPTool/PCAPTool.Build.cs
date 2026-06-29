@@ -39,6 +39,7 @@ public class PCAPTool : ModuleRules
             "PropertyEditor",       // SObjectPropertyEntryBox — asset-picker slots in DB forms
             "LiveLink",             // FLiveLinkClientReference / plugin module
             "LiveLinkInterface",    // ILiveLinkClient, transform role + frame-data types — TPVCam read
+            "LiveLinkAnimationCore",// LiveLinkInstance.h — pulled in transitively by CapturePerformer.h
             "Networking",           // FUdpSocketBuilder / FUdpSocketReceiver — WVCAM raw-broadcast listener
             "Sockets",              // FSocket / ISocketSubsystem
             "DesktopPlatform",      // IDesktopPlatform open/save file dialogs — shot-list CSV import/export
