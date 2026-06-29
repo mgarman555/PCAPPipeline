@@ -120,4 +120,26 @@ public:
     // The PCAPTool extension paired to an Epic performer by AssetUID, or null.
     UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
     static UPCAPPerformerExtension* FindPerformerExtension(const FGuid& PerformerUID);
+
+    // Read the UPCapDataAsset.AssetUID off any PCap asset (reflection), or invalid.
+    UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
+    static FGuid GetAssetUID(const UObject* PCapAsset);
+
+    // Create a UPCapPerformerDataAsset (by reflected class) at PackagePath, set its
+    // name + Live Link subject, ensure a valid AssetUID, register and save. Returns
+    // the new asset (as UObject — the concrete type is in the private module), or null.
+    UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
+    static UObject* CreatePerformerAsset(const FString& PackagePath, FName PerformerName, FName LiveLinkSubject);
+
+    // Find-or-create the PCAPTool extension paired to a performer asset (saved next
+    // to it as "<name>_Ext"). Links by AssetUID. Returns null if the asset is invalid.
+    UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
+    static UPCAPPerformerExtension* EnsurePerformerExtension(UObject* PerformerAsset);
+
+    // One-time importer: for each UActorRosterEntry, create an Epic performer asset
+    // (name + body Live Link subject) under PackagePath and populate a paired
+    // extension from the roster's face/audio/digital-double fields. Skips entries
+    // whose performer asset already exists. Returns the number created.
+    UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
+    static int32 MigrateRosterToPCap(const FString& PackagePath);
 };
