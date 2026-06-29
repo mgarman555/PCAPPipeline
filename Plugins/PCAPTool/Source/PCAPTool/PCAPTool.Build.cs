@@ -42,6 +42,8 @@ public class PCAPTool : ModuleRules
             "Networking",           // FUdpSocketBuilder / FUdpSocketReceiver — WVCAM raw-broadcast listener
             "Sockets",              // FSocket / ISocketSubsystem
             "DesktopPlatform",      // IDesktopPlatform open/save file dialogs — shot-list CSV import/export
+            "PerformanceCaptureCore",           // ACapturePerformer / UPerformerComponent — Mocap Manager bridge (UE 5.8)
+            "PerformanceCaptureWorkflowRuntime",// UPCapPropComponent — tracked-prop bridge (UE 5.8)
         });
 
         // ── Vicon DataStream SDK (Phase 2 raw markers) ───────────────────────────

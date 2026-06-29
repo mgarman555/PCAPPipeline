@@ -1,8 +1,8 @@
 # PCAP Pipeline
 
-A performance-capture session-management pipeline for **Unreal Engine 5.7**, built for a solo operator (or small team) running a mocap volume end to end: **prep the day → run the takes → watch the floor.**
+A performance-capture session-management pipeline for **Unreal Engine 5.8**, built for a solo operator (or small team) running a mocap volume end to end: **prep the day → run the takes → watch the floor.**
 
-The heart of the project is the **PCAPTool** editor plugin — a workflow-organized toolset on top of one shared data model — plus **LiveLinkViconDataStream** for getting Vicon data into the engine.
+The heart of the project is the **PCAPTool** editor plugin — a workflow-organized toolset on top of one shared data model — plus **LiveLinkViconDataStream** for getting Vicon data into the engine. On 5.8, PCAPTool's data model drives Epic's official **Performance Capture** plugin (the **Mocap Manager**): the databases are the source of truth and a bridge spawns/configures the engine's `ACapturePerformer` and prop actors from the called shot.
 
 ---
 
@@ -39,10 +39,11 @@ flowchart LR
 |---|---|
 | [`PCAPTool`](Plugins/PCAPTool) | The toolset + data model. Editor module; drops into any UE5 project. |
 | `LiveLinkViconDataStream` | Vicon DataStream → Live Link, and the bundled Vicon DataStream SDK that the Volume Visualizer uses for the raw marker cloud. |
+| `Performance Capture` *(engine)* | Epic's official mocap workflow (Mocap Manager). PCAPTool builds on its data model — `UPCAPMocapBridge` maps called actors/props onto `ACapturePerformer` / `UPCapPropComponent`. |
 
 ## Build & run
 
-- **Engine:** Unreal Engine **5.7.4**. The project builds on **Windows** (MSVC).
+- **Engine:** Unreal Engine **5.8**. The project builds on **Windows** (MSVC). Enable the **Performance Capture** plugin (it ships with the engine) — PCAPTool depends on its `PerformanceCaptureCore` / `PerformanceCaptureWorkflowRuntime` modules.
 - Right-click `PCAPPipeline.uproject` → **Generate Visual Studio project files**, then build **Development Editor / Win64** (or open the `.uproject` and let it compile the modules).
 - After a successful build, **restart the editor** — the tool tabs register at module startup — and find them under **Window ▸ Tools**.
 
