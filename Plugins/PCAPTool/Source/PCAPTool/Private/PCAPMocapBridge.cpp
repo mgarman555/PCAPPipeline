@@ -4,7 +4,9 @@
 
 // Performance Capture plugin (UE 5.8) — the official Mocap Manager actors.
 #include "CapturePerformer.h"       // PerformanceCaptureCore — ACapturePerformer
+#if WITH_PCAP_WORKFLOW
 #include "PCapPropComponent.h"      // PerformanceCaptureWorkflowRuntime — UPCapPropComponent
+#endif
 
 #include "LiveLinkTypes.h"          // FLiveLinkSubjectName
 #include "Engine/World.h"
@@ -130,9 +132,12 @@ AActor* UPCAPMocapBridge::SpawnPropActor(UWorld* World, const FPropEntry& Prop, 
         return nullptr;
     }
 
-    // Attach the prop component and bind it to the prop's Live Link subject.
-    UPCapPropComponent* PropComp = NewObject<UPCapPropComponent>(Spawned);
-    if (PropComp)
+    // Attach the official prop component and bind it to the prop's Live Link
+    // subject. UPCapPropComponent ships in the Performance Capture *Workflow*
+    // plugin; when that isn't installed (WITH_PCAP_WORKFLOW=0) the prop still
+    // places as a transform-only mesh actor and the Live Link binding is skipped.
+#if WITH_PCAP_WORKFLOW
+    if (UPCapPropComponent* PropComp = NewObject<UPCapPropComponent>(Spawned))
     {
         Spawned->AddInstanceComponent(PropComp);
         PropComp->RegisterComponent();
@@ -148,6 +153,15 @@ AActor* UPCAPMocapBridge::SpawnPropActor(UWorld* World, const FPropEntry& Prop, 
             PropComp->SetControlledComponent(MeshComp);
         }
     }
+#else
+    (void)MeshComp;
+    if (Prop.bIsTracked)
+    {
+        UE_LOG(LogTemp, Verbose,
+            TEXT("[PCAP] Prop '%s' placed transform-only — Live Link binding needs the Performance Capture Workflow plugin (WITH_PCAP_WORKFLOW=0)."),
+            *Prop.PropID);
+    }
+#endif
 
 #if WITH_EDITOR
     if (!Prop.PropID.IsEmpty())

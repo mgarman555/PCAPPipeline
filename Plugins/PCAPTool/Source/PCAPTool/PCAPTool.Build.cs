@@ -43,8 +43,15 @@ public class PCAPTool : ModuleRules
             "Sockets",              // FSocket / ISocketSubsystem
             "DesktopPlatform",      // IDesktopPlatform open/save file dialogs — shot-list CSV import/export
             "PerformanceCaptureCore",           // ACapturePerformer / UPerformerComponent — Mocap Manager bridge (UE 5.8)
-            "PerformanceCaptureWorkflowRuntime",// UPCapPropComponent — tracked-prop bridge (UE 5.8)
         });
+
+        // The prop bridge (UPCapPropComponent) lives in the Performance Capture
+        // *Workflow* plugin, which is not present in every 5.8 install (Core ships
+        // standalone). Off by default so the project builds against Core alone. To
+        // enable once the Workflow plugin is installed: set this to "1", add
+        // "PerformanceCaptureWorkflowRuntime" to the module list above, and re-add
+        // the "PerformanceCaptureWorkflow" plugin in PCAPPipeline.uproject + PCAPTool.uplugin.
+        PublicDefinitions.Add("WITH_PCAP_WORKFLOW=0");
 
         // ── Vicon DataStream SDK (Phase 2 raw markers) ───────────────────────────
         // Reference the SDK bundled in the sibling LiveLinkViconDataStream plugin if it
