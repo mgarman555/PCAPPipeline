@@ -123,8 +123,9 @@ private:
     FSocket* InputSocket = nullptr;
     FUdpSocketReceiver* InputReceiver = nullptr;
     int32 ActiveInputPort = 0;
+    FString ActiveInputIP;                  // bound interface; with the port, gates re-binding
 
-    void StartInputListener(int32 Port);
+    void StartInputListener(const FString& BindIP, int32 Port);
     void StopInputListener();
     void OnInputPacket(const FArrayReaderPtr& Data, const FIPv4Endpoint& From);  // receiver thread
     void ApplyInputIntents(const FVCamInputIntents& Intents);                    // game thread
