@@ -42,10 +42,20 @@ class PCAPTOOL_API UPCAPVCamConfig : public UDataAsset
 {
     GENERATED_BODY()
 public:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FName LiveLinkSubjectName = "TPVCam";
+    // ── Mocap source (the camera's tracked pose) ─────────────────────────────────
+    // The vcam rigid body arrives via Live Link under this subject name. MocapSourceIP/Port
+    // identify the mocap server (e.g. Vicon DataStream, default port 801) the Live Link
+    // source connects to — surfaced here so the whole vcam connection lives in one place.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam|Mocap Source") FName   LiveLinkSubjectName = "TPVCam";
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam|Mocap Source") FString MocapSourceIP       = "127.0.0.1";
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam|Mocap Source") int32   MocapSourcePort     = 801;
 
-    // UDP port the WVCAM raw-broadcast script sends controller input to (match the .py PORT).
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") int32 InputBroadcastPort = 7401;
+    // ── Controller feed (joystick / tombstone, raw packets over UDP) ──────────────
+    // The plugin LISTENS on ControllerFeedIP:ControllerFeedPort for raw controller packets.
+    // ControllerFeedIP is the local interface to bind ("0.0.0.0" = all interfaces); the port
+    // must match the controller broadcaster's port.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam|Controller Feed") FString ControllerFeedIP   = "0.0.0.0";
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam|Controller Feed") int32   ControllerFeedPort = 7401;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamAlignOffset AlignRigidBody; // axis correction
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamAlignOffset Setup;          // zero origin

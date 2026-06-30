@@ -166,7 +166,7 @@ void UPCAPVCamSubsystem::SetActiveConfig(UPCAPVCamConfig* Config)
     RuntimeState = FPCAPVCamRuntimeState();   // reset session state on (re)activation
     InputLayer   = FVCamInputLayer();         // reset controller-input state too
     bPrevInputHold = false;
-    if (Config) { StartInputListener(Config->InputBroadcastPort); }
+    if (Config) { StartInputListener(Config->ControllerFeedIP, Config->ControllerFeedPort); }
     else        { StopInputListener(); }
 }
 
@@ -334,13 +334,26 @@ float UPCAPVCamSubsystem::GetCurrentFocalLength() const
 // CONFIRM-AT-BUILD: the FUdpSocketBuilder / FUdpSocketReceiver API is stable across 5.x.
 // OnInputPacket runs on the receiver thread — it only parses + stores under the mutex.
 
-void UPCAPVCamSubsystem::StartInputListener(int32 Port)
+void UPCAPVCamSubsystem::StartInputListener(const FString& BindIP, int32 Port)
 {
-    if (InputSocket && ActiveInputPort == Port) { return; }   // already listening here
+    // Already listening on this exact interface+port? Leave it.
+    if (InputSocket && ActiveInputPort == Port && ActiveInputIP == BindIP) { return; }
     StopInputListener();
     if (Port <= 0) { return; }
 
-    const FIPv4Endpoint Endpoint(FIPv4Address::Any, (uint16)Port);
+    // BindIP is the local interface to listen on ("0.0.0.0"/empty = all interfaces).
+    FIPv4Address BindAddr = FIPv4Address::Any;
+    if (!BindIP.IsEmpty() && BindIP != TEXT("0.0.0.0"))
+    {
+        if (!FIPv4Address::Parse(BindIP, BindAddr))
+        {
+            UE_LOG(LogTemp, Warning,
+                TEXT("[PCAP] VCam input: '%s' is not a valid IPv4 address; binding all interfaces."), *BindIP);
+            BindAddr = FIPv4Address::Any;
+        }
+    }
+
+    const FIPv4Endpoint Endpoint(BindAddr, (uint16)Port);
     InputSocket = FUdpSocketBuilder(TEXT("PCAPVCamInput"))
         .AsNonBlocking()
         .AsReusable()
@@ -349,7 +362,7 @@ void UPCAPVCamSubsystem::StartInputListener(int32 Port)
 
     if (!InputSocket)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[PCAP] VCam input: could not bind UDP port %d (in use?)."), Port);
+        UE_LOG(LogTemp, Warning, TEXT("[PCAP] VCam input: could not bind UDP %s:%d (in use?)."), *BindAddr.ToString(), Port);
         return;
     }
 
@@ -358,7 +371,8 @@ void UPCAPVCamSubsystem::StartInputListener(int32 Port)
     InputReceiver->OnDataReceived().BindUObject(this, &UPCAPVCamSubsystem::OnInputPacket);
     InputReceiver->Start();
     ActiveInputPort = Port;
-    UE_LOG(LogTemp, Log, TEXT("[PCAP] VCam input: listening for WVCAM raw broadcast on UDP %d."), Port);
+    ActiveInputIP   = BindIP;
+    UE_LOG(LogTemp, Log, TEXT("[PCAP] VCam input: listening for controller feed on UDP %s:%d."), *BindAddr.ToString(), Port);
 }
 
 void UPCAPVCamSubsystem::StopInputListener()
@@ -374,6 +388,7 @@ void UPCAPVCamSubsystem::StopInputListener()
         InputSocket = nullptr;
     }
     ActiveInputPort = 0;
+    ActiveInputIP.Reset();
     FScopeLock Lock(&InputMutex);
     bHasInput = false;
 }
