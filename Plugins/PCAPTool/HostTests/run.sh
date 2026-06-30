@@ -16,6 +16,7 @@ CXX="${CXX:-clang++}"
     "$HERE/stubs/stub_globals.cpp" \
     "$SRC/Private/VCamInputLayer.cpp" \
     "$SRC/Private/VCamProcessor.cpp" \
+    "$SRC/Private/VCamCurveSmoothing.cpp" \
     "$HERE/test_main.cpp" \
     -o "$OUT"
 

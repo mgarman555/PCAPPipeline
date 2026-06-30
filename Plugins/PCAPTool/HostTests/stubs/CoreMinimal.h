@@ -200,6 +200,10 @@ struct FTransform
 struct FMath
 {
     static float Abs(float V)              { return std::fabs(V); }
+    static float Sin(float V)              { return std::sin(V); }
+    static float Cos(float V)              { return std::cos(V); }
+    static float Sqrt(float V)             { return std::sqrt(V); }
+    static float Square(float V)           { return V * V; }
     template <class T> static T Min(T A, T B) { return A < B ? A : B; }
     template <class T> static T Max(T A, T B) { return A > B ? A : B; }
     template <class T> static T Clamp(T V, T Lo, T Hi) { return V < Lo ? Lo : (V > Hi ? Hi : V); }
@@ -247,6 +251,7 @@ struct TArray
     TArray(std::initializer_list<T> L) : Data(L) {}
     int32 Num() const { return (int32)Data.size(); }
     void  Add(const T& V) { Data.push_back(V); }
+    void  SetNum(int32 NewNum) { Data.resize(NewNum < 0 ? 0 : (size_t)NewNum); }
     bool  IsValidIndex(int32 i) const { return i >= 0 && i < (int32)Data.size(); }
     T&       operator[](int32 i)       { return Data[i]; }
     const T& operator[](int32 i) const { return Data[i]; }

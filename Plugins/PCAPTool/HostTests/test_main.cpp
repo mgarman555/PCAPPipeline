@@ -6,6 +6,7 @@
 #include "VCamInputLayer.h"
 #include "VCamConfig.h"
 #include "VCamProcessor.h"
+#include "VCamCurveSmoothing.h"
 
 #include <cstdio>
 #include <cmath>
@@ -189,10 +190,93 @@ static void TestProcessor()
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+static void TestSmoothing()
+{
+    std::printf("[FVCamCurveSmoothing]\n");
+    const float Fs = 60.f, Cut = 2.f;   // VcamSequencer defaults
+
+    auto Amplitude = [](const TArray<float>& D) {
+        float lo = 1e9f, hi = -1e9f;                    // interior only (skip warm-up)
+        for (int i = D.Num() / 4; i < 3 * D.Num() / 4; ++i) { lo = std::min(lo, D[i]); hi = std::max(hi, D[i]); }
+        return 0.5f * (hi - lo);
+    };
+    auto Sine = [](int N, float fHz, float fs) { TArray<float> D; for (int i = 0; i < N; ++i) { D.Add(std::sin(2.f * PI * fHz * i / fs)); } return D; };
+    auto TotalVariation = [](const TArray<float>& D) { float t = 0.f; for (int i = 1; i < D.Num(); ++i) { t += std::fabs(D[i] - D[i - 1]); } return t; };
+
+    // Constant signal is unchanged (DC gain 1, state seeded).
+    {
+        TArray<float> D; for (int i = 0; i < 120; ++i) { D.Add(1.0f); }
+        FVCamCurveSmoothing::ButterworthLowPass(D, Cut, Fs);
+        bool flat = true;
+        for (int i = 0; i < D.Num(); ++i) { if (!Near(D[i], 1.0f, 0.01f)) { flat = false; } }
+        Check(flat, "constant signal passes through unchanged");
+    }
+
+    // Low frequency (0.5 Hz) passes; high frequency (10 Hz) is strongly attenuated. Cutoff 2 Hz.
+    {
+        TArray<float> Lo = Sine(600, 0.5f, Fs);
+        FVCamCurveSmoothing::ButterworthLowPass(Lo, Cut, Fs);
+        Check(Amplitude(Lo) > 0.8f, "low-freq (0.5Hz) preserved through 2Hz low-pass");
+
+        TArray<float> Hi = Sine(600, 10.f, Fs);
+        FVCamCurveSmoothing::ButterworthLowPass(Hi, Cut, Fs);
+        Check(Amplitude(Hi) < 0.1f, "high-freq (10Hz) attenuated by 6th-order 2Hz low-pass");
+    }
+
+    // Group-delay advance matches VcamSequencer: floor(1.25 * fps / cutoff / 2).
+    Check(FVCamCurveSmoothing::GroupDelayAdvanceSamples(Cut, Fs) == 18, "advance = floor(1.25*60/2/2) = 18");
+
+    // Default method is None → no-op (non-destructive).
+    {
+        TArray<FVector> P; for (int i = 0; i < 60; ++i) { P.Add(FVector((float)i, 0.f, 0.f)); }
+        FVCamSmoothingSettings Off;   // TranslationMethod defaults to None
+        FVCamCurveSmoothing::SmoothPositions(P, Off);
+        Check(Near(P[30].X, 30.f) && Near(P[59].X, 59.f), "method None leaves the curve untouched");
+    }
+
+    // LowPassFilter reduces position jitter (total variation) by an order of magnitude.
+    {
+        TArray<FVector> P;
+        for (int i = 0; i < 300; ++i) { const float n = (i % 2 ? 5.f : -5.f); P.Add(FVector((float)i + n, 0.f, 0.f)); }
+        TArray<float> InX; for (int i = 0; i < P.Num(); ++i) { InX.Add(P[i].X); }
+        FVCamSmoothingSettings S; S.TranslationMethod = EVCamSmoothMethod::LowPassFilter;
+        FVCamCurveSmoothing::SmoothPositions(P, S);
+        TArray<float> OutX; for (int i = 0; i < P.Num(); ++i) { OutX.Add(P[i].X); }
+        Check(TotalVariation(OutX) < 0.2f * TotalVariation(InX), "low-pass smooths position jitter (TV drops >5x)");
+    }
+
+    // Rotation slerp: follows a step toward the target and stays unit-length.
+    {
+        TArray<FQuat> R;
+        const FQuat A = FRotator(0.f, 0.f, 0.f).Quaternion();
+        const FQuat B = FRotator(0.f, 90.f, 0.f).Quaternion();
+        for (int i = 0; i < 120; ++i) { R.Add(i < 30 ? A : B); }
+        FVCamSmoothingSettings S; S.RotationMethod = EVCamSmoothMethod::Slerp;   // blend 0.8
+        FVCamCurveSmoothing::SmoothRotations(R, S);
+        bool unit = true;
+        for (int i = 0; i < R.Num(); ++i)
+        { if (!Near(std::sqrt(FMath::Square(R[i].X)+FMath::Square(R[i].Y)+FMath::Square(R[i].Z)+FMath::Square(R[i].W)), 1.f, 0.01f)) { unit = false; } }
+        Check(unit, "slerp-smoothed rotations stay unit-length");
+        Check(Near(R[119].Rotator().Yaw, 90.f, 2.f), "slerp converges to the target orientation");
+    }
+
+    // Rotation low-pass: a constant orientation is preserved and stays unit-length.
+    {
+        TArray<FQuat> R;
+        const FQuat Fixed = FRotator(0.f, 30.f, 0.f).Quaternion();
+        for (int i = 0; i < 120; ++i) { R.Add(Fixed); }
+        FVCamSmoothingSettings S; S.RotationMethod = EVCamSmoothMethod::LowPassFilter;
+        FVCamCurveSmoothing::SmoothRotations(R, S);
+        Check(Near(R[60].Rotator().Yaw, 30.f, 0.5f), "low-pass rotation preserves a constant orientation");
+    }
+}
+
 int main()
 {
     TestInputLayer();
     TestProcessor();
+    TestSmoothing();
     std::printf("\n%d/%d checks passed (%d failed)\n", g_total - g_fail, g_total, g_fail);
     return g_fail == 0 ? 0 : 1;
 }
