@@ -1,8 +1,8 @@
 #include "SPCAPPropDatabasePanel.h"
-#include "PropRosterEntry.h"
+#include "PCAPMocapData.h"
+#include "PCAPPropExtension.h"
 #include "MocapDatabase.h"
 #include "PCAPToolSettings.h"
-#include "PCAPToolPaths.h"
 
 #include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SBorder.h"
@@ -19,10 +19,7 @@
 #include "PropertyCustomizationHelpers.h"
 #include "Styling/AppStyle.h"
 
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "Modules/ModuleManager.h"
 #include "FileHelpers.h"
-#include "ObjectTools.h"
 #include "UObject/Package.h"
 #include "Editor.h"
 #include "Subsystems/AssetEditorSubsystem.h"
@@ -55,8 +52,8 @@ void SPCAPPropDatabasePanel::Construct(const FArguments& InArgs)
                         + SHorizontalBox::Slot().FillWidth(1.f).Padding(10.f, 0.f).VAlign(VAlign_Center)
                         [ SNew(SSearchBox).HintText(LOCTEXT("Filter", "Search props…")).OnTextChanged(this, &SPCAPPropDatabasePanel::OnFilterChanged) ]
                         + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-                        [ SNew(SBox).WidthOverride(160.f)
-                          [ SNew(SEditableTextBox).HintText(LOCTEXT("NewHint", "+ new propID  ↵")).OnTextCommitted(this, &SPCAPPropDatabasePanel::OnNewPropCommitted) ] ]
+                        [ SNew(SBox).WidthOverride(170.f)
+                          [ SNew(SEditableTextBox).HintText(LOCTEXT("NewHint", "+ new prop  ↵")).OnTextCommitted(this, &SPCAPPropDatabasePanel::OnNewPropCommitted) ] ]
                     ]
                 ]
                 + SVerticalBox::Slot().FillHeight(1.f).Padding(FMargin(6.f))
@@ -64,7 +61,7 @@ void SPCAPPropDatabasePanel::Construct(const FArguments& InArgs)
                     SNew(SOverlay)
                     + SOverlay::Slot()
                     [
-                        SAssignNew(TileView, STileView<TWeakObjectPtr<UPropRosterEntry>>)
+                        SAssignNew(TileView, STileView<FPropPtr>)
                         .ListItemsSource(&FilteredProps)
                         .OnGenerateTile(this, &SPCAPPropDatabasePanel::OnGenerateTile)
                         .OnSelectionChanged(this, &SPCAPPropDatabasePanel::OnSelectionChanged)
@@ -75,7 +72,12 @@ void SPCAPPropDatabasePanel::Construct(const FArguments& InArgs)
                     + SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)
                     [
                         SNew(STextBlock)
-                        .Text(LOCTEXT("EmptyProps", "No props yet — type an ID in the box above to create one."))
+                        .Text_Lambda([this]()
+                        {
+                            return UPCAPMocapData::IsWorkflowAvailable()
+                                ? LOCTEXT("EmptyProps", "No props yet — type a name above to create one.")
+                                : LOCTEXT("NoWorkflow", "Performance Capture Workflow plugin not available.");
+                        })
                         .ColorAndOpacity(FSlateColor(ColText2))
                         .Visibility_Lambda([this]() { return FilteredProps.Num() == 0 ? EVisibility::Visible : EVisibility::Collapsed; })
                     ]
@@ -105,15 +107,13 @@ void SPCAPPropDatabasePanel::ReloadProps()
     AllProps.Reset();
     TileThumbnails.Empty();
 
-    FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-    TArray<FAssetData> Found;
-    ARM.Get().GetAssetsByClass(UPropRosterEntry::StaticClass()->GetClassPathName(), Found, /*bSearchSubClasses*/ false);
-    for (const FAssetData& AD : Found)
-        if (UPropRosterEntry* Entry = Cast<UPropRosterEntry>(AD.GetAsset()))
-            AllProps.Add(Entry);
+    for (const FPCAPPropInfo& Info : UPCAPMocapData::GetAllProps())
+    {
+        AllProps.Add(MakeShared<FPCAPPropInfo>(Info));
+    }
 
-    AllProps.Sort([](const TWeakObjectPtr<UPropRosterEntry>& A, const TWeakObjectPtr<UPropRosterEntry>& B)
-    { return A.IsValid() && B.IsValid() && A->PropID < B->PropID; });
+    AllProps.Sort([](const FPropPtr& A, const FPropPtr& B)
+    { return A.IsValid() && B.IsValid() && A->PropName.LexicalLess(B->PropName); });
 
     ApplyFilter();
 }
@@ -121,68 +121,56 @@ void SPCAPPropDatabasePanel::ReloadProps()
 void SPCAPPropDatabasePanel::ApplyFilter()
 {
     FilteredProps.Reset();
-    for (const TWeakObjectPtr<UPropRosterEntry>& Ptr : AllProps)
+    for (const FPropPtr& Ptr : AllProps)
     {
-        if (!Ptr.IsValid()) continue;
-        if (FilterText.IsEmpty() || Ptr->PropID.Contains(FilterText) || Ptr->DisplayName.Contains(FilterText))
+        if (!Ptr.IsValid()) { continue; }
+        if (FilterText.IsEmpty()
+            || Ptr->PropName.ToString().Contains(FilterText)
+            || Ptr->LiveLinkSubject.ToString().Contains(FilterText))
+        {
             FilteredProps.Add(Ptr);
+        }
     }
-    if (TileView.IsValid()) TileView->RequestListRefresh();
+    if (TileView.IsValid()) { TileView->RequestListRefresh(); }
 }
 
-UPropRosterEntry* SPCAPPropDatabasePanel::CreatePropAsset(const FString& PropID)
+UObject* SPCAPPropDatabasePanel::ResolvePreview(const FPCAPPropInfo& Info)
 {
-    if (PropID.IsEmpty()) return nullptr;
-    const FString PackageName = FString::Printf(TEXT("%s/%s"), *PCAPPaths::PropsDir(), *PropID);
-    if (FPackageName::DoesPackageExist(PackageName)) return nullptr;
-    UPackage* Package = CreatePackage(*PackageName);
-    if (!Package) return nullptr;
-    UPropRosterEntry* Entry = NewObject<UPropRosterEntry>(Package, FName(*PropID), RF_Public | RF_Standalone | RF_Transactional);
-    Entry->PropID = PropID;
-    FAssetRegistryModule::AssetCreated(Entry);
-    Package->MarkPackageDirty();
-    FEditorFileUtils::PromptForCheckoutAndSave({ Package }, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
-    return Entry;
-}
-
-void SPCAPPropDatabasePanel::SavePropAsset(UPropRosterEntry* Entry)
-{
-    if (!Entry) return;
-    if (UPackage* Package = Entry->GetPackage())
+    if (!Info.PropStaticMesh.IsNull())
     {
-        Package->MarkPackageDirty();
-        FEditorFileUtils::PromptForCheckoutAndSave({ Package }, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
+        if (UObject* M = Info.PropStaticMesh.LoadSynchronous()) { return M; }
     }
+    if (!Info.PropSkeletalMesh.IsNull())
+    {
+        if (UObject* M = Info.PropSkeletalMesh.LoadSynchronous()) { return M; }
+    }
+    return Info.Asset.LoadSynchronous();
 }
 
-bool SPCAPPropDatabasePanel::DeletePropAsset(UPropRosterEntry* Entry)
+TSharedRef<ITableRow> SPCAPPropDatabasePanel::OnGenerateTile(FPropPtr Item, const TSharedRef<STableViewBase>& Owner)
 {
-    if (!Entry) return false;
-    return ObjectTools::DeleteSingleObject(Entry, /*bPerformReferenceCheck*/ false);
-}
-
-TSharedRef<ITableRow> SPCAPPropDatabasePanel::OnGenerateTile(TWeakObjectPtr<UPropRosterEntry> Item, const TSharedRef<STableViewBase>& Owner)
-{
-    UPropRosterEntry* E = Item.Get();
-    const FString IDText   = E ? E->PropID : TEXT("(missing)");
-    const FString NameText = E ? E->DisplayName : FString();
+    const FString NameText = Item.IsValid() ? Item->PropName.ToString() : TEXT("(missing)");
+    const FString SubText  = Item.IsValid() ? Item->LiveLinkSubject.ToString() : FString();
 
     TSharedRef<SWidget> ThumbWidget =
         SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).HAlign(HAlign_Center).VAlign(VAlign_Center)
         [ SNew(STextBlock).Text(LOCTEXT("NoMesh", "no mesh")).ColorAndOpacity(FSlateColor(ColLabel)) ];
 
-    if (UObject* Asset = (E ? E->PropAsset.LoadSynchronous() : nullptr))
+    if (Item.IsValid())
     {
-        TSharedPtr<FAssetThumbnail> Thumb = TileThumbnails.FindRef(Item);
-        if (!Thumb.IsValid())
+        if (UObject* Asset = ResolvePreview(*Item))
         {
-            Thumb = MakeShared<FAssetThumbnail>(Asset, 96, 96, ThumbnailPool);
-            TileThumbnails.Add(Item, Thumb);
+            TSharedPtr<FAssetThumbnail> Thumb = TileThumbnails.FindRef(Item->AssetUID);
+            if (!Thumb.IsValid())
+            {
+                Thumb = MakeShared<FAssetThumbnail>(Asset, 96, 96, ThumbnailPool);
+                TileThumbnails.Add(Item->AssetUID, Thumb);
+            }
+            ThumbWidget = Thumb->MakeThumbnailWidget();
         }
-        ThumbWidget = Thumb->MakeThumbnailWidget();
     }
 
-    return SNew(STableRow<TWeakObjectPtr<UPropRosterEntry>>, Owner)
+    return SNew(STableRow<FPropPtr>, Owner)
         .Padding(4.f)
         [
             SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(6.f)
@@ -191,18 +179,20 @@ TSharedRef<ITableRow> SPCAPPropDatabasePanel::OnGenerateTile(TWeakObjectPtr<UPro
                 + SVerticalBox::Slot().AutoHeight()
                 [ SNew(SBox).HeightOverride(88.f)[ ThumbWidget ] ]
                 + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0.f, 5.f, 0.f, 0.f)
-                [ SNew(STextBlock).Text(FText::FromString(IDText)) ]
+                [ SNew(STextBlock).Text(FText::FromString(NameText)) ]
                 + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
-                [ SNew(STextBlock).Text(FText::FromString(NameText)).ColorAndOpacity(FSlateColor(ColText2)) ]
+                [ SNew(STextBlock).Text(FText::FromString(SubText)).ColorAndOpacity(FSlateColor(ColText2)) ]
             ]
         ];
 }
 
-void SPCAPPropDatabasePanel::OnSelectionChanged(TWeakObjectPtr<UPropRosterEntry> Item, ESelectInfo::Type)
+void SPCAPPropDatabasePanel::OnSelectionChanged(FPropPtr Item, ESelectInfo::Type)
 {
     SelectedProp = Item;
     if (Item.IsValid() && DetailBox.IsValid())
-        DetailBox->SetContent(BuildDetailFor(Item.Get()));
+    {
+        DetailBox->SetContent(BuildDetailFor(Item));
+    }
 }
 
 void SPCAPPropDatabasePanel::OnFilterChanged(const FText& Text)
@@ -213,50 +203,121 @@ void SPCAPPropDatabasePanel::OnFilterChanged(const FText& Text)
 
 void SPCAPPropDatabasePanel::OnNewPropCommitted(const FText& Text, ETextCommit::Type CommitType)
 {
-    if (CommitType != ETextCommit::OnEnter) return;
-    const FString PropID = Text.ToString().TrimStartAndEnd();
-    if (PropID.IsEmpty()) return;
-    if (UPropRosterEntry* Created = CreatePropAsset(PropID))
+    if (CommitType != ETextCommit::OnEnter) { return; }
+    const FString Name = Text.ToString().TrimStartAndEnd();
+    if (Name.IsEmpty()) { return; }
+
+    if (UPCAPMocapData::CreatePropAsset(PropPackageDir(), FName(*Name), NAME_None))
     {
         ReloadProps();
-        if (TileView.IsValid()) TileView->SetSelection(TWeakObjectPtr<UPropRosterEntry>(Created));
     }
 }
 
 void SPCAPPropDatabasePanel::CloseDetail()
 {
-    SelectedProp = nullptr;
-    if (TileView.IsValid()) TileView->ClearSelection();
+    SelectedProp.Reset();
+    if (TileView.IsValid()) { TileView->ClearSelection(); }
 }
 
-TSharedRef<SWidget> SPCAPPropDatabasePanel::BuildDetailFor(UPropRosterEntry* Entry)
+TSharedRef<SWidget> SPCAPPropDatabasePanel::BuildDetailFor(FPropPtr Info)
 {
-    if (!Entry) return SNew(SBox);
+    if (!Info.IsValid()) { return SNew(SBox); }
 
-    TWeakObjectPtr<UPropRosterEntry> Weak(Entry);
+    UObject* PropAsset = Info->Asset.LoadSynchronous();
+    UPCAPPropExtension* Ext = UPCAPMocapData::FindPropExtension(Info->AssetUID);
+    TWeakObjectPtr<UPCAPPropExtension> WeakExt(Ext);
+
+    auto SaveExt = [WeakExt]()
+    {
+        if (WeakExt.IsValid())
+        {
+            if (UPackage* Pkg = WeakExt->GetPackage())
+            {
+                Pkg->MarkPackageDirty();
+                FEditorFileUtils::PromptForCheckoutAndSave({ Pkg }, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
+            }
+        }
+    };
 
     TSharedRef<SWidget> Thumb =
         SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).HAlign(HAlign_Center).VAlign(VAlign_Center)
         [ SNew(STextBlock).Text(LOCTEXT("NoMesh2", "no mesh")).ColorAndOpacity(FSlateColor(ColLabel)) ];
-    if (UObject* Asset = Entry->PropAsset.LoadSynchronous())
+    if (UObject* Asset = ResolvePreview(*Info))
     {
         DetailThumbnail = MakeShared<FAssetThumbnail>(Asset, 96, 96, ThumbnailPool);
         Thumb = DetailThumbnail->MakeThumbnailWidget();
     }
 
+    TSharedRef<SVerticalBox> Body = SNew(SVerticalBox);
+
+    if (!Ext)
+    {
+        Body->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)
+        [ SNew(STextBlock).AutoWrapText(true)
+          .Text(LOCTEXT("NoExt", "Core fields are owned by the prop asset (edit via Open asset / Mocap Manager). Add a PCAPTool extension for history / status / notes."))
+          .ColorAndOpacity(FSlateColor(ColText2)) ];
+        Body->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)
+        [ SNew(SButton).Text(LOCTEXT("AddExt", "Add PCAPTool extension"))
+          .OnClicked_Lambda([this, PropAsset]()
+          {
+              if (UPCAPMocapData::EnsurePropExtension(PropAsset))
+              {
+                  if (SelectedProp.IsValid() && DetailBox.IsValid())
+                  {
+                      DetailBox->SetContent(BuildDetailFor(SelectedProp));
+                  }
+              }
+              return FReply::Handled();
+          }) ];
+    }
+    else
+    {
+        Body->AddSlot().AutoHeight().Padding(0.f, 8.f, 0.f, 2.f)
+        [ SNew(STextBlock).Text(LOCTEXT("Notes", "Notes")).ColorAndOpacity(FSlateColor(ColLabel)) ];
+        Body->AddSlot().AutoHeight()
+        [ SNew(SMultiLineEditableTextBox).Text(FText::FromString(Ext->Notes)).OnTextCommitted_Lambda([WeakExt](const FText& T, ETextCommit::Type){ if (WeakExt.IsValid()) WeakExt->Notes = T.ToString(); }) ];
+        Body->AddSlot().AutoHeight().Padding(0.f, 12.f, 0.f, 0.f)
+        [ SNew(SButton).Text(LOCTEXT("SaveExt", "Save extension")).OnClicked_Lambda([SaveExt]() { SaveExt(); return FReply::Handled(); }) ];
+    }
+
+    const FString PropId = Info->PropName.ToString();
+    Body->AddSlot().AutoHeight().Padding(0.f, 12.f, 0.f, 0.f)
+    [ SNew(SCheckBox)
+      .IsChecked_Lambda([PropId]()
+      {
+          UPCAPToolSettings* S = UPCAPToolSettings::Get();
+          UMocapDatabase* DB = S ? S->GetDatabase() : nullptr;
+          return (DB && DB->IsPropCalled(PropId)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+      })
+      .OnCheckStateChanged_Lambda([PropId](ECheckBoxState S)
+      {
+          UPCAPToolSettings* Set = UPCAPToolSettings::Get();
+          if (UMocapDatabase* DB = (Set ? Set->GetDatabase() : nullptr))
+              DB->SetPropCalled(PropId, S == ECheckBoxState::Checked);
+      })
+      [ SNew(STextBlock).Text(LOCTEXT("Call", "Called to today's shoot")) ] ];
+
     return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(14.f)
-    .OnMouseButtonDown_Lambda([](const FGeometry&, const FPointerEvent&) { return FReply::Handled(); })   // consume — don't close when clicking the card
+    .OnMouseButtonDown_Lambda([](const FGeometry&, const FPointerEvent&) { return FReply::Handled(); })
     [
         SNew(SScrollBox)
         + SScrollBox::Slot()
         [
             SNew(SVerticalBox)
 
-            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)
             [
                 SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 12.f, 0.f)
+                [ SNew(SBox).WidthOverride(96.f).HeightOverride(96.f)[ Thumb ] ]
                 + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
-                [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("%s   (id locked)"), *Entry->PropID))).ColorAndOpacity(FSlateColor(ColGreen)) ]
+                [
+                    SNew(SVerticalBox)
+                    + SVerticalBox::Slot().AutoHeight()
+                    [ SNew(STextBlock).Text(FText::FromName(Info->PropName)).ColorAndOpacity(FSlateColor(ColGreen)) ]
+                    + SVerticalBox::Slot().AutoHeight()
+                    [ SNew(STextBlock).Text(FText::Format(LOCTEXT("SubjFmt", "Live Link: {0}"), FText::FromName(Info->LiveLinkSubject))).ColorAndOpacity(FSlateColor(ColText2)) ]
+                ]
                 + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Top)
                 [ SNew(SButton).ButtonStyle(FAppStyle::Get(), "NoBorder")
                   .OnClicked_Lambda([this]() { CloseDetail(); return FReply::Handled(); })
@@ -264,60 +325,11 @@ TSharedRef<SWidget> SPCAPPropDatabasePanel::BuildDetailFor(UPropRosterEntry* Ent
             ]
 
             + SVerticalBox::Slot().AutoHeight()
-            [
-                SNew(SHorizontalBox)
-                + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 12.f, 0.f)
-                [ SNew(SBox).WidthOverride(110.f).HeightOverride(110.f)[ Thumb ] ]
-                + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Top)
-                [
-                    SNew(SVerticalBox)
-                    + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 2.f)
-                    [ SNew(STextBlock).Text(LOCTEXT("Disp", "Display name")).ColorAndOpacity(FSlateColor(ColLabel)) ]
-                    + SVerticalBox::Slot().AutoHeight()
-                    [ SNew(SEditableTextBox).Text(FText::FromString(Entry->DisplayName)).OnTextCommitted_Lambda([Weak](const FText& T, ETextCommit::Type){ if (Weak.IsValid()) Weak->DisplayName = T.ToString(); }) ]
-                    + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 2.f)
-                    [ SNew(STextBlock).Text(LOCTEXT("Mesh", "Prop mesh / asset")).ColorAndOpacity(FSlateColor(ColLabel)) ]
-                    + SVerticalBox::Slot().AutoHeight()
-                    [ SNew(SObjectPropertyEntryBox).AllowedClass(UObject::StaticClass()).DisplayThumbnail(false)
-                      .ObjectPath_Lambda([Weak]() { return Weak.IsValid() ? Weak->PropAsset.ToString() : FString(); })
-                      .OnObjectChanged_Lambda([this, Weak](const FAssetData& AD) { if (Weak.IsValid()) { Weak->PropAsset = TSoftObjectPtr<UObject>(AD.GetSoftObjectPath()); if (SelectedProp.IsValid() && DetailBox.IsValid()) DetailBox->SetContent(BuildDetailFor(SelectedProp.Get())); } }) ]
-                ]
-            ]
+            [ SNew(SButton).Text(LOCTEXT("Open", "Open prop asset"))
+              .OnClicked_Lambda([PropAsset]() { if (PropAsset && GEditor) GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(PropAsset); return FReply::Handled(); }) ]
 
-            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)
-            [ SNew(SCheckBox)
-              .IsChecked_Lambda([Weak]()
-              {
-                  UPCAPToolSettings* S = UPCAPToolSettings::Get();
-                  UMocapDatabase* DB = S ? S->GetDatabase() : nullptr;
-                  const FString ID = Weak.IsValid() ? Weak->PropID : FString();
-                  return (DB && DB->IsPropCalled(ID)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-              })
-              .OnCheckStateChanged_Lambda([Weak](ECheckBoxState S)
-              {
-                  UPCAPToolSettings* Set = UPCAPToolSettings::Get();
-                  if (UMocapDatabase* DB = (Set ? Set->GetDatabase() : nullptr))
-                      if (Weak.IsValid()) DB->SetPropCalled(Weak->PropID, S == ECheckBoxState::Checked);
-              })
-              [ SNew(STextBlock).Text(LOCTEXT("Call", "Called to today's shoot")) ] ]
-
-            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f, 0.f, 2.f)
-            [ SNew(STextBlock).Text(LOCTEXT("Notes", "Notes")).ColorAndOpacity(FSlateColor(ColLabel)) ]
             + SVerticalBox::Slot().AutoHeight()
-            [ SNew(SMultiLineEditableTextBox).Text(FText::FromString(Entry->Notes)).OnTextCommitted_Lambda([Weak](const FText& T, ETextCommit::Type){ if (Weak.IsValid()) Weak->Notes = T.ToString(); }) ]
-
-            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 14.f, 0.f, 0.f)
-            [
-                SNew(SHorizontalBox)
-                + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
-                [ SNew(SButton).Text(LOCTEXT("Save", "Save")).OnClicked_Lambda([Weak]() { if (Weak.IsValid()) SavePropAsset(Weak.Get()); return FReply::Handled(); }) ]
-                + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
-                [ SNew(SButton).Text(LOCTEXT("Open", "Open asset")).OnClicked_Lambda([Weak]() { if (Weak.IsValid() && GEditor) GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(Weak.Get()); return FReply::Handled(); }) ]
-                + SHorizontalBox::Slot().FillWidth(1.f)
-                + SHorizontalBox::Slot().AutoWidth()
-                [ SNew(SButton).Text(LOCTEXT("Delete", "Delete")).OnClicked_Lambda([this, Weak]()
-                  { if (Weak.IsValid() && DeletePropAsset(Weak.Get())) { CloseDetail(); ReloadProps(); } return FReply::Handled(); }) ]
-            ]
+            [ Body ]
         ]
     ];
 }

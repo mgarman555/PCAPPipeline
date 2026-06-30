@@ -1,6 +1,7 @@
 #include "PCAPMocapData.h"
 
 #include "PCAPPerformerExtension.h"
+#include "PCAPPropExtension.h"
 #include "ActorRosterEntry.h"   // migration source
 
 #include "LiveLinkTypes.h"                       // FLiveLinkSubjectName
@@ -321,6 +322,92 @@ UPCAPPerformerExtension* UPCAPMocapData::EnsurePerformerExtension(UObject* Perfo
         Package, FName(*ExtAssetName), RF_Public | RF_Standalone | RF_Transactional);
     Ext->PCapPerformerUID = UID;
     Ext->PerformerAsset   = PerformerAsset;
+
+    FAssetRegistryModule::AssetCreated(Ext);
+    SavePackageFor(Ext);
+    return Ext;
+}
+
+UObject* UPCAPMocapData::CreatePropAsset(const FString& PackagePath, FName PropName, FName LiveLinkSubject)
+{
+#if WITH_PCAP_WORKFLOW
+    UClass* PropClass = FindObject<UClass>(nullptr, TEXT("/Script/PerformanceCaptureWorkflow.PCapPropDataAsset"));
+    if (!PropClass) { return nullptr; }
+
+    const FString AssetName   = PropName.IsNone() ? TEXT("Prop") : PropName.ToString();
+    const FString PackageName = FString::Printf(TEXT("%s/%s"), *PackagePath, *AssetName);
+    if (FPackageName::DoesPackageExist(PackageName)) { return nullptr; }
+
+    UPackage* Package = CreatePackage(*PackageName);
+    if (!Package) { return nullptr; }
+
+    UObject* Asset = NewObject<UObject>(Package, PropClass, FName(*AssetName),
+                                        RF_Public | RF_Standalone | RF_Transactional);
+    if (!Asset) { return nullptr; }
+
+    WriteName(Asset, TEXT("PropName"), PropName);
+    if (!LiveLinkSubject.IsNone())
+    {
+        WriteSubjectName(Asset, TEXT("LiveLinkSubject"), LiveLinkSubject);
+    }
+    bool bAssigned = false;
+    EnsureGuid(Asset, TEXT("AssetUID"), bAssigned);
+
+    FAssetRegistryModule::AssetCreated(Asset);
+    SavePackageFor(Asset);
+    return Asset;
+#else
+    return nullptr;
+#endif
+}
+
+UPCAPPropExtension* UPCAPMocapData::FindPropExtension(const FGuid& PropUID)
+{
+    if (!PropUID.IsValid()) { return nullptr; }
+
+    IAssetRegistry* AR = GetAssetRegistry();
+    if (!AR) { return nullptr; }
+
+    TArray<FAssetData> Found;
+    AR->GetAssetsByClass(UPCAPPropExtension::StaticClass()->GetClassPathName(), Found, /*bSearchSubClasses*/ false);
+
+    for (const FAssetData& AssetData : Found)
+    {
+        if (UPCAPPropExtension* Ext = Cast<UPCAPPropExtension>(AssetData.GetAsset()))
+        {
+            if (Ext->PCapPropUID == PropUID)
+            {
+                return Ext;
+            }
+        }
+    }
+    return nullptr;
+}
+
+UPCAPPropExtension* UPCAPMocapData::EnsurePropExtension(UObject* PropAsset)
+{
+    if (!PropAsset) { return nullptr; }
+
+    bool bAssigned = false;
+    const FGuid UID = EnsureGuid(PropAsset, TEXT("AssetUID"), bAssigned);
+    if (bAssigned) { SavePackageFor(PropAsset); }
+    if (!UID.IsValid()) { return nullptr; }
+
+    if (UPCAPPropExtension* Existing = FindPropExtension(UID))
+    {
+        return Existing;
+    }
+
+    const FString ExtPackageName = PropAsset->GetPackage()->GetName() + TEXT("_Ext");
+    const FString ExtAssetName   = PropAsset->GetName() + TEXT("_Ext");
+
+    UPackage* Package = CreatePackage(*ExtPackageName);
+    if (!Package) { return nullptr; }
+
+    UPCAPPropExtension* Ext = NewObject<UPCAPPropExtension>(
+        Package, FName(*ExtAssetName), RF_Public | RF_Standalone | RF_Transactional);
+    Ext->PCapPropUID = UID;
+    Ext->PropAsset   = PropAsset;
 
     FAssetRegistryModule::AssetCreated(Ext);
     SavePackageFor(Ext);

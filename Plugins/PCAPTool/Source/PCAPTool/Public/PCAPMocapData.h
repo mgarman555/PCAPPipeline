@@ -7,6 +7,7 @@
 class USkeletalMesh;
 class UStaticMesh;
 class UPCAPPerformerExtension;
+class UPCAPPropExtension;
 
 // Lightweight read-out of an Epic UPCapPerformerDataAsset (Mocap Manager,
 // canonical), gathered by reflection so PCAPTool never needs the plugin's
@@ -135,6 +136,16 @@ public:
     // to it as "<name>_Ext"). Links by AssetUID. Returns null if the asset is invalid.
     UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
     static UPCAPPerformerExtension* EnsurePerformerExtension(UObject* PerformerAsset);
+
+    // ── Props (mirror the performer helpers) ──
+    UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
+    static UObject* CreatePropAsset(const FString& PackagePath, FName PropName, FName LiveLinkSubject);
+
+    UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
+    static UPCAPPropExtension* FindPropExtension(const FGuid& PropUID);
+
+    UFUNCTION(BlueprintCallable, Category="PCAP|Mocap Data")
+    static UPCAPPropExtension* EnsurePropExtension(UObject* PropAsset);
 
     // One-time importer: for each UActorRosterEntry, create an Epic performer asset
     // (name + body Live Link subject) under PackagePath and populate a paired
