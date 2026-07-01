@@ -35,6 +35,28 @@ struct PCAPTOOL_API FPCAPVCamScaleConfig
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FVector CameraSpaceScale = FVector(1.f, 1.f, 1.f);
 };
 
+// Offline take-smoothing (the 4.26 VcamSequencer post-pass) applied to a recorded take's
+// transform curve. Mirrors the pure FVCamSmoothingSettings; default None = non-destructive.
+UENUM(BlueprintType)
+enum class EPCAPVCamSmoothMethod : uint8
+{
+    None          UMETA(DisplayName = "None"),
+    LowPassFilter UMETA(DisplayName = "Low-pass (Butterworth)"),
+    Slerp         UMETA(DisplayName = "Slerp (rotation)"),
+};
+
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FPCAPVCamTakeSmoothingConfig
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") EPCAPVCamSmoothMethod TranslationMethod = EPCAPVCamSmoothMethod::None;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") EPCAPVCamSmoothMethod RotationMethod    = EPCAPVCamSmoothMethod::None;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam", meta=(ClampMin="1.0"))  float ResamplingFps       = 60.f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam", meta=(ClampMin="0.1"))  float TranslationCutoffHz = 2.0f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam", meta=(ClampMin="0.1"))  float RotationCutoffHz    = 2.0f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam", meta=(ClampMin="0.0", ClampMax="1.0")) float RotationSlerpBlend = 0.8f;
+};
+
 // Persisted vcam config. One DataAsset per stage setup (saved under the project's
 // content; referenced by the active stage). Mirrors UStageConfigAsset.
 UCLASS(BlueprintType)
@@ -61,8 +83,11 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamAlignOffset Setup;          // zero origin
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamAlignOffset Navigate;       // joystick stacking
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamSmoothingConfig Smoothing;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamSmoothingConfig Smoothing;    // live per-frame smoothing
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamScaleConfig     Scaling;
+
+    // Offline post-record smoothing of the take's Level Sequence (opt-in; default None).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam|Take Smoothing") FPCAPVCamTakeSmoothingConfig TakeSmoothing;
 
     // World-scale presets the controller cycles through (SelectNext/PreviousWorldScale).
     // WVCAM worldScales SeekingTable: [1, 2, 3, 5, 10] (non-looping). == native Tgain.

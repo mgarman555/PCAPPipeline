@@ -7,6 +7,9 @@
 #include "StageConfigAsset.h"
 #include "PCAPVCamSubsystem.h"
 #include "PCAPVCamActor.h"
+#include "VCamConfig.h"
+#include "VCamCurveSmoothing.h"
+#include "VCamSequenceSmoother.h"
 #include "UObject/LazyObjectPtr.h"
 
 #include "Engine/Engine.h"
@@ -244,6 +247,31 @@ void UPCAPTakeRecorderSubsystem::HandleTakeFinished(ULevelSequence* SequenceAsse
     Take.MasterSequence = SequenceAsset;   // the assembled take
     Take.bHasVCam = PendingHasVCam;   // VCamAsset (the dedicated sub-asset) resolves in the
                                       // same later per-stream pass as Body/Face/Audio refs.
+
+    // Offline take-smoothing (opt-in, non-destructive) — the 4.26 VcamSequencer post-pass,
+    // rebuilt on 5.8 double channels. Runs only when the active vcam config selects a method.
+    if (PendingHasVCam && SequenceAsset && GEngine)
+    {
+        if (UPCAPVCamSubsystem* VCamSys = GEngine->GetEngineSubsystem<UPCAPVCamSubsystem>())
+        {
+            if (UPCAPVCamConfig* Cfg = VCamSys->GetActiveConfig())
+            {
+                const FPCAPVCamTakeSmoothingConfig& TS = Cfg->TakeSmoothing;
+                if (TS.TranslationMethod != EPCAPVCamSmoothMethod::None ||
+                    TS.RotationMethod    != EPCAPVCamSmoothMethod::None)
+                {
+                    FVCamSmoothingSettings S;
+                    S.TranslationMethod   = static_cast<EVCamSmoothMethod>((uint8)TS.TranslationMethod);
+                    S.RotationMethod      = static_cast<EVCamSmoothMethod>((uint8)TS.RotationMethod);
+                    S.ResamplingFps       = TS.ResamplingFps;
+                    S.TranslationCutoffHz = TS.TranslationCutoffHz;
+                    S.RotationCutoffHz    = TS.RotationCutoffHz;
+                    S.RotationSlerpBlend  = TS.RotationSlerpBlend;
+                    FVCamSequenceSmoother::SmoothRecordedVCam(SequenceAsset, VCamSys->GetOrCreateVCamActor(), S);
+                }
+            }
+        }
+    }
 
     // Subject manifest (record-time provenance, incl. DrivenTarget).
     for (const FShotSubject& Subj : Shot->Subjects)

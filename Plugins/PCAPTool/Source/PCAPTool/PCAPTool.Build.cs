@@ -35,6 +35,7 @@ public class PCAPTool : ModuleRules
             "TakeRecorder",         // UTakeRecorderBlueprintLibrary, FTakeRecorderParameters, UTakeRecorderSubsystem
             "TakesCore",            // UTakeRecorderSources, UTakeMetaData
             "MovieScene",           // FFrameNumber / movie-scene types used by Take Recorder params
+            "MovieSceneTracks",     // UMovieScene3DTransformSection / FMovieSceneDoubleChannel — take-smoothing glue
             "AssetRegistry",        // list roster DataAssets (Actor/Prop/Stage databases)
             "PropertyEditor",       // SObjectPropertyEntryBox — asset-picker slots in DB forms
             "LiveLink",             // FLiveLinkClientReference / plugin module
