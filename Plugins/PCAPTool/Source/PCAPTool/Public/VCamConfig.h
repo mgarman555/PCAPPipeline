@@ -61,6 +61,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamAlignOffset Setup;          // zero origin
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamAlignOffset Navigate;       // joystick stacking
 
+    // World/platform offset (processor step 10.5). The Sony layout drives Translation X/Y from
+    // its accumulated left_right stick (SonyRawX/Y, cm); reset via the controller's right_x.
+    // Rotation is reserved — the full 4.26 parent/platform path (per-axis gating + compensator
+    // re-solve, reconciliation doc §3) generalizes this field later. ZeroSpace leaves it intact.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamAlignOffset Platform;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamSmoothingConfig Smoothing;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VCam") FPCAPVCamScaleConfig     Scaling;
 

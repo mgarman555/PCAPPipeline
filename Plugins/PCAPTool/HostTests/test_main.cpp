@@ -118,6 +118,25 @@ static void TestInputLayer()
         for (int i = 0; i < 200; ++i) { M = L.Process(Hold, Dt).Mapping; }
         Check((int)M == (int)EVCamMapping::Standard, "Sony left_x hold-once: SONY -> STANDARD");
     }
+
+    // Sony XY platform accumulator: counts * (100/4095) * gain per tick, reported via intents,
+    // zeroed by right_x (reset frame reads 0).
+    {
+        FVCamInputLayer L; L.Layout = EVCamButtonLayout::Sony;
+        FVCamControllerInput Base = Idle(); Base.LeftGain = 4095.f;   // gain trim = 1.0
+        L.Process(Base, Dt);                                          // baseline capture
+
+        FVCamControllerInput Move = Base; Move.LeftRightX = 1000.f;   // past the 100-count deadband
+        const float PerTick = 1000.f * 100.f / 4095.f;                // = 24.4200 cm
+        FVCamInputIntents O1 = L.Process(Move, Dt);
+        Check(Near(O1.SonyOffsetX, PerTick, 0.01f), "Sony XY accumulates counts*100/4095*gain per tick");
+        FVCamInputIntents O2 = L.Process(Move, Dt);
+        Check(Near(O2.SonyOffsetX, 2.f * PerTick, 0.02f), "Sony XY keeps integrating (no dt)");
+
+        FVCamControllerInput Reset = Base; Reset.RightX = true;
+        FVCamInputIntents O3 = L.Process(Reset, Dt);
+        Check(O3.bResetSonyXY && Near(O3.SonyOffsetX, 0.f, 0.001f), "right_x resets Sony XY to 0");
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -187,6 +206,19 @@ static void TestProcessor()
         UPCAPVCamConfig C;
         FPCAPVCamProcessor::AccumulateNavigateRotation(C, FVector(/*roll*/0, /*yaw*/10, /*pitch*/0), 1.0f);
         Check(Near(C.Navigate.Rotation.Yaw, 10.f), "rotation rate accumulates yaw");
+    }
+
+    // Platform offset (step 10.5): translates the output; ZeroSpace leaves it intact.
+    {
+        UPCAPVCamConfig C; FPCAPVCamRuntimeState S;
+        C.Platform.Translation = FVector(10.f, 20.f, 5.f);
+        const FTransform Out = FPCAPVCamProcessor::Process(C, S, FTransform(FQuat::Identity, FVector::ZeroVector), Dt);
+        const FVector P = Out.GetLocation();
+        Check(Near(P.X, 10.f) && Near(P.Y, 20.f) && Near(P.Z, 5.f), "Platform offset shifts the output");
+
+        FPCAPVCamProcessor::ZeroSpace(C, FTransform(FQuat::Identity, FVector(50.f, 0.f, 0.f)));
+        const FVector PT = C.Platform.Translation;
+        Check(Near(PT.X, 10.f) && Near(PT.Y, 20.f) && Near(PT.Z, 5.f), "ZeroSpace leaves Platform intact");
     }
 }
 

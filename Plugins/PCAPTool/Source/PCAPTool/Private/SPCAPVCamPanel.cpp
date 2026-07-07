@@ -228,6 +228,14 @@ void SPCAPVCamPanel::RebuildInputMonitor()
         In.LeftLeftX, In.LeftLeftY, In.RightLeftX, In.RightLeftY, In.RightRightX, In.RightRightY,
         In.LeftGain, In.RightGain);
 
+    // Sony platform offset readout (driven by the Sony layout; step 10.5 of the processor).
+    FString SonyXY;
+    if (UPCAPVCamConfig* C = V->GetActiveConfig())
+    {
+        SonyXY = FString::Printf(TEXT("SONY XY  %+7.1f / %+7.1f cm"),
+            C->Platform.Translation.X, C->Platform.Translation.Y);
+    }
+
     InputMonitorBox->SetContent(
         SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(8.f))
         [
@@ -243,6 +251,8 @@ void SPCAPVCamPanel::RebuildInputMonitor()
             ]
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
             [ SNew(STextBlock).Font(FCoreStyle::GetDefaultFontStyle("Mono", 11)).Text(FText::FromString(Axes)) ]
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+            [ SNew(STextBlock).Font(FCoreStyle::GetDefaultFontStyle("Mono", 11)).Text(FText::FromString(SonyXY)).ColorAndOpacity(ColText2) ]
             + SVerticalBox::Slot().AutoHeight()[ Btns ]
         ]
     );

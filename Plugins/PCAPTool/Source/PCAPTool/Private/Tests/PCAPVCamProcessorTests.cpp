@@ -117,6 +117,27 @@ bool FPCAPVCamHoldReleaseTest::RunTest(const FString&)
     return true;
 }
 
+// Platform offset (step 10.5): shifts the output; ZeroSpace leaves it intact (Sony reset is
+// its own button).
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamPlatformOffsetTest,
+    "PCAP.VCam.Processor.PlatformOffset",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPVCamPlatformOffsetTest::RunTest(const FString&)
+{
+    UPCAPVCamConfig* C = NewObject<UPCAPVCamConfig>();
+    C->Platform.Translation = FVector(10.f, 20.f, 5.f);
+    FPCAPVCamRuntimeState S;
+
+    const FTransform Out = FPCAPVCamProcessor::Process(*C, S, FTransform(FQuat::Identity, FVector::ZeroVector), 1.f / 60.f);
+    TestTrue(TEXT("Platform offset shifts the output"),
+        Out.GetLocation().Equals(FVector(10.f, 20.f, 5.f), 0.01f));
+
+    FPCAPVCamProcessor::ZeroSpace(*C, FTransform(FQuat::Identity, FVector(50.f, 0.f, 0.f)));
+    TestTrue(TEXT("ZeroSpace leaves Platform intact"),
+        C->Platform.Translation.Equals(FVector(10.f, 20.f, 5.f), 0.001f));
+    return true;
+}
+
 // Navigate accumulation: world-axis rate stacks into Navigate; flight-mode rate follows facing.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamNavigateAccumTest,
     "PCAP.VCam.Processor.NavigateAccum",

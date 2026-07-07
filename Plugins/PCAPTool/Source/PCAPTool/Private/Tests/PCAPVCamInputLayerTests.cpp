@@ -122,6 +122,29 @@ bool FPCAPVCamInDeadbandTest::RunTest(const FString&)
     return true;
 }
 
+// Sony XY platform accumulator: counts*(100/4095)*gain per tick via intents; right_x resets.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInSonyXYTest,
+    "PCAP.VCam.Input.SonyPlatformXY",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPVCamInSonyXYTest::RunTest(const FString&)
+{
+    FVCamInputLayer L; L.Layout = EVCamButtonLayout::Sony;
+    FVCamControllerInput Base = Idle(); Base.LeftGain = 4095.f;   // gain trim = 1.0
+    L.Process(Base, kDt);                                          // baseline capture
+
+    FVCamControllerInput Move = Base; Move.LeftRightX = 1000.f;    // past the 100-count deadband
+    const float PerTick = 1000.f * 100.f / 4095.f;                 // = 24.42 cm
+    const FVCamInputIntents O1 = L.Process(Move, kDt);
+    TestTrue(TEXT("Sony XY accumulates counts*100/4095*gain per tick"),
+        FMath::IsNearlyEqual(O1.SonyOffsetX, PerTick, 0.01f));
+
+    FVCamControllerInput Reset = Base; Reset.RightX = true;
+    const FVCamInputIntents O2 = L.Process(Reset, kDt);
+    TestTrue(TEXT("right_x resets Sony XY to 0"),
+        O2.bResetSonyXY && FMath::IsNearlyZero(O2.SonyOffsetX, 0.001f));
+    return true;
+}
+
 // Sony: holding left_x past the 2s hold-once cycles the latched map (init SONY -> STANDARD).
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPVCamInSonyMapTest,
     "PCAP.VCam.Input.SonyMapCycle",

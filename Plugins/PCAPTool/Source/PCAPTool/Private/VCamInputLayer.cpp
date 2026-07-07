@@ -179,9 +179,13 @@ void FVCamInputLayer::ProcessSony(const FVCamControllerInput& In, float Dt, FVCa
         if (eLA.bPressed) { Out.bToggleFlightMode = true; }
         if (eLB.bPressed) { Out.bSavePosition = true; }
     }
-    else // SONY — transport / take / live / cone / save-file are deferred (no UE equivalents yet).
+    else // SONY — take / live / cone / save-file remain deferred (no UE equivalents yet).
     {
         if (eRA.bPressed) { Out.bZeroEverything = true; }
         if (eRX.bPressed) { Out.bResetSonyXY = true; SonyRawX = 0.f; SonyRawY = 0.f; }
     }
+
+    // Report the accumulated platform offset AFTER reset handling (a reset frame reads 0).
+    Out.SonyOffsetX = SonyRawX;
+    Out.SonyOffsetY = SonyRawY;
 }

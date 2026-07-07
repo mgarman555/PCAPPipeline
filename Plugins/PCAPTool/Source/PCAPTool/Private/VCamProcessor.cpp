@@ -65,6 +65,16 @@ FTransform FPCAPVCamProcessor::Process(const UPCAPVCamConfig& Config, FPCAPVCamR
         Rot = Out.GetRotation();
     }
 
+    // 10.5: Platform offset (Sony XY today; the future parent/platform seed) — left-multiplied
+    // like Setup/Navigate so it stacks in world space and flows through smoothing + recording.
+    // Deliberately NOT cleared by ZeroSpace (WVCAM's Sony reset is its own button).
+    {
+        const FTransform Platform(Config.Platform.Rotation.Quaternion(), Config.Platform.Translation);
+        const FTransform Out = Platform * FTransform(Rot, Pos);
+        Pos = Out.GetLocation();
+        Rot = Out.GetRotation();
+    }
+
     // 11: Smoothing — position & rotation independent; frame-rate-independent. First frame seeds.
     if (!State.bSmoothingPrimed)
     {
