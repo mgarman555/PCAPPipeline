@@ -1,6 +1,7 @@
 #include "PCAPVCamSubsystem.h"
 #include "VCamConfig.h"
 #include "PCAPVCamActor.h"
+#include "VCamTransport.h"          // FPCAPVCamTransport — controller/panel Sequencer transport
 
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -498,8 +499,22 @@ void UPCAPVCamSubsystem::ApplyInputIntents(const FVCamInputIntents& Intents)
         }
     }
 
-    // Deferred (Phase 2): playback transport (bPlaybackToggle/bScrubFwd/bScrubBack) → Sequencer.
+    // Sequencer transport (Phase 2): the controller drives the currently open take. Each entry
+    // is guarded inside FPCAPVCamTransport (no-op while recording / no sequence open — §6).
+    if (Intents.bPlaybackToggle) { FPCAPVCamTransport::TogglePlayback(); }
+    if (Intents.bScrubFwd)       { FPCAPVCamTransport::ScrubFrames(+1); }
+    if (Intents.bScrubBack)      { FPCAPVCamTransport::ScrubFrames(-1); }
 }
+
+// ── Sequencer transport wrappers (panel + BP) ────────────────────────────────
+void UPCAPVCamSubsystem::TransportTogglePlayback() { FPCAPVCamTransport::TogglePlayback(); }
+void UPCAPVCamSubsystem::TransportPlay(float Rate) { FPCAPVCamTransport::Play(Rate); }
+void UPCAPVCamSubsystem::TransportPause()          { FPCAPVCamTransport::Pause(); }
+void UPCAPVCamSubsystem::TransportScrub(int32 Frames) { FPCAPVCamTransport::ScrubFrames(Frames); }
+void UPCAPVCamSubsystem::TransportJumpToFirst()    { FPCAPVCamTransport::JumpToFirst(); }
+void UPCAPVCamSubsystem::TransportJumpToLast()     { FPCAPVCamTransport::JumpToLast(); }
+void UPCAPVCamSubsystem::TransportSetFrameIn()     { FPCAPVCamTransport::SetFrameIn(); }
+void UPCAPVCamSubsystem::TransportSetFrameOut()    { FPCAPVCamTransport::SetFrameOut(); }
 
 FVCamControllerInput UPCAPVCamSubsystem::GetLatestInput() const
 {

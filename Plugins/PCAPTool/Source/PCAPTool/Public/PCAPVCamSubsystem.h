@@ -78,6 +78,17 @@ public:
     // Active controller layout (0=Default, 1=Sony) — stored on the config.
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetActiveButtonLayout(int32 Layout);
 
+    // ── Sequencer transport (controller + panel) ─────────────────────────────
+    // Thin wrappers over FPCAPVCamTransport; all no-op while recording / no sequence open.
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void TransportTogglePlayback();
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void TransportPlay(float Rate);
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void TransportPause();
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void TransportScrub(int32 Frames);
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void TransportJumpToFirst();
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void TransportJumpToLast();
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void TransportSetFrameIn();
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void TransportSetFrameOut();
+
     // ── Readouts ───────────────────────────────────────────────────────────────
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") EStreamStatus GetStreamStatus() const { return StreamStatus; }
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") FTransform GetCurrentTransform() const;
