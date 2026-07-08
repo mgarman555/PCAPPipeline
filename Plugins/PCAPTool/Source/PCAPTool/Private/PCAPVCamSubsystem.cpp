@@ -481,8 +481,24 @@ void UPCAPVCamSubsystem::ApplyInputIntents(const FVCamInputIntents& Intents)
             GotoSavedPosition(Prev);
         }
     }
-    // Deferred (no UE equivalent yet): playback transport (bPlaybackToggle/bScrubFwd/bScrubBack),
-    // and Sony platforming (bResetSonyXY → SonyRawX/Y offset).
+    // Sony platforming: while the Sony layout streams, it owns Platform.Translation X/Y
+    // (panel edits to those two are stomped — same live-ownership rule as Navigate).
+    // The intents already read 0 on a reset frame; the explicit zero is belt-and-braces.
+    if (ActiveConfig && InputLayer.Layout == EVCamButtonLayout::Sony)
+    {
+        if (Intents.bResetSonyXY)
+        {
+            ActiveConfig->Platform.Translation.X = 0.f;
+            ActiveConfig->Platform.Translation.Y = 0.f;
+        }
+        else
+        {
+            ActiveConfig->Platform.Translation.X = Intents.SonyOffsetX;
+            ActiveConfig->Platform.Translation.Y = Intents.SonyOffsetY;
+        }
+    }
+
+    // Deferred (Phase 2): playback transport (bPlaybackToggle/bScrubFwd/bScrubBack) → Sequencer.
 }
 
 FVCamControllerInput UPCAPVCamSubsystem::GetLatestInput() const

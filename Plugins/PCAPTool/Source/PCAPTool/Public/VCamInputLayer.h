@@ -84,6 +84,12 @@ struct FVCamInputIntents
     bool bScrubBack = false, bScrubFwd = false;             // left_left / left_right release
     bool bResetSonyXY = false;      // Sony right_x
 
+    // Sony platform offset (cm) — the layer's accumulated left_right-stick integral, reported
+    // every frame (post-reset, so a reset frame reads 0). Consumed by the subsystem into
+    // Config.Platform.Translation X/Y while the Sony layout is active.
+    float SonyOffsetX = 0.f;
+    float SonyOffsetY = 0.f;
+
     // State readouts.
     bool         bShifted = false;  // Default: left_x held. Sony: mapping==Shifted.
     EVCamMapping Mapping  = EVCamMapping::Standard;
