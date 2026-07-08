@@ -49,6 +49,7 @@ private:
     TSharedRef<SWidget> BuildScalingSection();
     TSharedRef<SWidget> BuildNavigationSection();
     TSharedRef<SWidget> BuildControllerSection();
+    TSharedRef<SWidget> BuildTransportSection();
     TSharedRef<SWidget> BuildOutputSection();
 
     TSharedRef<SWidget> MakeSection(const FText& Title, const TSharedRef<SWidget>& Content);

@@ -179,6 +179,7 @@ void SPCAPVCamPanel::RebuildBody()
             + SHorizontalBox::Slot().FillWidth(0.5f).Padding(0.f, 0.f, 8.f, 0.f)[ BuildNavigationSection() ]
             + SHorizontalBox::Slot().FillWidth(0.5f)[ BuildControllerSection() ]
         ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)[ BuildTransportSection() ]
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)[ SAssignNew(InputMonitorBox, SBox) ]
         + SVerticalBox::Slot().AutoHeight()[ BuildOutputSection() ]
     );
@@ -571,6 +572,52 @@ TSharedRef<SWidget> SPCAPVCamPanel::BuildControllerSection()
     ];
 
     return MakeSection(LOCTEXT("CtlSec", "Controller"), Box);
+}
+
+// ── Sequencer transport (mirrors the 4.26 VCamIO transport command map) ──────
+
+TSharedRef<SWidget> SPCAPVCamPanel::BuildTransportSection()
+{
+    // Compact transport row: |◀  ◀  ▶/❚❚  ▶  ▶|   In  Out. Each button forwards to the
+    // subsystem, which no-ops the action while recording / with no open sequence.
+    auto TBtn = [this](const FText& Label, const FText& Tip, TFunction<void(UPCAPVCamSubsystem*)> Act) -> TSharedRef<SWidget>
+    {
+        return SNew(SButton)
+            .HAlign(HAlign_Center)
+            .ToolTipText(Tip)
+            .Text(Label)
+            .OnClicked_Lambda([this, Act]()
+            {
+                if (UPCAPVCamSubsystem* S = GetVCam()) { Act(S); }
+                return FReply::Handled();
+            });
+    };
+
+    TSharedRef<SHorizontalBox> Row = SNew(SHorizontalBox);
+    auto Add = [&Row](const TSharedRef<SWidget>& W)
+    {
+        Row->AddSlot().AutoWidth().Padding(2.f, 0.f)[ W ];
+    };
+
+    Add(TBtn(FText::FromString(TEXT("|◀")), LOCTEXT("JumpFirst", "Jump to first frame"),
+        [](UPCAPVCamSubsystem* S){ S->TransportJumpToFirst(); }));
+    Add(TBtn(FText::FromString(TEXT("◀")), LOCTEXT("ScrubBack", "Step back one frame"),
+        [](UPCAPVCamSubsystem* S){ S->TransportScrub(-1); }));
+    Add(TBtn(FText::FromString(TEXT("▶ / ❚❚")), LOCTEXT("PlayPause", "Play / pause"),
+        [](UPCAPVCamSubsystem* S){ S->TransportTogglePlayback(); }));
+    Add(TBtn(FText::FromString(TEXT("▶")), LOCTEXT("ScrubFwd", "Step forward one frame"),
+        [](UPCAPVCamSubsystem* S){ S->TransportScrub(+1); }));
+    Add(TBtn(FText::FromString(TEXT("▶|")), LOCTEXT("JumpLast", "Jump to last frame"),
+        [](UPCAPVCamSubsystem* S){ S->TransportJumpToLast(); }));
+
+    Row->AddSlot().AutoWidth().Padding(12.f, 0.f, 2.f, 0.f)
+    [ TBtn(LOCTEXT("SetIn", "Set In"), LOCTEXT("SetInTip", "Set playback range start to the current frame"),
+        [](UPCAPVCamSubsystem* S){ S->TransportSetFrameIn(); }) ];
+    Row->AddSlot().AutoWidth().Padding(2.f, 0.f)
+    [ TBtn(LOCTEXT("SetOut", "Set Out"), LOCTEXT("SetOutTip", "Set playback range end to the current frame"),
+        [](UPCAPVCamSubsystem* S){ S->TransportSetFrameOut(); }) ];
+
+    return MakeSection(LOCTEXT("TransportSec", "Transport (current sequence)"), Row);
 }
 
 // ── Transformer output readout ───────────────────────────────────────────────
