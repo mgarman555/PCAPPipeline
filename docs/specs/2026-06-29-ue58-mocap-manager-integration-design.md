@@ -92,25 +92,46 @@ follow-ups.
   actors. It never copies our DataAssets into PCap assets — the database remains
   the single record.
 
-## Not yet done (follow-ups)
+## Follow-ups
 
-1. **Call site / UI.** Wire `SpawnShotToStage` to an Operator Console action
-   ("Send shot to Mocap Manager") using the active `UMocapDatabase` shot +
-   `PropRoster`.
-2. **Retarget → `ACaptureCharacter`.** Map `FRetargetConfig` /
-   `UActorRosterEntry.MetaHuman` onto `URetargetComponent` so performers drive
-   their digital double, not just a mocap mesh.
-2b. **Adopt the PCap database records.** Map `UMocapDatabase` onto the Workflow
-   plugin's own data model (`UPCapPerformerDataAsset` / `UPCapPropDataAsset` /
-   `UPCapCharacterDataAsset`, `FPCapTakeRecord`) so the Mocap Manager's own
-   Motion/Review tabs read our roster directly — the deeper integration beyond
-   spawning actors.
-3. **Stage alignment.** Reconcile `UStageConfigAsset` with the Mocap Manager
-   Stage tab / `BP_DemoStage`.
-4. **Take Recorder reconciliation.** Decide whether `PCAPTakeRecorderSubsystem`
-   defers to the Mocap Manager's recorder when the official session is active.
+**Status 2026-08-09:** 1, 2, 3 and 4 are closed; 2b is partly landed; 5 is open.
+None of it has been compiled — Windows/MSVC on 5.8 remains the acceptance gate.
+
+1. ~~**Call site / UI.**~~ **Done** — the Operator Console's *Send shot to Mocap
+   Manager* action, gated with visible reasons and undoable in one Ctrl-Z.
+   See [2026-08-09 send-shot design](2026-08-09-mocap-manager-send-shot-design.md).
+   Worth knowing: wiring it up exposed that `SpawnShotToStage` staged *every*
+   listed subject, ignoring `bIsActive` — so the recorder (which does filter, in
+   three places) would have recorded one cast while the level held a larger one.
+   Fixed in the bridge.
+2. ~~**Retarget → `ACaptureCharacter`.**~~ **Done** — `UPCAPCharacterBridge` maps
+   `FRetargetConfig` / `UActorRosterEntry.MetaHuman` onto `ACaptureCharacter` +
+   `URetargetComponent`, so a performer drives their digital double rather than a
+   raw mocap mesh. Both classes live in `PerformanceCaptureCore` with exported
+   functions, so this is direct typed calls, not reflection. Note the 5.7-era
+   `SourcePerformer_DEPRECATED` / `RetargetAsset_DEPRECATED` properties are not
+   touched — the non-deprecated setters forward to the component correctly.
+2b. **Adopt the PCap database records.** *Partly landed.* The read layer
+   (`UPCAPMocapData`) and the take/slate write-back (`UPCAPTakeRecordWriter`) are
+   in; the Performer and Prop databases already run on Epic's assets. Still open:
+   characters, productions and sessions, and retiring `UMocapDatabase` behind the
+   PCap records.
+3. ~~**Stage alignment.**~~ **Done** — `UPCAPStageBridge` pairs `UStageConfigAsset`
+   to Epic's stage by `AssetUID`, applies what PCAPTool owns, and reports the
+   divergences between the two models. See
+   [2026-08-09 stage alignment](2026-08-09-pcap-stage-alignment-design.md).
+   Two things it must respect: `UPCapSessionTemplate::bIsEditable` is a lock flag
+   set once a session exists (writing a locked template retroactively rewrites an
+   in-flight session's folder paths), and the stage class is
+   `APerformanceCaptureStageRoot` — not `APCapStageRoot` — and is `Abstract`, so
+   it can never be spawned directly.
+4. ~~**Take Recorder reconciliation.**~~ **Done** — `PCAPTakeRecorderSubsystem`
+   defers to the Mocap Manager's recorder when an official session is active and
+   observes instead, so the two can never double-record. See
+   [2026-08-09 take-record reconciliation](2026-08-09-pcap-take-record-reconciliation-design.md).
 5. **HMC / facial preview.** Evaluate the new 5.8 facial-preview window against
-   the in-house HMC Monitor — keep, replace, or run side-by-side.
+   the in-house HMC Monitor — keep, replace, or run side-by-side. Now actually
+   testable: the Technoprops HMC hardware has arrived.
 
 ## Build / verify note
 

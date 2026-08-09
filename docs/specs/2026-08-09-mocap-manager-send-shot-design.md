@@ -63,12 +63,18 @@ All in `SPCAPOperatorConsole` (`.h` / `.cpp`) — no other file changed.
   Undo.
 - **Blocked while CAPTURING.** Spawning actors into the level mid-take would
   land them in the recording. Same gate the Next-take button already uses.
-- **Count off `Shot.Subjects` / `Shot.Props`, not `bIsActive`.** The bridge
-  places one performer per *listed* subject and one actor per *listed* prop; it
-  does not filter on `FShotSubject::bIsActive`. The enable-gate and the
-  `N talent · M props` read-out therefore use the same raw counts, so the label
-  can never promise something different from what spawns. (Whether the bridge
-  *should* filter is a bridge-side question — see below.)
+- **Count called talent, not the whole roster.** The bridge places one performer
+  per *called* (`bIsActive`) subject and one actor per listed prop, so the
+  enable-gate and the `N talent · M props` read-out count the same way — the
+  label can never promise something different from what spawns.
+
+  This was originally written the other way round: the bridge spawned every
+  listed subject and the read-out matched it, on the reasoning that a call site
+  shouldn't hold a second copy of the rule. That was the wrong half to align.
+  `bIsActive` is the call-out, `Shot.Subjects` is merely everyone who *could* be
+  in the shot, and `PCAPTakeRecorderSubsystem` already filtered on it in three
+  places — so the recorder would have recorded one cast while the level held a
+  larger one. Fixed in the bridge's subject loop.
 - **Static enable-state, not an attribute lambda.** `IsEnabled` / `ToolTipText`
   are computed once per `RebuildContext()`, matching how the rest of this file
   works; `PollRecordState` already rebuilds the context on every record-state
@@ -76,22 +82,17 @@ All in `SPCAPOperatorConsole` (`.h` / `.cpp`) — no other file changed.
 
 ## Not yet done
 
-1. **`bIsActive` is ignored.** A subject listed on the shot but toggled inactive
-   still spawns a performer, because `UPCAPMocapBridge::SpawnShotToStage` doesn't
-   filter. If un-called talent should stay off the stage, that filter belongs in
-   the bridge (one `if` in its subject loop), not in a second copy of the rule at
-   the call site.
-2. **No "clear the stage" counterpart.** Removing a staged shot is Ctrl-Z or a
+1. **No "clear the stage" counterpart.** Removing a staged shot is Ctrl-Z or a
    manual delete. A `Clear staged actors` action needs the bridge to hand back
    (or tag) what it spawned.
-3. **Nothing is written back.** The staged actors aren't recorded anywhere in
+2. **Nothing is written back.** The staged actors aren't recorded anywhere in
    `FShot` / `FTake`, so a later session can't tell the level was staged from
    this shot. That's the same ground as follow-up 2b (adopting the PCap database
    records) and should land there, not here.
-4. **Stage placement is the origin.** Every actor spawns at
+3. **Stage placement is the origin.** Every actor spawns at
    `FVector::ZeroVector` (bridge behaviour) — they need laying out by hand.
    Reconciling this with `UStageConfigAsset` is follow-up #3 (Stage alignment).
-5. **Docs not updated** — `docs/README.md`'s spec index and
+4. **Docs not updated** — `docs/README.md`'s spec index and
    `docs/tools/operator-console.md` should both mention the action. Left alone
    deliberately: parallel sessions own those files this pass.
 
