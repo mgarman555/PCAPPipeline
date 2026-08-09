@@ -252,9 +252,9 @@ TSubclassOf<AActor> UPCAPCharacterBridge::ResolveDigitalDoubleClass(const UActor
 {
     if (!Roster || Roster->MetaHuman.IsNull())
     {
-        return nullptr;
+        return TSubclassOf<AActor>();
     }
-    return ResolveActorClass(Roster->MetaHuman.LoadSynchronous());
+    return TSubclassOf<AActor>(ResolveActorClass(Roster->MetaHuman.LoadSynchronous()));
 }
 
 // ── Bind ────────────────────────────────────────────────────────────────────
@@ -444,7 +444,7 @@ AActor* UPCAPCharacterBridge::SpawnCharacterForSubject(UWorld* World, const FSho
 
     // Explicit call inputs win; Epic's canonical record fills the gaps; the called
     // subject's DrivenTarget is the last resort.
-    UClass* SpawnClass = ResolveDigitalDoubleClass(Roster);
+    UClass* SpawnClass = ResolveDigitalDoubleClass(Roster).Get();
     if (!SpawnClass)
     {
         SpawnClass = Record.CaptureCharacterClass.Get();
