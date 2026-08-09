@@ -369,7 +369,14 @@ void SPCAPOperatorConsole::RebuildContext()
     FText SendBlockedReason;
     const bool bCanSend    = CanSendShotToMocapManager(SendBlockedReason);
     const bool bAlreadySent = SentShotKeys.Contains(CurrentShotKey());
-    const FString SendCounts = FString::Printf(TEXT("%d talent · %d props"), Shot->Subjects.Num(), Shot->Props.Num());
+    // Count only what will actually be staged: the bridge spawns called (bIsActive)
+    // talent, and every listed prop. Counting all subjects here would over-promise.
+    int32 NumCalledTalent = 0;
+    for (const FShotSubject& Subj : Shot->Subjects)
+    {
+        if (Subj.bIsActive) { ++NumCalledTalent; }
+    }
+    const FString SendCounts = FString::Printf(TEXT("%d talent · %d props"), NumCalledTalent, Shot->Props.Num());
 
     Box->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)
     [
@@ -470,11 +477,20 @@ bool SPCAPOperatorConsole::CanSendShotToMocapManager(FText& OutReason) const
         return false;
     }
 
-    // The bridge places one performer per listed subject and one actor per listed
-    // prop, so an empty shot would spawn nothing at all.
-    if (Shot->Subjects.Num() == 0 && Shot->Props.Num() == 0)
+    // The bridge places one performer per *called* (bIsActive) subject and one actor
+    // per listed prop. A shot whose talent are all toggled off would spawn nothing,
+    // so gate on the called count rather than the roster count.
+    bool bAnyCalledTalent = false;
+    for (const FShotSubject& Subj : Shot->Subjects)
     {
-        OutReason = LOCTEXT("SendNothingCalled", "Nothing called to this shot — add talent or props in the Call Sheet first.");
+        if (Subj.bIsActive) { bAnyCalledTalent = true; break; }
+    }
+
+    if (!bAnyCalledTalent && Shot->Props.Num() == 0)
+    {
+        OutReason = Shot->Subjects.Num() > 0
+            ? LOCTEXT("SendNoneCalled", "No talent is called to this shot — toggle them on in the Call Sheet first.")
+            : LOCTEXT("SendNothingCalled", "Nothing called to this shot — add talent or props in the Call Sheet first.");
         return false;
     }
 
