@@ -4,13 +4,22 @@
 #include "PCAPToolSettings.h"
 #include "PCAPToolTypes.h"
 #include "PCAPToolPaths.h"
+#include "PCAPTakeRecordWriter.h"
 #include "StageConfigAsset.h"
 #include "PCAPVCamSubsystem.h"
 #include "PCAPVCamActor.h"
+#include "Misc/ScopeExit.h"      // ON_SCOPE_EXIT — release transport ownership on every exit path
 #include "UObject/LazyObjectPtr.h"
+#include "UObject/UnrealType.h"
 
 #include "Engine/Engine.h"
 #include "LevelSequence.h"
+#include "MovieScene.h"
+
+#if WITH_EDITOR
+#include "Editor.h"             // GEditor
+#include "EditorSubsystem.h"    // UEditorSubsystem — the session-state probe's second shape
+#endif
 
 #include "Recorder/TakeRecorderBlueprintLibrary.h"
 #include "Recorder/TakeRecorderParameters.h"
@@ -20,6 +29,22 @@
 #include "TakeRecorderSources.h"
 #include "TakeMetaData.h"
 #include "TakePreset.h"
+
+// ── Reflected names: the Mocap Manager's live session state ─────────────────
+// UNVERIFIED-PENDING-WINDOWS, and INTENTIONALLY EMPTY.
+//
+// The Workflow plugin's session objects live in its private (editor) module. Its record
+// structs are known — FPCapSessionRecord and friends are read by UPCAPTakeRecordWriter —
+// but none of them carries an "is this session live right now" flag, and the object that
+// does hold that state could not be identified from the headers available here. Rather
+// than guess a /Script path, the probe ships switched off: fill both constants in once the
+// holder is confirmed on Windows and detection upgrades itself with no other change.
+//
+// Nothing depends on this. The deferral policy is driven by transport ownership (a take in
+// flight that PCAPTool did not start), which needs no reflection at all — the probe only
+// buys earlier detection, before the official recorder rolls.
+static const TCHAR* GPCapSessionStateClassPath = TEXT("");   // e.g. "/Script/PerformanceCaptureWorkflow.<SessionStateClass>"
+static const TCHAR* GPCapSessionActiveProperty = TEXT("");   // bool / FGuid / object field meaning "a session is live"
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
 
@@ -48,6 +73,9 @@ void UPCAPTakeRecorderSubsystem::Deinitialize()
             TR->TakeRecorderFinished.RemoveDynamic(this, &UPCAPTakeRecorderSubsystem::HandleTakeFinished);
         }
     }
+    bPCAPDrivesActiveTake    = false;
+    bObservingExternalRecord = false;
+    ClearPendingTake();
     Super::Deinitialize();
 }
 
@@ -75,6 +103,167 @@ FString UPCAPTakeRecorderSubsystem::PeekNextTakeID() const
 {
     UMocapDatabase* DB = GetDB();
     return DB ? DB->BuildNextTakeID() : FString();
+}
+
+void UPCAPTakeRecorderSubsystem::ClearPendingTake()
+{
+    PendingTakeID.Empty();
+    PendingProductionCode.Empty();
+    PendingDayID.Empty();
+    PendingSessionID.Empty();
+    PendingShotID.Empty();
+    PendingHasVCam = false;
+}
+
+// ── Mocap Manager deferral ──────────────────────────────────────────────────
+//
+// There is exactly ONE Take Recorder transport. UE 5.8's Mocap Manager drives it too, so
+// without a policy both controllers can call StartRecording and the operator gets a
+// double-record — two sequences for one performance, or a take that stops halfway. The
+// conservative default is that whoever got there first owns the transport.
+
+// The Mocap Manager's live session state is held in the Workflow plugin's private module and
+// we could not confirm WHICH object holds it against the real 5.8 headers (the data-asset and
+// record types were verified; the runtime session holder was not). Rather than guess a class
+// path and silently return a wrong answer, the probe reports "unresolvable" and the caller
+// falls back to transport ownership — which is directly observable and always correct.
+// Confirm the holder on Windows and this becomes a positive signal; see the design spec.
+bool UPCAPTakeRecorderSubsystem::ProbeMocapManagerSessionFlag(bool& bOutActive)
+{
+    bOutActive = false;
+
+    static bool bLoggedUnresolved = false;
+    if (!bLoggedUnresolved)
+    {
+        bLoggedUnresolved = true;
+        UE_LOG(LogTemp, Log,
+            TEXT("[PCAP] Mocap Manager session-state probe is not wired to a confirmed holder; ")
+            TEXT("deferral falls back to Take Recorder transport ownership."));
+    }
+    return false;   // unresolved — bOutActive carries no meaning
+}
+
+bool UPCAPTakeRecorderSubsystem::IsMocapManagerSessionActive() const
+{
+    // Signal 1: the official session flag, when we can actually read it.
+    bool bProbeSaysActive = false;
+    if (ProbeMocapManagerSessionFlag(bProbeSaysActive))
+    {
+        return bProbeSaysActive;
+    }
+
+    // Signal 2 (fallback): transport ownership. A recording is in flight that PCAPTool did not
+    // start, so something else is driving Take Recorder. That is exactly the condition we must
+    // not add a second controller to, whoever owns it.
+    return IsRecording() && !bPCAPDrivesActiveTake;
+}
+
+bool UPCAPTakeRecorderSubsystem::ShouldDeferToMocapManager() const
+{
+    switch (DeferralMode)
+    {
+    case EPCAPRecorderDeferral::AlwaysDefer: return true;
+    case EPCAPRecorderDeferral::NeverDefer:  return false;
+    case EPCAPRecorderDeferral::Auto:
+    default:                                 return IsMocapManagerSessionActive();
+    }
+}
+
+void UPCAPTakeRecorderSubsystem::SetDeferralMode(EPCAPRecorderDeferral NewMode)
+{
+    if (DeferralMode == NewMode) return;
+    DeferralMode = NewMode;
+
+    if (NewMode == EPCAPRecorderDeferral::NeverDefer)
+    {
+        // This removes the only guard against two controllers on one transport, so it is never
+        // silent — an accidental double-record costs a take that cannot be re-shot.
+        UE_LOG(LogTemp, Warning,
+            TEXT("[PCAP] Recorder deferral set to NeverDefer — PCAPTool will drive Take Recorder ")
+            TEXT("even when the Mocap Manager is recording. Double-record is now possible."));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("[PCAP] Recorder deferral mode set to %d."), static_cast<int32>(NewMode));
+    }
+}
+
+FString UPCAPTakeRecorderSubsystem::GetTransportOwner() const
+{
+    if (!IsRecording())          return FString();
+    if (bPCAPDrivesActiveTake)   return TEXT("PCAPTool");
+    return TEXT("Mocap Manager");
+}
+
+bool UPCAPTakeRecorderSubsystem::BeginObservedTake()
+{
+    // Someone else started a take. Attribute it to the operator's active shot so it harvests
+    // exactly like one of ours — same take-ID scheme, same manifest — and mark it read-only so
+    // StopRecord() never reaches for a transport we do not own.
+    UMocapDatabase* DB = GetDB();
+    if (!DB) return false;
+
+    const FShot* Shot = DB->GetActiveShot();
+    if (!Shot)
+    {
+        // Nothing to attribute it to. Harvesting would invent a shot, so we stay out entirely.
+        UE_LOG(LogTemp, Warning,
+            TEXT("[PCAP] A take started that PCAPTool did not drive, but there is no active shot ")
+            TEXT("to attribute it to — it will not be harvested into the database."));
+        return false;
+    }
+
+    PendingProductionCode = DB->ActiveProductionCode;
+    PendingDayID          = DB->ActiveDayID;
+    PendingSessionID      = DB->ActiveSessionID;
+    PendingShotID         = DB->ActiveShotID;
+    PendingTakeID         = DB->BuildNextTakeID();
+    PendingHasVCam        = false;   // we did not arm the sources, so we cannot claim a VCam track
+
+    if (PendingTakeID.IsEmpty())
+    {
+        UE_LOG(LogTemp, Warning,
+            TEXT("[PCAP] Observing an external take but could not derive a take id; not harvesting."));
+        ClearPendingTake();
+        return false;
+    }
+
+    UE_LOG(LogTemp, Log,
+        TEXT("[PCAP] Observing an externally-driven take as '%s' (shot '%s') — PCAPTool will ")
+        TEXT("harvest and publish it but will not drive the transport."),
+        *PendingTakeID, *PendingShotID);
+    return true;
+}
+
+bool UPCAPTakeRecorderSubsystem::PublishTakeRecord(const FString& TakeID)
+{
+    if (TakeID.IsEmpty()) return false;
+
+    UMocapDatabase* DB = GetDB();
+    if (!DB) return false;
+
+    // Prefer the shot we last harvested into — the operator's console selection may well have
+    // moved on by the time a label is set.
+    const FShot* Shot = DB->GetShot(LastHarvestedProductionCode, LastHarvestedDayID,
+                                    LastHarvestedSessionID, LastHarvestedShotID);
+    if (!Shot)
+    {
+        Shot = DB->GetActiveShot();
+    }
+    if (!Shot) return false;
+
+    for (const FTake& Take : Shot->Takes)
+    {
+        if (Take.TakeID == TakeID)
+        {
+            // Find-or-create by TakeID, so re-publishing after a label edit updates in place
+            // rather than duplicating the row.
+            return UPCAPTakeRecordWriter::WriteTake(Take);
+        }
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("[PCAP] PublishTakeRecord: take '%s' not found."), *TakeID);
+    return false;
 }
 
 bool UPCAPTakeRecorderSubsystem::AreActiveStreamsReady(FString& OutError) const
@@ -121,6 +310,16 @@ bool UPCAPTakeRecorderSubsystem::AreActiveStreamsReady(FString& OutError) const
 bool UPCAPTakeRecorderSubsystem::StartRecordForActiveShot(FString& OutError)
 {
     if (IsRecording()) { OutError = TEXT("A recording is already in progress."); return false; }
+
+    // One transport, one controller. If the Mocap Manager is driving Take Recorder, starting
+    // here would double-record the performance — refuse and say who has it.
+    if (ShouldDeferToMocapManager())
+    {
+        OutError = TEXT("The Mocap Manager is driving Take Recorder — PCAPTool is deferring to it. "
+                        "Record from the Mocap Manager; the take is still harvested and published here.");
+        return false;
+    }
+
     if (!AreActiveStreamsReady(OutError)) return false;
 
     UMocapDatabase* DB = GetDB();
@@ -187,9 +386,15 @@ bool UPCAPTakeRecorderSubsystem::StartRecordForActiveShot(FString& OutError)
         *PCAPPaths::Productions(), *PendingProductionCode, *PendingDayID, *PendingSessionID, *PendingShotID);
     Params.Project.TakeSaveDir = PendingTakeID;   // the take's own folder
 
+    // Claim the transport BEFORE starting: TakeRecorderStarted fires from inside StartRecording,
+    // and HandleTakeStarted reads this flag to decide whether the take is ours or one to observe.
+    bPCAPDrivesActiveTake = true;
+
     UTakeRecorder* Recorder = UTakeRecorderBlueprintLibrary::StartRecording(LevelSequence, Sources, MetaData, Params);
     if (!Recorder)
     {
+        bPCAPDrivesActiveTake = false;   // nothing started, so release the claim
+        ClearPendingTake();
         OutError = TEXT("Take Recorder failed to start — see Output Log.");
         return false;
     }
@@ -199,6 +404,16 @@ bool UPCAPTakeRecorderSubsystem::StartRecordForActiveShot(FString& OutError)
 
 void UPCAPTakeRecorderSubsystem::StopRecord()
 {
+    // Never stop a take we did not start — the Mocap Manager operator is mid-performance and
+    // stopping their transport from here would cut the take.
+    if (bObservingExternalRecord)
+    {
+        UE_LOG(LogTemp, Warning,
+            TEXT("[PCAP] StopRecord ignored: the take in flight is driven by the Mocap Manager. ")
+            TEXT("Stop it there."));
+        return;
+    }
+
     if (IsRecording())
     {
         UTakeRecorderBlueprintLibrary::StopRecording();
@@ -215,6 +430,13 @@ bool UPCAPTakeRecorderSubsystem::RecordNextTake(FString& OutError)
 
 void UPCAPTakeRecorderSubsystem::FinishReview()
 {
+    // The operator has just labelled the take (Best/Alt/Burn). Re-publish so that label reaches
+    // Epic's TakeStatus — the row written at harvest time still carries the default Captured.
+    if (!LastHarvestedTakeID.IsEmpty())
+    {
+        PublishTakeRecord(LastHarvestedTakeID);
+    }
+
     SetState(EPCAPRecordState::Ready);
 }
 
@@ -222,13 +444,31 @@ void UPCAPTakeRecorderSubsystem::FinishReview()
 
 void UPCAPTakeRecorderSubsystem::HandleTakeStarted()
 {
+    // This fires for EVERY take on the transport, including the Mocap Manager's — which is what
+    // makes observe-mode possible. If we did not start this one, adopt it read-only.
+    if (!bPCAPDrivesActiveTake)
+    {
+        bObservingExternalRecord = BeginObservedTake();
+    }
+
     SetState(EPCAPRecordState::Capturing);
 }
 
 void UPCAPTakeRecorderSubsystem::HandleTakeFinished(ULevelSequence* SequenceAsset)
 {
+    // Whatever happens below, this take is over — the next one re-decides ownership.
+    ON_SCOPE_EXIT
+    {
+        bPCAPDrivesActiveTake    = false;
+        bObservingExternalRecord = false;
+    };
+
     UMocapDatabase* DB = GetDB();
     if (!DB) { SetState(EPCAPRecordState::Ready); return; }
+
+    // Empty when an external take could not be attributed to a shot — harvesting it would
+    // invent data, so we stay out.
+    if (PendingTakeID.IsEmpty()) { SetState(EPCAPRecordState::Ready); return; }
 
     FShot* Shot = DB->GetShot(PendingProductionCode, PendingDayID, PendingSessionID, PendingShotID);
     if (!Shot) { SetState(EPCAPRecordState::Ready); return; }
@@ -276,6 +516,27 @@ void UPCAPTakeRecorderSubsystem::HandleTakeFinished(ULevelSequence* SequenceAsse
 
     Shot->Takes.Add(Take);
     DB->MarkPackageDirty();   // persisted on the next SaveDatabase()/editor save
+
+    // Remember where it landed so the label the operator is about to set can be republished
+    // without depending on wherever the console selection has moved to by then.
+    LastHarvestedTakeID         = Take.TakeID;
+    LastHarvestedProductionCode = PendingProductionCode;
+    LastHarvestedDayID          = PendingDayID;
+    LastHarvestedSessionID      = PendingSessionID;
+    LastHarvestedShotID         = PendingShotID;
+
+    // Publish the row into Epic's take DataTable so the Mocap Manager's Review tab sees it.
+    // A take that fails to publish is still recorded here — the database is the record of
+    // truth — so this is logged, never fatal.
+    if (!UPCAPTakeRecordWriter::WriteTake(Take))
+    {
+        UE_LOG(LogTemp, Log,
+            TEXT("[PCAP] Take '%s' harvested, but no FPCapTakeRecord row was written ")
+            TEXT("(no resolvable Mocap Manager session). The take is safe in the database."),
+            *Take.TakeID);
+    }
+
+    ClearPendingTake();
 
     SetState(EPCAPRecordState::Reviewing);   // operator labels the take, then FinishReview()
 }
