@@ -9,6 +9,7 @@
 #include "SPCAPOperatorConsole.h"
 #include "SPCAPCallSheetPanel.h"
 #include "SPCAPVCamPanel.h"
+#include "SPCAPTakeBrowser.h"
 #include "Modules/ModuleManager.h"
 #include "Framework/Docking/TabManager.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -30,6 +31,14 @@ const FName FPCAPToolModule::VCamDBTabName    = TEXT("PCAPTool_VCamDB");
 const FName FPCAPToolModule::ProdDBTabName    = TEXT("PCAPTool_ProdDB");
 const FName FPCAPToolModule::HMCDBTabName     = TEXT("PCAPTool_HMCDB");
 
+// Take Browser (PCAP Tools group). File-local rather than a FPCAPToolModule static like the
+// ten above, because the tab name and its spawner would need declaring in PCAPToolModule.h and
+// that header is owned elsewhere this phase — see the handoff note. Behaviour is identical:
+// the spawner takes no module state, so it binds as a plain static instead of CreateRaw(this).
+// PCAP-prefixed because UBT compiles the module as one unity translation unit.
+static const FName GPCAPTakeBrowserTabName = TEXT("PCAPTool_TakeBrowser");
+static TSharedRef<SDockTab> PCAPSpawnTakeBrowserTab(const FSpawnTabArgs& Args);
+
 void FPCAPToolModule::StartupModule()
 {
     // Two sibling groups under Window > Tools: the operator tools, and the database setup.
@@ -43,7 +52,7 @@ void FPCAPToolModule::StartupModule()
         LOCTEXT("PCAPDatabasesGroupTooltip", "PCAP databases — actors, props, stages"),
         FSlateIcon());
 
-    // ── PCAP Tools (prep → run → monitor) ──────────────────────────────────
+    // ── PCAP Tools (prep → run → review → monitor) ─────────────────────────
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
         CallSheetTabName,
         FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnCallSheetTab))
@@ -56,6 +65,13 @@ void FPCAPToolModule::StartupModule()
         FOnSpawnTab::CreateRaw(this, &FPCAPToolModule::SpawnConsoleTab))
         .SetDisplayName(LOCTEXT("ConsoleTabTitle", "Operator Console"))
         .SetTooltipText(LOCTEXT("ConsoleTabTooltip", "PCAP Tool — navigate shots + run takes (solo operator)"))
+        .SetGroup(PCAPMenuGroup.ToSharedRef());
+
+    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
+        GPCAPTakeBrowserTabName,
+        FOnSpawnTab::CreateStatic(&PCAPSpawnTakeBrowserTab))
+        .SetDisplayName(LOCTEXT("TakeBrowserTabTitle", "Take Browser"))
+        .SetTooltipText(LOCTEXT("TakeBrowserTabTooltip", "PCAP Tool — post-take management (take manifest, labels, processing queue)"))
         .SetGroup(PCAPMenuGroup.ToSharedRef());
 
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
@@ -120,6 +136,7 @@ void FPCAPToolModule::ShutdownModule()
 {
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(CallSheetTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ConsoleTabName);
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(GPCAPTakeBrowserTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(HMCTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(VCamTabName);
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ActorDBTabName);
@@ -138,6 +155,11 @@ TSharedRef<SDockTab> FPCAPToolModule::SpawnHMCTab(const FSpawnTabArgs& Args)
 TSharedRef<SDockTab> FPCAPToolModule::SpawnConsoleTab(const FSpawnTabArgs& Args)
 {
     return SNew(SDockTab).TabRole(ETabRole::NomadTab)[ SNew(SPCAPOperatorConsole) ];
+}
+
+static TSharedRef<SDockTab> PCAPSpawnTakeBrowserTab(const FSpawnTabArgs& Args)
+{
+    return SNew(SDockTab).TabRole(ETabRole::NomadTab)[ SNew(SPCAPTakeBrowser) ];
 }
 
 TSharedRef<SDockTab> FPCAPToolModule::SpawnCallSheetTab(const FSpawnTabArgs& Args)
