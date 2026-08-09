@@ -1,0 +1,13 @@
+# actionlint config.
+#
+# Without this, actionlint exits 1 on windows-build.yml because it does not
+# recognise our custom self-hosted runner labels — a false positive that makes
+# the repo un-lintable and would fail any lint job added later. GitHub itself
+# schedules on custom labels fine; only the linter needs to be told.
+#
+# Keep in sync with the labels the runner is registered with
+# (see docs/ci-setup.md).
+self-hosted-runner:
+  labels:
+    - ue-5.8
+    - vicon-sdk
