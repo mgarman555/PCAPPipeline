@@ -6,6 +6,7 @@
 
 class UMocapDatabase;
 class UPCAPTakeRecorderSubsystem;
+class UPropRosterEntry;
 class SBox;
 
 /**
@@ -16,7 +17,7 @@ class SBox;
  *
  * Layout: header (Production/Day/Session pickers + record state + STOP) /
  * left shot-list spine (status + take counts) / right shot context (talent,
- * takes, RECORD + Next Take).
+ * takes, RECORD + Next Take + Send to Mocap Manager).
  */
 class PCAPTOOL_API SPCAPOperatorConsole : public SCompoundWidget
 {
@@ -34,6 +35,10 @@ private:
     FString SelShot;         // ShotID
 
     uint8 LastRecordState = 255;   // for the poll-driven header refresh
+
+    // Shots already sent to the Mocap Manager this editor session (key = CurrentShotKey()).
+    // Only drives the button's wording/tooltip — a re-send is allowed, but never silent.
+    TSet<FString> SentShotKeys;
 
     TSharedPtr<SBox> HeaderBox;
     TSharedPtr<SBox> ShotContextBox;
@@ -61,6 +66,25 @@ private:
     FReply OnRecordClicked();
     FReply OnStopClicked();
     FReply OnNextTakeClicked();
+
+    // Mocap Manager (UE 5.8 Performance Capture) — project the called shot onto
+    // Epic's ACapturePerformer / prop actors via UPCAPMocapBridge::SpawnShotToStage.
+    FReply OnSendShotToMocapManagerClicked();
+
+    // Is the send available? Returns false and fills OutReason with the operator-facing
+    // explanation (used verbatim as the disabled button's tooltip). OutReason is left
+    // untouched when the send is available.
+    bool CanSendShotToMocapManager(FText& OutReason) const;
+
+    // Every UPropRosterEntry asset — SpawnShotToStage matches called props to their
+    // permanent record by PropID. Same Asset Registry enumeration the Call Sheet uses.
+    TArray<UPropRosterEntry*> GatherPropRoster() const;
+
+    // Identity of the current selection, for the already-sent bookkeeping.
+    FString CurrentShotKey() const;
+
+    // Editor toast — the plugin's standard operator feedback (see SPCAPCallSheetPanel).
+    static void NotifyOperator(const FText& Message);
 
     EActiveTimerReturnType PollRecordState(double InCurrentTime, float InDeltaTime);
 

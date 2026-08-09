@@ -4,6 +4,8 @@
 #include "PCAPToolSettings.h"
 #include "PCAPToolTypes.h"
 #include "PCAPTakeRecorderSubsystem.h"
+#include "PCAPMocapBridge.h"        // UPCAPMocapBridge::SpawnShotToStage — the 5.8 Mocap Manager bridge
+#include "PropRosterEntry.h"        // UPropRosterEntry — prop records SpawnShotToStage matches by PropID
 
 #include "Engine/Engine.h"
 #include "Widgets/Layout/SBorder.h"
@@ -16,6 +18,14 @@
 #include "Widgets/Views/STableRow.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Styling/AppStyle.h"
+
+#include "AssetRegistry/AssetRegistryModule.h"   // FAssetRegistryModule — enumerate the prop roster
+#include "Modules/ModuleManager.h"               // FModuleManager
+#include "Editor.h"                              // GEditor
+#include "Engine/World.h"                        // UWorld — the spawn target
+#include "ScopedTransaction.h"                   // FScopedTransaction — Ctrl-Z a mis-fire
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "PCAPOperatorConsole"
 
@@ -353,6 +363,33 @@ void SPCAPOperatorConsole::RebuildContext()
         [ SNew(SButton).Text(LOCTEXT("NextTake", "Next take")).IsEnabled(State != EPCAPRecordState::Capturing).OnClicked(this, &SPCAPOperatorConsole::OnNextTakeClicked) ]
     ];
 
+    // Prep — send the called shot to the Mocap Manager. Its own row below RECORD,
+    // at natural width: this stages actors, it does not capture. Never a silent
+    // no-op — when it's unavailable the button greys out and the tooltip says why.
+    FText SendBlockedReason;
+    const bool bCanSend    = CanSendShotToMocapManager(SendBlockedReason);
+    const bool bAlreadySent = SentShotKeys.Contains(CurrentShotKey());
+    const FString SendCounts = FString::Printf(TEXT("%d talent · %d props"), Shot->Subjects.Num(), Shot->Props.Num());
+
+    Box->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)
+    [
+        SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [
+            SNew(SButton)
+            .Text(bAlreadySent ? LOCTEXT("SendShotAgain", "Re-send shot to Mocap Manager")
+                               : LOCTEXT("SendShot", "Send shot to Mocap Manager"))
+            .ToolTipText(!bCanSend ? SendBlockedReason
+                : (bAlreadySent
+                    ? LOCTEXT("SendShotAgainTip", "This shot was already sent this session — sending again spawns a second set of actors. Ctrl-Z undoes a send.")
+                    : LOCTEXT("SendShotTip", "Spawn this shot's called talent as Performance Capture performers and its props as tracked prop actors, in the current level. Ctrl-Z undoes.")))
+            .IsEnabled(bCanSend)
+            .OnClicked(this, &SPCAPOperatorConsole::OnSendShotToMocapManagerClicked)
+        ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f, 0.f, 0.f)
+        [ SNew(STextBlock).Text(FText::FromString(SendCounts)).ColorAndOpacity(FSlateColor(ColText3)) ]
+    ];
+
     ShotContextBox->SetContent(SNew(SScrollBox) + SScrollBox::Slot()[ Box ]);
 }
 
@@ -386,6 +423,136 @@ FReply SPCAPOperatorConsole::OnNextTakeClicked()
         FString Error;
         if (!Rec->RecordNextTake(Error)) UE_LOG(LogTemp, Warning, TEXT("[PCAP] Next take blocked: %s"), *Error);
     }
+    return FReply::Handled();
+}
+
+// ── Mocap Manager — stage the called shot ────────────────────────────────────
+//
+// PCAPTool's database stays the source of truth for who/what is called; this is
+// the call site that projects it onto Epic's Performance Capture actors so the
+// engine's Mocap Manager can record them (see the 2026-06-29 integration spec).
+
+FString SPCAPOperatorConsole::CurrentShotKey() const
+{
+    return FString::Printf(TEXT("%s|%s|%s|%s"), *SelProduction, *SelDay, *SelSession, *SelShot);
+}
+
+void SPCAPOperatorConsole::NotifyOperator(const FText& Message)
+{
+    FNotificationInfo Info(Message);
+    Info.ExpireDuration = 4.0f;
+    FSlateNotificationManager::Get().AddNotification(Info);
+}
+
+TArray<UPropRosterEntry*> SPCAPOperatorConsole::GatherPropRoster() const
+{
+    TArray<UPropRosterEntry*> Out;
+    FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+    TArray<FAssetData> F;
+    ARM.Get().GetAssetsByClass(UPropRosterEntry::StaticClass()->GetClassPathName(), F, false);
+    for (const FAssetData& AD : F) if (UPropRosterEntry* E = Cast<UPropRosterEntry>(AD.GetAsset())) Out.Add(E);
+    return Out;
+}
+
+bool SPCAPOperatorConsole::CanSendShotToMocapManager(FText& OutReason) const
+{
+    UMocapDatabase* DB = GetDB();
+    const FShot* Shot = DB ? DB->GetActiveShot() : nullptr;
+    if (!Shot)
+    {
+        OutReason = LOCTEXT("SendNoShot", "No active shot — pick one from the shot list first.");
+        return false;
+    }
+
+    if (!GEditor || !GEditor->GetEditorWorldContext().World())
+    {
+        OutReason = LOCTEXT("SendNoWorld", "No editor world — open a level before staging a shot.");
+        return false;
+    }
+
+    // The bridge places one performer per listed subject and one actor per listed
+    // prop, so an empty shot would spawn nothing at all.
+    if (Shot->Subjects.Num() == 0 && Shot->Props.Num() == 0)
+    {
+        OutReason = LOCTEXT("SendNothingCalled", "Nothing called to this shot — add talent or props in the Call Sheet first.");
+        return false;
+    }
+
+    if (UPCAPTakeRecorderSubsystem* Rec = GetRecorder())
+    {
+        if (Rec->GetRecordState() == EPCAPRecordState::Capturing)
+        {
+            OutReason = LOCTEXT("SendWhileCapturing", "Recording — stop the take before staging actors into the level.");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+FReply SPCAPOperatorConsole::OnSendShotToMocapManagerClicked()
+{
+    PushSelectionToDB();   // GetActiveShot() resolves against the DB's Active* fields
+
+    FText BlockedReason;
+    if (!CanSendShotToMocapManager(BlockedReason))
+    {
+        // The button is disabled in every one of these states; this only fires if the
+        // world/selection changed under a stale rebuild. Say so rather than no-op.
+        NotifyOperator(BlockedReason);
+        return FReply::Handled();
+    }
+
+    UMocapDatabase* DB = GetDB();
+    FShot* Shot        = DB ? DB->GetActiveShot() : nullptr;
+    UWorld* World      = GEditor ? GEditor->GetEditorWorldContext().World() : nullptr;
+    if (!Shot || !World) return FReply::Handled();   // re-checked above — keeps the deref honest
+
+    const FString ShotID     = Shot->ShotID;
+    const FString ShotKey    = CurrentShotKey();
+    const bool bAlreadySent  = SentShotKeys.Contains(ShotKey);
+
+    TArray<AActor*> Spawned;
+    int32 NumSpawned = 0;
+    {
+        // One transaction for the whole shot, so a mis-fire is a single Ctrl-Z.
+        const FScopedTransaction Transaction(LOCTEXT("SendShotTransaction", "Send Shot to Mocap Manager"));
+
+        NumSpawned = UPCAPMocapBridge::SpawnShotToStage(World, *Shot, GatherPropRoster(), Spawned);
+
+        // Leave the operator holding exactly what landed — obvious in the outliner,
+        // and one Delete away if they'd rather not undo.
+        if (Spawned.Num() > 0)
+        {
+            GEditor->SelectNone(/*bNoteSelectionChange=*/false, /*bDeselectBSPSurfs=*/true);
+            for (AActor* Actor : Spawned)
+            {
+                GEditor->SelectActor(Actor, /*bInSelected=*/true, /*bNotify=*/true);
+            }
+        }
+    }
+
+    if (NumSpawned <= 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[PCAP] Send to Mocap Manager: shot '%s' spawned nothing."), *ShotID);
+        NotifyOperator(FText::Format(
+            LOCTEXT("SendShotNone", "{0}: nothing was placed. Check the Output Log — the Performance Capture actors could not be spawned."),
+            FText::FromString(ShotID)));
+        return FReply::Handled();
+    }
+
+    SentShotKeys.Add(ShotKey);
+
+    UE_LOG(LogTemp, Log, TEXT("[PCAP] Sent shot '%s' to the Mocap Manager — %d actor(s) spawned."), *ShotID, NumSpawned);
+    NotifyOperator(bAlreadySent
+        ? FText::Format(
+            LOCTEXT("SendShotAgainDone", "{0} re-sent — {1} more actors staged. This shot was already sent this session, so the level now holds duplicates; Ctrl-Z undoes."),
+            FText::FromString(ShotID), FText::AsNumber(NumSpawned))
+        : FText::Format(
+            LOCTEXT("SendShotDone", "{0} sent to the Mocap Manager — {1} actors staged. Ctrl-Z undoes."),
+            FText::FromString(ShotID), FText::AsNumber(NumSpawned)));
+
+    RebuildContext();   // the button relabels to "Re-send…"
     return FReply::Handled();
 }
 
