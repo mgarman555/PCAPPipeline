@@ -1,0 +1,1297 @@
+name: Windows UE 5.8 build
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The real acceptance gate: compile PCAPPipelineEditor Win64 Development against
+# the UE 5.8 install on the operator's Windows box, via a self-hosted runner.
+#
+# WHY push/schedule/workflow_dispatch ONLY, and never pull_request:
+#   A self-hosted runner executes workflow code on a physical machine. On a
+#   `pull_request` from a fork, the YAML that runs comes from the PR head — an
+#   attacker can add their own job with `runs-on: [self-hosted, ...]`, so every
+#   `if:` guard we could write here is attacker-removable. A `push` event can
+#   only be produced by someone who already has write access to this repo, so
+#   the trigger itself is the boundary. `pull_request_target` is banned outright.
+#   Fork contributors get real compile signal from the engine-free host-tests
+#   job, which runs on a disposable GitHub-hosted VM.
+#
+#   This also means .Build.cs / .Target.cs diffs are privileged code: UnrealBuildTool
+#   compiles and executes them as arbitrary C# on this box before any C++ is built.
+#
+# NOTE ON POWERSHELL STYLE BELOW: no here-strings (@" ... "@). Their terminator
+# must sit at column 0, which would break out of the YAML block scalar. Multi-line
+# messages are built with the J() helper instead.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    # Only branches a maintainer pushes. Widen this list if you start working on
+    # differently-named branches — an unmatched branch silently gets no gate.
+    branches:
+      - main
+      - 'claude/**'
+  workflow_dispatch:
+    inputs:
+      clean_build:
+        description: 'Cold build: wipe Intermediate/, Binaries/, Saved/ and every untracked file before building (slow, near-full rebuild).'
+        type: boolean
+        default: false
+  schedule:
+    # Weekly cold-build canary. Incremental state can hide real breaks forever
+    # (stale .generated.h from a deleted UCLASS, stale .obj, stale plugin DLL);
+    # this bounds how long a false green can survive to one week. Runs on the
+    # default branch only. 13:00 UTC Monday is roughly 06:00 US/Pacific — chosen
+    # to be before the operator's workday so a 32-core build storm does not
+    # collide with capture work.
+    # ASSUMPTION THAT NEEDS CONFIRMING: the box is powered on overnight. If it is
+    # not, move this to a working-hours slot or delete the `schedule:` block —
+    # a missed schedule simply does not run, it does not queue.
+    - cron: '0 13 * * 1'
+
+# Least privilege. The build only needs to clone; it never pushes, never
+# publishes packages, never needs an OIDC token. An id-token here would turn a
+# runner compromise into a cloud-identity compromise.
+permissions:
+  contents: read
+
+# Windows PowerShell 5.1 is guaranteed present on every supported Windows box;
+# `pwsh` (PowerShell 7) is NOT installed by default and is not worth making a
+# runner prerequisite. Every script below is 5.1-compatible, and every write to
+# $GITHUB_ENV / $GITHUB_STEP_SUMMARY goes through explicit BOM-free UTF-8
+# (PS 5.1's `>>` writes UTF-16, which the runner cannot parse).
+defaults:
+  run:
+    shell: powershell
+
+jobs:
+  windows-ue-build:
+    name: PCAPPipelineEditor Win64 Development
+
+    # Labels must match the runner registration exactly (Settings > Actions >
+    # Runners). `self-hosted` and `windows` are applied automatically at
+    # registration; `ue-5.8` is the custom label that actually encodes "this box
+    # can satisfy this build". runs-on is AND across labels and a typo does NOT
+    # error — the job just queues for 24h and then fails with no useful message,
+    # so check these character-by-character against the UI after registering.
+    # X64 is deliberately omitted: it adds no selectivity with one runner, and
+    # every extra AND-term is another chance for a silent no-match.
+    runs-on: [self-hosted, windows, 'ue-5.8']
+
+    # -WaitMutex (see the build step) blocks forever rather than failing when the
+    # operator has a Visual Studio build running against the same engine install,
+    # so a job timeout is mandatory or a held mutex pins the runner for GitHub's
+    # 6-hour default. 90 min is generous: an installed engine means we only ever
+    # compile project + plugin modules, never the engine itself.
+    timeout-minutes: 90
+
+    # LITERAL CONSTANT — do not interpolate github.ref or github.workflow.
+    # There is exactly one persistent workspace on this box, shared by every ref
+    # and every event type. Keying on ref would let a main build and a branch
+    # build queue independently and then thrash UBT's makefile and unity-blob
+    # composition between two different source states.
+    #
+    # cancel-in-progress: false is deliberate. Cancelling a Windows job is not
+    # guaranteed to reap the whole process tree: orphaned cl.exe / UbaAgent
+    # children can keep file locks on Intermediate/ and the UBA store and poison
+    # the NEXT run. GitHub's default queue depth is 1, so a burst of pushes
+    # collapses to "finish current, then build newest" rather than a 10-deep
+    # backlog — which is the behaviour we want anyway. The tradeoff to be aware
+    # of: intermediate commits in a burst never get their own build record.
+    concurrency:
+      group: ue58-windows-selfhosted
+      cancel-in-progress: false
+
+    env:
+      UE_TARGET: PCAPPipelineEditor
+      UE_PLATFORM: Win64
+      UE_CONFIG: Development
+      # Saved/ is gitignored, so writing here cannot dirty the working tree (see
+      # the unity-fidelity check in preflight for why that matters).
+      UBT_LOG: ${{ github.workspace }}\Saved\Logs\UBT-CI.log
+      CI_LOG_DIR: ${{ github.workspace }}\Saved\Logs\ci-artifacts
+
+    steps:
+      # ───────────────────────────────────────────────────────────────────────
+      - name: Checkout
+        # Pinned to a full commit SHA rather than a tag: a tag is mutable and this
+        # action runs on a physical machine we care about. SHA verified against
+        # actions/checkout refs/tags/v5. To bump:
+        #   git ls-remote --tags https://github.com/actions/checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # THE DEFAULT (clean: true) WOULD BE WRONG HERE. checkout's clean runs
+          # `git clean -ffdx` — and -x deletes IGNORED files, which in this repo
+          # means Binaries/, Intermediate/, Saved/ and DerivedDataCache/ at the
+          # root AND inside every plugin. That is every byte of incremental build
+          # state, deleted on every push, forcing a cold rebuild of ~70
+          # translation units each time.
+          #
+          # clean: false is still safe for source correctness, because checkout
+          # runs `git checkout --force <ref>` afterwards regardless: every TRACKED
+          # file is forced to match the commit and tracked files absent from it are
+          # removed. Only gitignored build output survives.
+          #
+          # It is also safe for the GATE itself — see the unity-fidelity check in
+          # preflight. Ignored paths never appear in `git status`, so keeping them
+          # warm cannot perturb UBT's adaptive-unity working set.
+          #
+          # We flip to a real clean only when explicitly asked: manual dispatch,
+          # the weekly canary, or a `[ci clean]` marker in the commit message.
+          clean: ${{ github.event_name == 'schedule' || inputs.clean_build || contains(github.event.head_commit.message, '[ci clean]') }}
+          # Nothing here needs history. The weekly clean run re-fetches, which
+          # keeps the persistent .git from growing without bound.
+          fetch-depth: 1
+          # THE DEFAULT (true) writes the job's GITHUB_TOKEN into .git/config. On a
+          # self-hosted runner the workspace outlives the job, so that token would
+          # sit on the operator's machine readable by whatever runs next. We never
+          # push, so we never need it.
+          persist-credentials: false
+          show-progress: false
+
+      # ───────────────────────────────────────────────────────────────────────
+      # Everything the build depends on that is NOT in this repo is validated
+      # here, in one step, collecting ALL problems before exiting. Failing one
+      # check at a time would turn configuring a cold runner into a multi-push
+      # slog for an operator working alone.
+      #
+      # If a standalone .github/scripts/Preflight.ps1 is ever added, replace the
+      # body of this step with a call to it. It is inline today so this workflow
+      # has no dependency on a file outside itself.
+      - name: Preflight (engine discovery + environment validation)
+        timeout-minutes: 5
+        env:
+          # Passed through the env block rather than interpolated into the script
+          # body, so a value containing a quote cannot break out of the script.
+          UE_ROOT_VAR: ${{ vars.UE_ROOT }}
+          CHECKOUT_WAS_CLEAN: ${{ github.event_name == 'schedule' || inputs.clean_build || contains(github.event.head_commit.message, '[ci clean]') }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+          $BT = [string][char]96   # a literal backtick, for markdown code spans
+
+          $Fails = New-Object System.Collections.Generic.List[string]
+          $Warns = New-Object System.Collections.Generic.List[string]
+          $Notes = New-Object System.Collections.Generic.List[string]
+
+          function J { param([string[]]$L) ; return ($L -join [Environment]::NewLine) }
+
+          # GitHub annotations are single-line: newlines must be percent-encoded
+          # or the annotation is silently truncated at the first line break.
+          function Enc { param([string]$s) ; return $s.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A') }
+
+          function Add-Fail {
+            param([string]$Id, [string]$Text)
+            $Fails.Add("PREFLIGHT FAIL [$Id]" + [Environment]::NewLine + $Text)
+            $first = ($Text -split "`n")[0]
+            Write-Host ("::error title=Preflight FAIL [{0}]::{1}" -f $Id, (Enc $first))
+          }
+          function Add-Warn {
+            param([string]$Id, [string]$Text)
+            $Warns.Add("PREFLIGHT WARN [$Id]" + [Environment]::NewLine + $Text)
+            $first = ($Text -split "`n")[0]
+            Write-Host ("::warning title=Preflight WARN [{0}]::{1}" -f $Id, (Enc $first))
+          }
+
+          $Repo = $env:GITHUB_WORKSPACE
+          $Who = '(unknown)'
+          try { $Who = (& whoami) } catch { }
+
+          # ── workspace sanity ────────────────────────────────────────────────
+          # CONTRIBUTING.md documents C:\Users\<user>\Desktop\PCAPPipeline as a
+          # SHARED human/agent working tree where a branch checkout in one session
+          # switches the branch for all of them. actions/checkout runs
+          # `git checkout --force`, which would silently destroy uncommitted work
+          # there. The runner must build in its own _work tree.
+          if ($Repo -match '\\Desktop\\PCAPPipeline') {
+            Add-Fail 'workspace' (J @(
+              "The runner is checked out inside the operator's shared Desktop working tree.",
+              "  Workspace: $Repo",
+              "  actions/checkout runs 'git checkout --force', which discards uncommitted work",
+              "  in that tree - and CONTRIBUTING.md documents it as shared between the operator",
+              "  and coding sessions.",
+              "  Fix: re-register the runner with its own work folder (config.cmd --work C:\r)",
+              "       so GITHUB_WORKSPACE lands under the runner root, never the Desktop copy."
+            ))
+          }
+
+          # ── engine discovery ────────────────────────────────────────────────
+          # Never hardcode the engine path. PCAPPipeline.uproject's
+          # EngineAssociation is the ONLY string in the repo guaranteed to track
+          # what actually gets built (CONTRIBUTING.md still says 5.7.4). Deriving
+          # from it means a future engine bump upgrades CI for free.
+          $Assoc = $null
+          try {
+            $Assoc = (Get-Content -Raw -LiteralPath (Join-Path $Repo 'PCAPPipeline.uproject') | ConvertFrom-Json).EngineAssociation
+          } catch {
+            Add-Fail 'uproject' ("Could not parse PCAPPipeline.uproject to read EngineAssociation: " + $_.Exception.Message)
+          }
+
+          # Result carrier. A HASHTABLE rather than three plain variables on
+          # purpose: Try-Root below mutates it from inside a function, and mutating
+          # an object's members works from any scope, whereas assigning a variable
+          # would depend on how the runner happens to invoke this script.
+          $E = @{ Root = $null; Version = $null; Json = $null }
+          $Probes = New-Object System.Collections.Generic.List[string]
+
+          # A candidate is only accepted if it is demonstrably the RIGHT engine.
+          # A stale registry key or a hand-edited LauncherInstalled.dat pointing at
+          # a leftover 5.7 tree still contains a perfectly valid Build.bat, and
+          # building against it produces a flood of include-order errors that look
+          # like code bugs. Engine\Build\Build.version is the authoritative check
+          # and is the single highest-value line in this whole step.
+          function Test-EngineCandidate {
+            param([string]$Root)
+            $bat = Join-Path $Root 'Engine\Build\BatchFiles\Build.bat'
+            if (-not (Test-Path -LiteralPath $bat)) { return @{ Ok = $false; Reason = 'no Engine\Build\BatchFiles\Build.bat' } }
+            $bv = Join-Path $Root 'Engine\Build\Build.version'
+            if (-not (Test-Path -LiteralPath $bv)) { return @{ Ok = $false; Reason = 'no Engine\Build\Build.version' } }
+            $j = $null
+            try { $j = Get-Content -Raw -LiteralPath $bv | ConvertFrom-Json } catch { }
+            if ($null -eq $j) { return @{ Ok = $false; Reason = 'Engine\Build\Build.version is not valid JSON' } }
+            $found = "$($j.MajorVersion).$($j.MinorVersion)"
+            if ($Assoc -match '^\d+\.\d+$' -and $found -ne $Assoc) {
+              return @{ Ok = $false; Reason = "reports $found, project wants $Assoc" }
+            }
+            return @{ Ok = $true; Version = $found; Json = $j }
+          }
+
+          function Try-Root {
+            param([string]$Label, [string]$Root, [bool]$HardFail)
+            if ($E.Root) { return }
+            if ([string]::IsNullOrWhiteSpace($Root)) { $Probes.Add("  $Label -> not set / not found") ; return }
+            $r = Test-EngineCandidate $Root
+            if ($r.Ok) {
+              $E.Root = $Root
+              $E.Version = $r.Version
+              $E.Json = $r.Json
+              $Probes.Add("  $Label -> $Root  [ACCEPTED, Build.version $($r.Version)]")
+            } else {
+              $Probes.Add("  $Label -> $Root  [REJECTED: $($r.Reason)]")
+              if ($HardFail) {
+                Add-Fail 'engine-override' (J @(
+                  "The UE_ROOT override is set but does not point at a usable UE $Assoc install.",
+                  "  $Label = $Root",
+                  "  Rejected because: $($r.Reason)",
+                  "  An explicit override must be correct or loudly wrong - it is deliberately NOT",
+                  "  allowed to fall through to autodetection, because a typo would then be masked",
+                  "  by a lucky registry hit and you would build against the wrong engine.",
+                  "  Fix: correct the value, or clear it to fall back to autodetection:",
+                  "       gh variable set UE_ROOT --body ""C:\Program Files\Epic Games\UE_$Assoc"""
+                ))
+              }
+            }
+          }
+
+          if ($Assoc) {
+            # 1) repository variable. A path, NOT a secret: secrets are redacted
+            #    from logs, and the engine root appears in nearly every UBT line,
+            #    so making it a secret would fill the build log with *** exactly
+            #    where a human needs to read it.
+            Try-Root 'vars.UE_ROOT (repository variable)' $env:UE_ROOT_VAR $true
+            # 2) machine env var, so the box can be fixed without repo access
+            Try-Root '$env:UE_ROOT (machine environment)' $env:UE_ROOT $true
+
+            # 3) HKLM, written by the installer. NOTE the vendor token here is
+            #    "EpicGames" as ONE word (the two-word "Epic Games" key is a
+            #    different thing, under HKCU), and the subkey is major.minor only.
+            #    This key is commonly absent when the engine was installed
+            #    non-elevated, which is why the file probes below are real
+            #    fallbacks and not decoration.
+            if (-not $E.Root -and $Assoc -match '^\d+\.\d+$') {
+              foreach ($hive in @("HKLM:\SOFTWARE\EpicGames\Unreal Engine\$Assoc",
+                                  "HKLM:\SOFTWARE\WOW6432Node\EpicGames\Unreal Engine\$Assoc")) {
+                if ($E.Root) { break }
+                $v = $null
+                try { $v = (Get-ItemProperty -LiteralPath $hive -Name InstalledDirectory -ErrorAction SilentlyContinue).InstalledDirectory } catch { }
+                Try-Root "registry $hive" $v $false
+              }
+            }
+
+            # 4) launcher manifest. ProgramData is world-readable, so unlike HKCU
+            #    this works no matter which account the runner service runs as.
+            if (-not $E.Root) {
+              $dat = Join-Path $env:ProgramData 'Epic\UnrealEngineLauncher\LauncherInstalled.dat'
+              $v = $null
+              if (Test-Path -LiteralPath $dat) {
+                try {
+                  $v = ((Get-Content -Raw -LiteralPath $dat | ConvertFrom-Json).InstallationList |
+                        Where-Object { $_.AppName -eq "UE_$Assoc" } | Select-Object -First 1).InstallLocation
+                } catch { }
+              }
+              Try-Root "LauncherInstalled.dat (AppName UE_$Assoc)" $v $false
+            }
+
+            # 5) per-app launcher manifests. LauncherInstalled.dat is the file
+            #    people hand-edit when relocating an engine, so it can go stale
+            #    relative to these.
+            if (-not $E.Root) {
+              $mdir = Join-Path $env:ProgramData 'Epic\EpicGamesLauncher\Data\Manifests'
+              if (Test-Path -LiteralPath $mdir) {
+                foreach ($f in (Get-ChildItem -LiteralPath $mdir -Filter '*.item' -File -ErrorAction SilentlyContinue)) {
+                  if ($E.Root) { break }
+                  try {
+                    $m = Get-Content -Raw -LiteralPath $f.FullName | ConvertFrom-Json
+                    if ($m.AppName -eq "UE_$Assoc") { Try-Root "manifest $($f.Name)" $m.InstallLocation $false }
+                  } catch { }
+                }
+              }
+              if (-not $E.Root) { $Probes.Add("  EpicGamesLauncher\Data\Manifests\*.item -> no UE_$Assoc entry") }
+            }
+
+            # 6) source build (EngineAssociation is a GUID, not a version).
+            #    WARNING: this key lives under HKCU, and a runner installed as a
+            #    service has a DIFFERENT HKCU hive than the interactive operator —
+            #    so this probe passes when tested by hand and returns nothing when
+            #    the service runs it. For a source build, set UE_ROOT instead.
+            if (-not $E.Root -and $Assoc -notmatch '^\d+\.\d+$') {
+              $v = $null
+              try { $v = (Get-ItemProperty -LiteralPath 'HKCU:\SOFTWARE\Epic Games\Unreal Engine\Builds' -ErrorAction SilentlyContinue).$Assoc } catch { }
+              Try-Root "HKCU Epic Games\Unreal Engine\Builds[$Assoc] (source build)" $v $false
+              if (-not $E.Root) {
+                $Notes.Add("EngineAssociation '$Assoc' is a GUID (source build). The only registry source for that is HKCU, which a service-account runner cannot see - set the UE_ROOT repository variable instead.")
+              }
+            }
+
+            # 7) last resort: glob the conventional install location.
+            if (-not $E.Root) {
+              foreach ($pf in (@($env:ProgramW6432, $env:ProgramFiles) | Where-Object { $_ } | Select-Object -Unique)) {
+                if ($E.Root) { break }
+                $dir = Join-Path $pf 'Epic Games'
+                if (-not (Test-Path -LiteralPath $dir)) { continue }
+                foreach ($c in (Get-ChildItem -LiteralPath $dir -Directory -Filter 'UE_*' -ErrorAction SilentlyContinue | Sort-Object Name -Descending)) {
+                  if ($E.Root) { break }
+                  Try-Root "glob $($c.FullName)" $c.FullName $false
+                }
+              }
+            }
+          }
+
+          # Hand the carrier back to plain variables for everything below.
+          $EngineRoot = $E.Root
+          $EngineVersion = $E.Version
+          $BuildVersionJson = $E.Json
+
+          if ($Assoc -and -not $EngineRoot) {
+            Add-Fail 'engine-root' (J (@(
+              "Unreal Engine $Assoc was not found on this runner.",
+              "  PCAPPipeline.uproject asks for EngineAssociation ""$Assoc"".",
+              "  Running as: $Who",
+              "  Probes, in order:"
+            ) + @($Probes) + @(
+              "  Fix (pick one):",
+              "    - Install UE $Assoc via the Epic Launcher on this machine. If the registry key",
+              "      is still missing afterwards, re-run the launcher as Administrator and use",
+              "      Verify - the key is only written by an elevated install.",
+              "    - Set the repository variable UE_ROOT to the folder that CONTAINS Engine\ :",
+              "        gh variable set UE_ROOT --body ""C:\Program Files\Epic Games\UE_$Assoc""",
+              "      (a variable, NOT a secret - secret redaction would replace the engine path",
+              "      with *** in every build log line and make failures unreadable).",
+              "    - Or set a machine-level UE_ROOT environment variable and restart the runner",
+              "      service.",
+              "  Nothing was compiled."
+            )))
+          }
+
+          # ── engine install completeness ─────────────────────────────────────
+          # Build.bat's only real job is resolving the engine's bundled DotNet and
+          # then running `dotnet UnrealBuildTool.dll`. If either half is missing you
+          # get a bare .NET "file not found" trace that never mentions Unreal.
+          if ($EngineRoot) {
+            $Ubt = Join-Path $EngineRoot 'Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll'
+            $DotNetDir = Join-Path $EngineRoot 'Engine\Binaries\ThirdParty\DotNet'
+            $dn = @(Get-ChildItem -LiteralPath $DotNetDir -Directory -ErrorAction SilentlyContinue)
+            $ubtState = 'MISSING'
+            if (Test-Path -LiteralPath $Ubt) { $ubtState = 'present' }
+            if ($ubtState -ne 'present' -or $dn.Count -eq 0) {
+              Add-Fail 'engine-install' (J @(
+                "The engine install is incomplete.",
+                "  UnrealBuildTool.dll : $Ubt  [$ubtState]",
+                "  Bundled DotNet      : $DotNetDir  [$($dn.Count) runtime folder(s)]",
+                "  This is exactly why CI calls Build.bat rather than 'dotnet UnrealBuildTool.dll'",
+                "  directly: Build.bat is what puts the engine's own bundled DotNet on PATH.",
+                "  Fix: Epic Launcher > Library > UE $Assoc > dropdown > Verify."
+              ))
+            }
+            if (Test-Path -LiteralPath (Join-Path $EngineRoot 'Engine\Build\InstalledBuild.txt')) {
+              $Notes.Add('Engine\Build\InstalledBuild.txt is present, so this is a launcher-installed (read-only) engine. The target MUST use the shared build environment; never add BuildEnvironment = TargetBuildEnvironment.Unique.')
+            }
+          }
+
+          # ── engine plugin index ─────────────────────────────────────────────
+          # Bounded depth: an unbounded -Recurse over a full UE install walks
+          # 100k+ files and turns a preflight into a coffee break. UE descriptors
+          # live at Engine\Plugins\<Category>\[<Sub>\]<Plugin>\<Plugin>.uplugin,
+          # so depth 5 has plenty of margin.
+          $PluginIndex = @{}
+          if ($EngineRoot) {
+            $EnginePlugins = Join-Path $EngineRoot 'Engine\Plugins'
+            foreach ($p in (Get-ChildItem -LiteralPath $EnginePlugins -Recurse -Depth 5 -File -Filter '*.uplugin' -Force -ErrorAction SilentlyContinue)) {
+              if (-not $PluginIndex.ContainsKey($p.BaseName)) { $PluginIndex[$p.BaseName] = $p.FullName }
+            }
+          }
+          foreach ($p in (Get-ChildItem -LiteralPath (Join-Path $Repo 'Plugins') -Recurse -Depth 3 -File -Filter '*.uplugin' -Force -ErrorAction SilentlyContinue)) {
+            if (-not $PluginIndex.ContainsKey($p.BaseName)) { $PluginIndex[$p.BaseName] = $p.FullName }
+          }
+
+          if ($EngineRoot) {
+            # PerformanceCaptureCore - a hard PrivateDependencyModuleNames entry in
+            # PCAPTool.Build.cs. Absence is "Unable to find module" from UBT.
+            if (-not $PluginIndex.ContainsKey('PerformanceCaptureCore')) {
+              Add-Fail 'plugin-core' (J @(
+                "Performance Capture Core is not installed in this engine.",
+                "  Expected: $EngineRoot\Engine\Plugins\Animation\PerformanceCaptureCore\PerformanceCaptureCore.uplugin",
+                "  Searched Engine\Plugins (depth 5) for PerformanceCaptureCore.uplugin - no match.",
+                "  PCAPTool.Build.cs takes a hard dependency on the ""PerformanceCaptureCore"" module",
+                "  (ACapturePerformer / URetargetComponent). UBT fails during makefile generation.",
+                "  Fix: Epic Launcher > UE $Assoc > Verify, or install the Performance Capture plugins."
+              ))
+            } elseif ($PluginIndex['PerformanceCaptureCore'] -notlike '*\Engine\Plugins\Animation\PerformanceCaptureCore\*') {
+              # WARN, never FAIL: UBT discovers plugins by scanning the whole tree,
+              # so a non-standard category folder builds perfectly well. Only the
+              # docs are wrong, and Reference/README.md already says the folder
+              # varies by install.
+              Add-Warn 'plugin-core-path' (J @(
+                "Performance Capture Core is installed, but not where the docs say.",
+                "  Expected: $EngineRoot\Engine\Plugins\Animation\PerformanceCaptureCore\",
+                "  Found:    $($PluginIndex['PerformanceCaptureCore'])",
+                "  The build is unaffected. Update README.md and Reference/README.md."
+              ))
+            }
+
+            # PerformanceCaptureWorkflow - the PLUGIN name and the MODULE name
+            # differ by design, and the MODULE is what PCAPTool.Build.cs links
+            # against. The repo itself hedges on this (PCAPStageBridge.cpp probes
+            # both /Script/PerformanceCaptureWorkflowRuntime and
+            # /Script/PerformanceCaptureWorkflow at runtime), which is exactly why
+            # a static descriptor parse earns its place here.
+            if (-not $PluginIndex.ContainsKey('PerformanceCaptureWorkflow')) {
+              Add-Fail 'plugin-workflow' (J @(
+                "Performance Capture Workflow is not installed in this engine.",
+                "  Expected: $EngineRoot\Engine\Plugins\VirtualProduction\PerformanceCaptureWorkflow\PerformanceCaptureWorkflow.uplugin",
+                "  Searched Engine\Plugins (depth 5) - no match.",
+                "  PCAPPipeline.uproject and PCAPTool.uplugin both enable it, and PCAPTool.Build.cs",
+                "  defines WITH_PCAP_WORKFLOW=1 unconditionally, so the editor target will refuse",
+                "  to build.",
+                "  Fix (pick one):",
+                "    - Epic Launcher > UE $Assoc > Verify / install the Performance Capture plugins; or",
+                "    - go Core-only: set WITH_PCAP_WORKFLOW=0 in PCAPTool.Build.cs, remove",
+                "      ""PerformanceCaptureWorkflowRuntime"" from PrivateDependencyModuleNames, and",
+                "      delete the ""PerformanceCaptureWorkflow"" entries from PCAPPipeline.uproject",
+                "      and Plugins/PCAPTool/PCAPTool.uplugin. All four must move together."
+              ))
+            } else {
+              $WfPath = $PluginIndex['PerformanceCaptureWorkflow']
+              $WfModules = $null
+              try { $WfModules = @((Get-Content -Raw -LiteralPath $WfPath | ConvertFrom-Json).Modules.Name) } catch { }
+              if ($null -eq $WfModules) {
+                Add-Fail 'plugin-workflow-descriptor' "Could not parse the Workflow plugin descriptor as JSON: $WfPath"
+              } elseif ($WfModules -notcontains 'PerformanceCaptureWorkflowRuntime') {
+                Add-Fail 'plugin-workflow-module' (J @(
+                  "The Workflow plugin does not export the module PCAPTool builds against.",
+                  "  Plugin  : $WfPath",
+                  "  Exports : $($WfModules -join ', ')",
+                  "  Required: PerformanceCaptureWorkflowRuntime  (PCAPTool.Build.cs)",
+                  "  The plugin NAME and the MODULE name differ by design - this check exists",
+                  "  because the repo already hedges on it in PCAPStageBridge.cpp.",
+                  "  UBT would fail with ""Unable to find module 'PerformanceCaptureWorkflowRuntime'"".",
+                  "  Fix: if the engine renamed the module, update PCAPTool.Build.cs AND the",
+                  "       /Script/... paths in PCAPStageBridge.cpp; otherwise go Core-only as",
+                  "       described under [plugin-workflow]."
+                ))
+              } elseif ($WfPath -notlike '*\Engine\Plugins\VirtualProduction\PerformanceCaptureWorkflow\*') {
+                Add-Warn 'plugin-workflow-path' (J @(
+                  "Performance Capture Workflow is not under Engine\Plugins\VirtualProduction.",
+                  "  Found: $WfPath",
+                  "  Module PerformanceCaptureWorkflowRuntime IS present, so the build is fine -",
+                  "  Reference/README.md already warns this folder varies by install. Docs only."
+                ))
+              }
+            }
+
+            # Sweep every plugin the .uproject enables. WARN, not FAIL: UBT catches
+            # a genuinely missing plugin within seconds anyway, and a false FAIL
+            # here would red-light a working build on the operator's only box with
+            # no code change. The value of this check is the clearer message.
+            try {
+              $Enabled = @((Get-Content -Raw -LiteralPath (Join-Path $Repo 'PCAPPipeline.uproject') | ConvertFrom-Json).Plugins |
+                           Where-Object { $_.Enabled } | ForEach-Object { $_.Name })
+              $Missing = @($Enabled | Where-Object { -not $PluginIndex.ContainsKey($_) })
+              if ($Missing.Count -gt 0) {
+                Add-Warn 'plugins-missing' (J (@(
+                  "$($Missing.Count) of the $($Enabled.Count) plugins enabled in PCAPPipeline.uproject were not found:"
+                ) + ($Missing | ForEach-Object { "    $_" }) + @(
+                  "  Searched (recursive, *.uplugin):",
+                  "    $EngineRoot\Engine\Plugins  (depth 5)",
+                  "    $Repo\Plugins               (depth 3)",
+                  "  If they really are absent, the editor target will fail to build shortly.",
+                  "  If the build succeeds anyway, this scan's depth limit is too shallow - widen it."
+                )))
+              }
+            } catch {
+              Add-Warn 'plugins-missing' ("Could not enumerate enabled plugins from PCAPPipeline.uproject: " + $_.Exception.Message)
+            }
+          }
+
+          # ── Vicon SDK import library ────────────────────────────────────────
+          # Two genuinely different outcomes; do not collapse them.
+          # PCAPTool.Build.cs gates on File.Exists() ALONE, so a truncated file, an
+          # LFS pointer or an eol-mangled binary still flips WITH_VICON_SDK=1 and
+          # gets added to PublicAdditionalLibraries - surfacing as a LINK error at
+          # the very END of a full build, ~20 minutes from now.
+          $Lib = Join-Path $Repo 'Plugins\LiveLinkViconDataStream\Source\ThirdParty\ViconDataStreamSDK\ViconDataStreamSDK_CPP.lib'
+          if (-not (Test-Path -LiteralPath $Lib)) {
+            Add-Warn 'vicon-sdk' (J @(
+              "Vicon DataStream SDK import library not found.",
+              "  Expected: $Lib",
+              "  PCAPTool.Build.cs will define WITH_VICON_SDK=0. THE BUILD STILL SUCCEEDS - but",
+              "  PCAPViconSDKMarkerSource.cpp and the Volume Visualizer's raw marker cloud compile",
+              "  out to no-ops. That is a green build with a dead feature and no other signal.",
+              "  The .lib IS tracked in git (~140 KB); if it is gone, the checkout is wrong."
+            ))
+          } else {
+            $Len = (Get-Item -LiteralPath $Lib).Length
+            $Head = ''
+            try {
+              $fs = [System.IO.File]::OpenRead($Lib)
+              try {
+                $b = New-Object byte[] 8
+                [void]$fs.Read($b, 0, 8)
+                $Head = [System.Text.Encoding]::ASCII.GetString($b)
+              } finally { $fs.Dispose() }
+            } catch { }
+            if ($Head -ne "!<arch>`n") {
+              $HeadSafe = $Head -replace '[^\x20-\x7E]', '.'
+              Add-Fail 'vicon-sdk-corrupt' (J @(
+                "ViconDataStreamSDK_CPP.lib exists but is not a valid import library.",
+                "  Path       : $Lib",
+                "  Size       : $Len bytes            (expected ~141,760)",
+                "  First bytes: '$HeadSafe'           (expected '!<arch>')",
+                "  That looks like a Git LFS pointer or an eol-mangled binary. PCAPTool.Build.cs",
+                "  only calls File.Exists(), so it WILL set WITH_VICON_SDK=1 and the failure will",
+                "  surface as a LINK error at the very end of a full build.",
+                "  Fix: re-checkout with core.autocrlf=false (or 'git lfs pull' if LFS was added);",
+                "       confirm .gitattributes ('* text=auto') is not converting *.lib."
+              ))
+            }
+          }
+
+          # ── MSVC toolchain ──────────────────────────────────────────────────
+          # FAIL on absence, WARN on drift. Failing on an exact toolset version
+          # would mean a routine Visual Studio auto-update red-lights every build
+          # on the operator's only box with no code change.
+          $VsWhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $VsPath = $null
+          $Toolsets = @()
+          if (Test-Path -LiteralPath $VsWhere) {
+            try {
+              $VsPath = & $VsWhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>$null | Select-Object -First 1
+            } catch { }
+          }
+          if ($VsPath) {
+            $Toolsets = @(Get-ChildItem -LiteralPath (Join-Path $VsPath 'VC\Tools\MSVC') -Directory -ErrorAction SilentlyContinue |
+                          Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'bin\Hostx64\x64\cl.exe') } | ForEach-Object { $_.Name })
+          }
+          if ($Toolsets.Count -eq 0) {
+            $vsWhereState = 'MISSING'
+            if (Test-Path -LiteralPath $VsWhere) { $vsWhereState = 'present' }
+            $vsPathText = '(none reported)'
+            if ($VsPath) { $vsPathText = $VsPath }
+            Add-Fail 'msvc' (J @(
+              "No Visual Studio C++ toolchain is visible to this account.",
+              "  vswhere     : $VsWhere  [$vsWhereState]",
+              "  installPath : $vsPathText",
+              "  Running as  : $Who",
+              "  UE 5.8 requires the ""Desktop development with C++"" workload. This repo pins the",
+              "  exact component set in .vsconfig - install VS 2022 Community, then run",
+              "  vs_installer.exe modify --installPath <VS path> --config $Repo\.vsconfig",
+              "  --passive --norestart",
+              "  NOTE: a per-user VS install is invisible to a service running as a different",
+              "  account, so this can fail here while working fine for the interactive operator."
+            ))
+          } elseif (-not ($Toolsets | Where-Object { $_ -like '14.44.*' })) {
+            Add-Warn 'msvc-version' (J @(
+              "MSVC 14.44.x is not installed.",
+              "  Visual Studio    : $VsPath",
+              "  Toolsets present : $($Toolsets -join ', ')",
+              "  UBT silently uses the newest available toolset. The only compile this project is",
+              "  known to pass used 14.44.35207, and a toolset change is a plausible cause of new",
+              "  warnings-as-errors. Install Microsoft.VisualStudio.Component.VC.14.44.17.14.x86.x64",
+              "  (already listed in .vsconfig)."
+            ))
+          }
+
+          # ── Windows SDK ─────────────────────────────────────────────────────
+          $KitsRoot = $null
+          foreach ($k in @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows Kits\Installed Roots',
+                           'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots')) {
+            if ($KitsRoot) { break }
+            try { $KitsRoot = (Get-ItemProperty -LiteralPath $k -Name KitsRoot10 -ErrorAction SilentlyContinue).KitsRoot10 } catch { }
+          }
+          $Sdks = @()
+          if ($KitsRoot) {
+            $Sdks = @(Get-ChildItem -LiteralPath (Join-Path $KitsRoot 'Include') -Directory -ErrorAction SilentlyContinue |
+                      Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'um\Windows.h') } | ForEach-Object { $_.Name })
+          }
+          $Usable = @($Sdks | Where-Object { try { [version]$_ -ge [version]'10.0.22621.0' } catch { $false } })
+          if ($Usable.Count -eq 0) {
+            $kitsText = '(registry value not found)'
+            if ($KitsRoot) { $kitsText = $KitsRoot }
+            $sdkText = '(none)'
+            if ($Sdks.Count -gt 0) { $sdkText = $Sdks -join ', ' }
+            Add-Fail 'winsdk' (J @(
+              "No usable Windows 10/11 SDK (need >= 10.0.22621.0).",
+              "  KitsRoot10 : $kitsText",
+              "  SDK version folders containing um\Windows.h: $sdkText",
+              "  The known-good build on this box used the Windows 10.0.22621.0 SDK. UBT fails",
+              "  during toolchain selection with a message that reads like an engine problem",
+              "  rather than a missing component.",
+              "  Fix: install Microsoft.VisualStudio.Component.Windows11SDK.22621 (in .vsconfig)."
+            ))
+          }
+
+          # ── unity fidelity: THE gate-integrity check ────────────────────────
+          # UnrealBuildTool builds its adaptive NON-unity working set by running
+          # `git status` and pulling every file it reports OUT of its unity blob.
+          # The recorded C4459 break ("declaration of 'Dt' hides global
+          # declaration") only exists because VCamInputLayer.cpp and
+          # Tests/PCAPVCamInputLayerTests.cpp get batched into the same
+          # Module.PCAPTool.cpp. A dirty workspace therefore silently stops CI from
+          # testing the configuration that produced that regression - a false green
+          # whose only trace is one line in the build log.
+          # Ignored paths (Binaries/, Intermediate/, Saved/) never appear in
+          # `git status`, which is exactly why clean:false is compatible with this.
+          $GitOk = $null -ne (Get-Command git -ErrorAction SilentlyContinue)
+          if (-not $GitOk) {
+            Add-Warn 'unity-fidelity' (J @(
+              "git.exe is not on this account's PATH.",
+              "  The working tree could not be verified clean, AND UnrealBuildTool cannot run",
+              "  'git status' for its adaptive-unity working set.",
+              "  Fix: install git and put it on the SYSTEM PATH, then restart the runner service",
+              "       (a service account does not inherit the operator's per-user PATH)."
+            ))
+          } else {
+            $Dirty = @(& git -C "$Repo" status --porcelain 2>$null)
+            if ($LASTEXITCODE -ne 0) {
+              Add-Warn 'unity-fidelity' 'git status failed inside the workspace, so unity coverage could not be verified.'
+            } elseif ($Dirty.Count -gt 0) {
+              Add-Fail 'unity-fidelity' (J (@(
+                "The working tree is not clean ($($Dirty.Count) modified/untracked file(s))."
+              ) + ($Dirty | Select-Object -First 25 | ForEach-Object { "    $_" }) + @(
+                "  UnrealBuildTool uses 'git status' to build its adaptive NON-unity working set:",
+                "  every dirty file is pulled OUT of its unity blob and compiled standalone. That",
+                "  is exactly the condition under which the recorded C4459 unity break does NOT",
+                "  reproduce, so CI would go green on code that fails a real build.",
+                "  Fix: re-run this workflow from the Actions tab with clean_build = true (that",
+                "       makes checkout run 'git clean -ffdx'), or push a commit whose message",
+                "       contains [ci clean].",
+                "  If this keeps recurring, something is writing a NON-ignored file into the",
+                "  workspace - find it, then fix it or add it to .gitignore."
+              )))
+            }
+          }
+
+          # ── target rules regression guard ───────────────────────────────────
+          # The historical UBT rejection ("PCAPPipelineEditor modifies the values of
+          # properties ... has build products in common with UnrealEditor") was
+          # caused by DefaultBuildSettings V6 against the shared build environment,
+          # and fixed by moving to V7. The most likely way it comes back is someone
+          # "fixing" a future unity shadow warning by adding a WarningLevel override
+          # to a Target.cs instead of renaming the symbol. Line comments are
+          # stripped first so a comment that merely mentions these names is safe.
+          foreach ($T in @('PCAPPipelineEditor', 'PCAPPipeline')) {
+            $TPath = Join-Path $Repo "Source\$T.Target.cs"
+            if (-not (Test-Path -LiteralPath $TPath)) { Add-Fail 'target-missing' "Source\$T.Target.cs is missing." ; continue }
+            $Raw = Get-Content -LiteralPath $TPath
+            $Code = ($Raw | Where-Object { $_ -notmatch '^\s*//' }) -join [Environment]::NewLine
+            if ($Code -notmatch 'DefaultBuildSettings\s*=\s*BuildSettingsVersion\.V7\s*;') {
+              Add-Fail 'target-buildsettings' (J @(
+                "Source\$T.Target.cs no longer sets DefaultBuildSettings = BuildSettingsVersion.V7.",
+                "  On an INSTALLED UE $Assoc engine, V6 leaves UnreachableCodeWarningLevel,",
+                "  ReturnTypeWarningLevel and DanglingWarningLevel at Off while the prebuilt",
+                "  UnrealEditor binaries this target shares build products with were compiled with",
+                "  them at Error - and UBT rejects the target outright. This is the exact failure",
+                "  recorded in the repo's CodeErrors file.",
+                "  Do NOT use BuildSettingsVersion.Latest either: it is a moving alias that will",
+                "  diverge from the shipped engine the day Epic ships a V8.",
+                "  Fix: restore V7. Do NOT reach for BuildEnvironment = TargetBuildEnvironment.Unique",
+                "       (impossible against a launcher-installed engine) or bOverrideBuildEnvironment",
+                "       (trades a loud rejection for silent ABI skew against the prebuilt engine)."
+              ))
+            }
+            if ($Code -match 'bOverrideBuildEnvironment' -or $Code -match 'TargetBuildEnvironment\.Unique') {
+              Add-Fail 'target-buildenv' (J @(
+                "Source\$T.Target.cs sets BuildEnvironment = Unique and/or bOverrideBuildEnvironment.",
+                "  Neither is legal here. This project builds against a launcher-installed engine, so",
+                "  the shared build environment is mandatory; bOverrideBuildEnvironment in particular",
+                "  forces project modules to compile with settings that disagree with the prebuilt",
+                "  engine binaries they link against (silent ABI skew).",
+                "  Fix: remove the line. If a warning is firing, fix the code - the repo's precedent",
+                "       renamed the shadowing 'Dt' to 'kDt' rather than suppressing the warning."
+              ))
+            }
+            if ($Code -match '\w*WarningLevel\s*=') {
+              Add-Fail 'target-warninglevel' (J @(
+                "Source\$T.Target.cs sets a *WarningLevel property.",
+                "  Warning-level properties are exactly the family UBT locks to the shared build",
+                "  environment - this is what produced the recorded ""modifies the values of",
+                "  properties"" failure. Suppressing a unity shadow warning this way breaks the",
+                "  build harder than the warning did.",
+                "  Fix: rename the shadowing symbol instead (the repo's own precedent)."
+              ))
+            }
+            if ($Code -match 'bUseUnityBuild\s*=\s*false' -or $Code -match 'bUseUnity\s*=\s*false') {
+              Add-Fail 'target-unity' (J @(
+                "Source\$T.Target.cs disables unity builds.",
+                "  This looks like CI hardening and is the opposite: the recorded C4459 regression is",
+                "  a UNITY-ONLY break that cannot exist when every file is its own translation unit.",
+                "  Disabling unity structurally deletes that regression class from the gate."
+              ))
+            }
+          }
+
+          # ── WITH_PCAP_WORKFLOW four-place coupling ──────────────────────────
+          # PCAPTool.Build.cs documents this as a coupled edit across four files.
+          # Half-applying it fails minutes into the compile, at
+          # #include "PCapPropComponent.h", rather than here in one second.
+          try {
+            $Bc = Get-Content -Raw -LiteralPath (Join-Path $Repo 'Plugins\PCAPTool\Source\PCAPTool\PCAPTool.Build.cs')
+            $DefineOn = $Bc -match 'WITH_PCAP_WORKFLOW=1'
+            $DepOn    = $Bc -match '"PerformanceCaptureWorkflowRuntime"'
+            $ProjOn   = $null -ne ((Get-Content -Raw -LiteralPath (Join-Path $Repo 'PCAPPipeline.uproject') | ConvertFrom-Json).Plugins |
+                                   Where-Object { $_.Name -eq 'PerformanceCaptureWorkflow' -and $_.Enabled })
+            $PlugOn   = $null -ne ((Get-Content -Raw -LiteralPath (Join-Path $Repo 'Plugins\PCAPTool\PCAPTool.uplugin') | ConvertFrom-Json).Plugins |
+                                   Where-Object { $_.Name -eq 'PerformanceCaptureWorkflow' -and $_.Enabled })
+            $distinct = @(@($DefineOn, $DepOn, $ProjOn, $PlugOn) | Select-Object -Unique)
+            if ($distinct.Count -ne 1) {
+              Add-Fail 'workflow-consistency' (J @(
+                "The Performance Capture Workflow wiring is half-applied - all four must move together.",
+                "    WITH_PCAP_WORKFLOW=1 in PCAPTool.Build.cs ........................ $DefineOn",
+                "    PerformanceCaptureWorkflowRuntime in PrivateDependencyModuleNames  $DepOn",
+                "    PerformanceCaptureWorkflow enabled in PCAPPipeline.uproject ...... $ProjOn",
+                "    PerformanceCaptureWorkflow enabled in PCAPTool.uplugin ........... $PlugOn",
+                "  With the define on but the module dependency gone, PCAPMocapBridge.cpp fails at",
+                "  #include ""PCapPropComponent.h"" minutes into the compile."
+              ))
+            }
+          } catch {
+            Add-Warn 'workflow-consistency' ("Could not verify the WITH_PCAP_WORKFLOW wiring: " + $_.Exception.Message)
+          }
+
+          # ── invisible machine state ─────────────────────────────────────────
+          # A BuildConfiguration.xml anywhere in UBT's search path can globally
+          # disable unity or change parallelism with NOTHING in the repo to show
+          # it - i.e. silently weaken this gate. We deliberately do not WRITE one:
+          # the clean-tree check above already guarantees full unity, and pinning
+          # settings through an XML schema this workflow cannot verify against the
+          # real engine would just be a new way to red-light every build. We only
+          # report what is there.
+          $BcPaths = @(
+            (Join-Path $env:APPDATA 'Unreal Engine\UnrealBuildTool\BuildConfiguration.xml'),
+            (Join-Path $Repo 'Saved\UnrealBuildTool\BuildConfiguration.xml')
+          )
+          if ($EngineRoot) { $BcPaths += (Join-Path $EngineRoot 'Engine\Saved\UnrealBuildTool\BuildConfiguration.xml') }
+          $BcFound = @($BcPaths | Where-Object { Test-Path -LiteralPath $_ })
+          if ($BcFound.Count -gt 0) {
+            Add-Warn 'buildconfiguration-xml' (J (@(
+              "A machine-local UnrealBuildTool BuildConfiguration.xml is in effect:"
+            ) + ($BcFound | ForEach-Object { "    $_" }) + @(
+              "  Nothing in this repo controls that file. It can disable unity builds or change",
+              "  parallelism, which would silently weaken this gate (see [unity-fidelity]).",
+              "  Review it, or delete it so CI behaviour is decided by the repo alone."
+            )))
+          }
+
+          # ── long paths ──────────────────────────────────────────────────────
+          $LongPaths = 0
+          try { $LongPaths = [int](Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name LongPathsEnabled -ErrorAction SilentlyContinue).LongPathsEnabled } catch { }
+          if ($LongPaths -ne 1 -and $Repo.Length -gt 40) {
+            Add-Warn 'long-paths' (J @(
+              "NTFS long paths are disabled and the workspace path is $($Repo.Length) characters.",
+              "  Workspace: $Repo",
+              "  UE generates intermediate paths such as",
+              "    <workspace>\Plugins\PCAPTool\Intermediate\Build\Win64\x64\UnrealEditor\Development\PCAPTool\Module.PCAPTool.gen.1.cpp.obj",
+              "  which can exceed MAX_PATH (260) and fail mid-compile naming a random .obj.",
+              "  The operator's own tree is 40 characters, which is why this has never bitten.",
+              "  Fix: set HKLM\SYSTEM\CurrentControlSet\Control\FileSystem\LongPathsEnabled = 1",
+              "       (DWORD) and 'git config --system core.longpaths true', and/or re-register the",
+              "       runner with a short work folder (config.cmd --work C:\r)."
+            ))
+          }
+
+          # ── disk ────────────────────────────────────────────────────────────
+          # UBA alone reserves 40 GB of storage. Running out mid-link produces
+          # UBT/UBA errors that mention neither disk nor space, 15+ minutes in.
+          try {
+            $DriveName = (Split-Path -Qualifier $Repo).TrimEnd(':')
+            $FreeGb = [math]::Round((Get-PSDrive $DriveName).Free / 1GB, 1)
+            if ($FreeGb -lt 25) {
+              Add-Fail 'disk' (J @(
+                "Only $FreeGb GB free on ${DriveName}:.",
+                "  A clean UE 5.8 editor build of this project needs roughly 40-60 GB across",
+                "  Intermediate\, Binaries\ and UBA storage (UBA reserves 40 GB by itself).",
+                "  Fix: free space, or delete <workspace>\Intermediate,",
+                "       <workspace>\Plugins\*\Intermediate and %LOCALAPPDATA%\UnrealBuildTool."
+              ))
+            } elseif ($FreeGb -lt 60) {
+              Add-Warn 'disk' "Only $FreeGb GB free on ${DriveName}:. A cold build wants 40-60 GB. With clean:false, Intermediate\ never shrinks - the weekly clean run is what reclaims it."
+            }
+          } catch { }
+
+          # ── report ──────────────────────────────────────────────────────────
+          $engineText = 'NOT RESOLVED'
+          if ($EngineRoot) { $engineText = $EngineRoot }
+          $vsText = 'not found'
+          if ($VsPath) { $vsText = "$VsPath (MSVC $($Toolsets -join ', '))" }
+          $sdkSummary = 'none >= 10.0.22621.0'
+          if ($Usable.Count -gt 0) { $sdkSummary = $Usable -join ', ' }
+          $checkoutText = 'incremental (gitignored Intermediate/ and Binaries/ preserved)'
+          if ($env:CHECKOUT_WAS_CLEAN -eq 'true') { $checkoutText = 'CLEAN (git clean -ffdx - cold rebuild)' }
+
+          $md = New-Object System.Collections.Generic.List[string]
+          $md.Add('## Preflight')
+          $md.Add('')
+          $md.Add('| | |')
+          $md.Add('|---|---|')
+          $md.Add("| Engine root | $BT$engineText$BT |")
+          if ($BuildVersionJson) {
+            $md.Add("| Build.version | $($BuildVersionJson.MajorVersion).$($BuildVersionJson.MinorVersion).$($BuildVersionJson.PatchVersion) - CL $($BuildVersionJson.Changelist) - $($BuildVersionJson.BranchName) |")
+          }
+          $md.Add("| EngineAssociation | $Assoc |")
+          $md.Add("| Visual Studio | $vsText |")
+          $md.Add("| Windows SDK | $sdkSummary |")
+          $md.Add("| Workspace | $BT$Repo$BT |")
+          $md.Add("| Checkout mode | $checkoutText |")
+          $md.Add("| Runner account | $Who |")
+          $md.Add('')
+          foreach ($n in $Notes) { $md.Add("> $n") ; $md.Add('') }
+          if ($Fails.Count -eq 0 -and $Warns.Count -eq 0) { $md.Add('All preflight checks passed.') ; $md.Add('') }
+          foreach ($w in $Warns) { $md.Add('```') ; $md.Add($w) ; $md.Add('```') ; $md.Add('') }
+          foreach ($f in $Fails) { $md.Add('```') ; $md.Add($f) ; $md.Add('```') ; $md.Add('') }
+          if ($env:GITHUB_STEP_SUMMARY) {
+            [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, (($md -join [Environment]::NewLine) + [Environment]::NewLine), $Utf8NoBom)
+          }
+          foreach ($w in $Warns) { Write-Host '' ; Write-Host $w }
+          foreach ($f in $Fails) { Write-Host '' ; Write-Host $f }
+
+          if ($EngineRoot) {
+            # Emit ONCE and have every later step consume it. If the build step
+            # re-resolved the engine independently (or hardcoded a path), we could
+            # validate engine A and compile against engine B, which would make this
+            # entire step a lie.
+            [System.IO.File]::AppendAllText($env:GITHUB_ENV, "ENGINE_ROOT=$EngineRoot" + [Environment]::NewLine, $Utf8NoBom)
+            [System.IO.File]::AppendAllText($env:GITHUB_ENV, "ENGINE_VERSION=$EngineVersion" + [Environment]::NewLine, $Utf8NoBom)
+          }
+
+          if ($Fails.Count -gt 0) {
+            Write-Host ''
+            Write-Host "Preflight failed with $($Fails.Count) blocking problem(s) and $($Warns.Count) warning(s). Nothing was compiled."
+            exit 1
+          }
+          Write-Host "Preflight OK ($($Warns.Count) warning(s)). Engine: $EngineRoot (Build.version $EngineVersion)"
+
+      # ───────────────────────────────────────────────────────────────────────
+      # Problem matchers turn compiler output into inline PR annotations. The
+      # matcher definitions live in their own file so they can be retuned without
+      # touching this workflow. Registration is scoped to this job.
+      #
+      # We deliberately do NOT wrap the build in ::stop-commands::. The real
+      # control against workflow-command injection via source text is that this
+      # workflow never runs fork-authored code (push-only triggers); and
+      # stop-commands has an unverified interaction with matcher processing that
+      # could silently disable the very annotations this design depends on.
+      - name: Register UE problem matcher
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $m = Join-Path $env:GITHUB_WORKSPACE '.github\ue-problem-matcher.json'
+          if (Test-Path -LiteralPath $m) {
+            Write-Host "::add-matcher::$m"
+            Write-Host "Registered problem matcher: $m"
+          } else {
+            # Not fatal: the build itself is the gate; annotations are surfacing.
+            Write-Host "::warning title=No problem matcher::.github/ue-problem-matcher.json is missing - the build still gates, but compiler errors will not appear as inline annotations. They are still listed in the job summary and the uploaded log."
+          }
+
+      # ───────────────────────────────────────────────────────────────────────
+      # THE GATE.
+      #
+      # shell: cmd is mandatory here, and so is the errorlevel line IMMEDIATELY
+      # after the call:
+      #   * cmd runs the step as `%ComSpec% /D /E:ON /V:OFF /S /C "CALL {0}"`, so
+      #     the step's exit code is the errorlevel of the LAST line only. Any
+      #     echo/copy/mkdir between the call and the check resets errorlevel and
+      #     the step goes permanently green with the compiler errors sitting in
+      #     the log. The mkdir below is BEFORE the call, deliberately.
+      #   * Never pipe Build.bat's output to tee/find/more to capture a log - cmd
+      #     takes the pipeline's exit code, not UBT's. That is what -Log= is for.
+      #   * PowerShell would also mangle -Project="...": in argument mode it strips
+      #     the embedded quotes, so any space in the workspace path splits the
+      #     argument and UBT sees a truncated project path.
+      #
+      # Flag by flag, against the invocation captured verbatim from this box:
+      #   PCAPPipelineEditor Win64 Development
+      #                     the only meaningful gate. PCAPTool's module is declared
+      #                     "Type": "Editor", so the Game target does not compile it
+      #                     at all and would gate on one trivial .cpp. Development
+      #                     (not Shipping or Test) is required because the five
+      #                     Private/Tests/*.cpp files sit behind
+      #                     #if WITH_DEV_AUTOMATION_TESTS - and those are exactly
+      #                     the translation units that produced the recorded C4459
+      #                     unity break.
+      #   -Project=         mandatory for a foreign project on an installed engine.
+      #                     Points at the RUNNER workspace, not the operator's
+      #                     Desktop checkout.
+      #   -WaitMutex        KEPT. UBT's single-instance mutex is scoped to the
+      #                     engine install, which this box shares with the
+      #                     operator's own Visual Studio builds. Without it, CI goes
+      #                     red simply because someone pressed F7. It blocks with no
+      #                     timeout of its own, which is why the job has one.
+      #   -architecture=x64 KEPT. Win64 on UE 5.8 also supports arm64, so this is
+      #                     explicit rather than redundant, and keeps us byte-close
+      #                     to the one invocation proven on this machine.
+      #   -FromMsBuild      DROPPED. It is an MSBuild-integration/logging switch and
+      #                     nothing in a GitHub Actions step is MSBuild; it changes
+      #                     nothing about what gets compiled. If run #1's output
+      #                     shape turns out to be unusable, re-adding it is a safe,
+      #                     purely cosmetic fallback.
+      #   -Log=             ADDED - the one deviation from the byte-verified
+      #                     invocation. UBT otherwise logs to
+      #                     %LOCALAPPDATA%\UnrealBuildTool\Log.txt, a per-user path
+      #                     that differs under the runner service account and is
+      #                     overwritten by any concurrent build on this box.
+      #                     NOT VERIFIED ON THIS MACHINE: if run #1 fails with an
+      #                     "unknown argument"-style error naming -Log, delete this
+      #                     one flag; the log-collection step below already falls
+      #                     back to %LOCALAPPDATA%.
+      #
+      # Any non-zero exit is a failure; do not special-case codes. Exit 6
+      # (OtherCompilationError) is what both recorded regressions produced, but the
+      # rest of UBT's result enum is unverified here.
+      - name: Build PCAPPipelineEditor (Win64 Development)
+        shell: cmd
+        run: |
+          @echo off
+          if not exist "%GITHUB_WORKSPACE%\Saved\Logs" mkdir "%GITHUB_WORKSPACE%\Saved\Logs"
+          echo Engine: %ENGINE_ROOT%
+          call "%ENGINE_ROOT%\Engine\Build\BatchFiles\Build.bat" %UE_TARGET% %UE_PLATFORM% %UE_CONFIG% -Project="%GITHUB_WORKSPACE%\PCAPPipeline.uproject" -WaitMutex -architecture=x64 -Log="%UBT_LOG%"
+          if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+
+      # ───────────────────────────────────────────────────────────────────────
+      - name: Collect build logs
+        if: always()
+        run: |
+          $ErrorActionPreference = 'Continue'
+          New-Item -ItemType Directory -Force -Path $env:CI_LOG_DIR | Out-Null
+          $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+          # Scrub absolute machine paths before the log becomes a downloadable
+          # artifact. This repo is public, so artifacts, job summaries and
+          # annotations are all world-readable; the raw UBT log otherwise carries
+          # the runner account's profile path and the full machine layout of a
+          # production capture workstation.
+          # LIMIT OF THIS MITIGATION, stated plainly: the build step's CONSOLE
+          # output is not scrubbed and cannot be, because the problem matcher must
+          # see real absolute paths to resolve annotations to files in the diff.
+          # If the machine layout must not be public, make the repository private —
+          # which is the recommended posture for a self-hosted runner anyway.
+          # Replacement order matters: the workspace goes first, because on some
+          # runner layouts it sits underneath USERPROFILE.
+          $Scrub = @(
+            @{ Path = $env:GITHUB_WORKSPACE; Token = '<WORKSPACE>' },
+            @{ Path = $env:LOCALAPPDATA;     Token = '<LOCALAPPDATA>' },
+            @{ Path = $env:USERPROFILE;      Token = '<USERPROFILE>' }
+          )
+          function Copy-Scrubbed {
+            param([string]$Src, [string]$DstName)
+            if ([string]::IsNullOrWhiteSpace($Src)) { return $false }
+            if (-not (Test-Path -LiteralPath $Src)) { return $false }
+            $txt = Get-Content -Raw -LiteralPath $Src -ErrorAction SilentlyContinue
+            if ($null -eq $txt) { return $false }
+            foreach ($s in $Scrub) {
+              if ($s.Path) { $txt = $txt.Replace($s.Path, $s.Token) }
+            }
+            [System.IO.File]::WriteAllText((Join-Path $env:CI_LOG_DIR $DstName), $txt, $Utf8NoBom)
+            return $true
+          }
+
+          $got = Copy-Scrubbed $env:UBT_LOG 'UBT-CI.log'
+          # Fallback for the case where -Log= was not honoured: UBT's default
+          # per-user log. NOTE this path is per-account and machine-global, so if
+          # the operator built in Visual Studio while CI was running, this copy may
+          # be from the WRONG build - which is exactly why -Log= exists.
+          $fallback = Join-Path $env:LOCALAPPDATA 'UnrealBuildTool\Log.txt'
+          if (-not $got) { $got = Copy-Scrubbed $fallback 'UBT-LocalAppData-Log.txt' }
+
+          # The UBA trace lands next to whichever log path UBT used. Binary, so it
+          # is copied without scrubbing - and therefore only uploaded on failure.
+          $traceCandidates = @(
+            (Join-Path (Split-Path -Parent $env:UBT_LOG) 'Trace.uba'),
+            (Join-Path $env:LOCALAPPDATA 'UnrealBuildTool\Trace.uba')
+          )
+          $i = 0
+          foreach ($t in $traceCandidates) {
+            if (Test-Path -LiteralPath $t) {
+              $i++
+              Copy-Item -LiteralPath $t -Destination (Join-Path $env:CI_LOG_DIR "Trace-$i.uba") -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          if ($got) {
+            Write-Host "Collected build log into $env:CI_LOG_DIR"
+          } else {
+            Write-Host "::warning title=No UBT log::Neither the -Log= path nor $fallback existed. If the build step ran, this UBT may not accept -Log= - see the comment on the build step."
+          }
+
+      # ───────────────────────────────────────────────────────────────────────
+      # The job summary is load-bearing, not decoration. GitHub caps annotations at
+      # 10 errors + 10 warnings + 10 notices PER STEP and gives no visible sign when
+      # it truncates, so a broad unity-build break would show 10 errors, get fixed,
+      # and produce 10 more. The "N more" footer below is the only thing that tells
+      # a reviewer there is more to see.
+      - name: Job summary
+        if: always()
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+          $BT = [string][char]96
+          $md = New-Object System.Collections.Generic.List[string]
+          function Emit {
+            param([string[]]$L)
+            if ($env:GITHUB_STEP_SUMMARY) {
+              [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, (($L -join [Environment]::NewLine) + [Environment]::NewLine), $Utf8NoBom)
+            } else {
+              $L | ForEach-Object { Write-Host $_ }
+            }
+          }
+
+          $log = Join-Path $env:CI_LOG_DIR 'UBT-CI.log'
+          if (-not (Test-Path -LiteralPath $log)) { $log = Join-Path $env:CI_LOG_DIR 'UBT-LocalAppData-Log.txt' }
+
+          $md.Add('## Build')
+          $md.Add('')
+
+          if (-not (Test-Path -LiteralPath $log)) {
+            $md.Add('No UnrealBuildTool log was produced. The job most likely failed before the build step (see the Preflight section above), or the build step could not start at all.')
+            $md.Add('')
+            Emit $md
+            exit 0
+          }
+
+          $lines = Get-Content -LiteralPath $log
+
+          # UBT's own verdict. Parsed here rather than annotated: it carries no file
+          # and no line number, so as an annotation it would be pure noise that ate
+          # into the 10-errors-per-step budget.
+          $result = 'unknown'
+          $resultDetail = ''
+          $dur = ''
+          foreach ($l in $lines) {
+            if ($l -match '^(?:\s*\d+>)?\s*Result\s*:\s*(Succeeded|Failed)\s*(?:\((.+)\))?\s*$') {
+              $result = $Matches[1]
+              $resultDetail = $Matches[2]
+            }
+            if ($l -match 'Total execution time:\s*(.+?)\s*$') { $dur = $Matches[1] }
+          }
+          $resultText = "**$result**"
+          if ($resultDetail) { $resultText = "**$result** ($resultDetail)" }
+
+          $md.Add('| | |')
+          $md.Add('|---|---|')
+          $md.Add("| Result | $resultText |")
+          $md.Add("| Target | $env:UE_TARGET $env:UE_PLATFORM $env:UE_CONFIG |")
+          $md.Add("| Engine | $BT$env:ENGINE_ROOT$BT (Build.version $env:ENGINE_VERSION) |")
+          $md.Add("| Commit | $BT$env:GITHUB_SHA$BT |")
+          if ($dur) { $md.Add("| UBT execution time | $dur |") }
+          $md.Add('')
+
+          # ── error extraction ────────────────────────────────────────────────
+          # `\d+>` is optional everywhere: the two archived logs in this repo are
+          # Visual Studio Output-window captures, where MSBuild prefixes every line
+          # with the project index. Direct Build.bat output has no such prefix, so
+          # patterns written against those files verbatim would match nothing.
+          $reMsvc = '^(?:\s*\d+>)?\s*(.+?)\((\d+)(?:,(\d+))?\)\s*:\s*(?:fatal\s+)?error\s+(?!MSB\d)([A-Za-z]+\d+)\s*:\s*(.+)$'
+          $reNote = '^(?:\s*\d+>)?\s*(.+?)\((\d+)(?:,(\d+))?\)\s*:\s*note\s*:\s*(.+)$'
+          $reLnk  = '^(?:\s*\d+>)?\s*(?:.+?)\s:\s(?:fatal\s+)?error\s+(LNK\d+)\s*:\s*(.+)$'
+          $reBuildEnv = 'modifies the values of properties'
+
+          $errors = New-Object System.Collections.Generic.List[object]
+          $noteFiles = New-Object System.Collections.Generic.List[string]
+          $upgrade = New-Object System.Collections.Generic.List[string]
+          $seen = @{}
+          $warnCount = 0
+          $sawC4459 = $false
+          $sawBuildEnv = $false
+          $ws = $env:GITHUB_WORKSPACE
+
+          # Make diagnostic paths repo-relative so a reviewer can map them to the
+          # diff. Handles both shapes: a raw absolute path (if the summary ever
+          # reads an unscrubbed log) and the <WORKSPACE> token the collect step
+          # substitutes to keep machine paths out of a public artifact.
+          function Relativize {
+            param([string]$p)
+            if ($ws -and $p.StartsWith($ws)) { return $p.Substring($ws.Length).TrimStart('\') }
+            if ($p.StartsWith('<WORKSPACE>')) { return $p.Substring('<WORKSPACE>'.Length).TrimStart('\') }
+            return $p
+          }
+
+          foreach ($l in $lines) {
+            $t = $l -replace '^\s*\d+>', ''
+            if ($t -match '\[Upgrade\]') { $upgrade.Add($t) ; continue }
+            if ($t -match 'warning\s+[A-Za-z]+\d+\s*:') { $warnCount++ }
+
+            if ($l -match $reMsvc) {
+              $f = $Matches[1] ; $ln = $Matches[2] ; $col = $Matches[3] ; $code = $Matches[4] ; $msg = $Matches[5]
+              if ($code -eq 'C4459') { $sawC4459 = $true }
+              $rel = Relativize $f
+              $loc = "$rel($ln)"
+              if ($col) { $loc = "$rel($ln,$col)" }
+              $key = "M|$loc|$code|$msg"
+              if (-not $seen.ContainsKey($key)) {
+                $seen[$key] = $true
+                $errors.Add((New-Object psobject -Property @{ Loc = $loc; Code = $code; Msg = $msg }))
+              }
+            }
+            elseif ($l -match $reLnk) {
+              $key = "L|$($Matches[1])|$($Matches[2])"
+              if (-not $seen.ContainsKey($key)) {
+                $seen[$key] = $true
+                $errors.Add((New-Object psobject -Property @{ Loc = '(link)'; Code = $Matches[1]; Msg = $Matches[2] }))
+              }
+            }
+            elseif ($l -match $reNote) {
+              # The note names a DIFFERENT file than the error line, and for the
+              # recorded C4459 that second file is where the fix actually belongs.
+              $nf = Relativize $Matches[1]
+              $entry = "$nf($($Matches[2]),$($Matches[3])) - $($Matches[4])"
+              if ($noteFiles -notcontains $entry) { $noteFiles.Add($entry) }
+            }
+            elseif ($t -match $reBuildEnv) {
+              $sawBuildEnv = $true
+              if (-not $seen.ContainsKey('BUILDENV')) {
+                $seen['BUILDENV'] = $true
+                $errors.Add((New-Object psobject -Property @{ Loc = 'Source/*.Target.cs'; Code = 'UBT'; Msg = $t.Trim() }))
+              }
+            }
+          }
+
+          if ($errors.Count -gt 0) {
+            $md.Add("### Errors ($($errors.Count) unique, $warnCount warning line(s))")
+            $md.Add('')
+            $md.Add('| Location | Code | Message |')
+            $md.Add('|---|---|---|')
+            foreach ($e in ($errors | Select-Object -First 20)) {
+              $m = [string]$e.Msg
+              if ($m.Length -gt 300) { $m = $m.Substring(0, 300) + '...' }
+              $m = $m.Replace('|', '\|')
+              $md.Add("| $BT$($e.Loc)$BT | $($e.Code) | $m |")
+            }
+            if ($errors.Count -gt 20) {
+              $md.Add('')
+              $md.Add("_... $($errors.Count - 20) more - see the **ue-build-logs** artifact._")
+            }
+            $md.Add('')
+          }
+
+          if ($noteFiles.Count -gt 0) {
+            $md.Add('<details><summary>Compiler note: lines (these usually name the file the fix belongs in)</summary>')
+            $md.Add('')
+            foreach ($n in ($noteFiles | Select-Object -First 20)) { $md.Add("- $BT$n$BT") }
+            $md.Add('')
+            $md.Add('</details>')
+            $md.Add('')
+          }
+
+          # ── known-failure explainers ────────────────────────────────────────
+          if ($sawBuildEnv) {
+            $md.Add('> **Known failure: shared build environment rejection.**')
+            $md.Add('> UBT refused the target because a TargetRules property differs from the value the')
+            $md.Add('> prebuilt UnrealEditor binaries were compiled with. This is the failure recorded in')
+            $md.Add('> the repo CodeErrors file, and it fires in under a second, before any compilation.')
+            $md.Add('> Fix it in Source/PCAPPipelineEditor.Target.cs by restoring')
+            $md.Add('> DefaultBuildSettings = BuildSettingsVersion.V7; and removing whatever property')
+            $md.Add('> was added. Do NOT "fix" it with BuildEnvironment = TargetBuildEnvironment.Unique')
+            $md.Add('> (impossible against a launcher-installed engine) or bOverrideBuildEnvironment = true')
+            $md.Add('> (trades a loud rejection for silent ABI skew against the prebuilt engine).')
+            $md.Add('>')
+            $md.Add('> Note this message carries no file, no line and no severity token, so no problem')
+            $md.Add('> matcher can annotate it - the exit code and this summary are the only signal.')
+            $md.Add('')
+          }
+          if ($sawC4459) {
+            $md.Add('> **Known failure class: unity-build-only shadowing (C4459).**')
+            $md.Add('> This error exists only because UnrealBuildTool batches all of PCAPTool''s .cpp')
+            $md.Add('> files into one Module.PCAPTool.cpp translation unit. Building the files')
+            $md.Add('> separately - which is what the engine-free HostTests harness does, and what UBT')
+            $md.Add('> itself does for any file git status reports as dirty - will NOT reproduce it.')
+            $md.Add('> That is precisely why this job insists on a clean working tree.')
+            $md.Add('>')
+            $md.Add('> The error is reported at the shadowing site, but the fix usually belongs at the')
+            $md.Add('> declaration named in the note: lines above. The repo''s own precedent renamed the')
+            $md.Add('> colliding constant (Dt -> kDt) in the test translation unit rather than')
+            $md.Add('> suppressing the warning. Do NOT add a ShadowVariableWarningLevel override to a')
+            $md.Add('> .Target.cs: WarningLevel properties are exactly the family that triggers the')
+            $md.Add('> shared-build-environment rejection explained above.')
+            $md.Add('')
+          }
+
+          # Safety net: if UBT says it failed but nothing matched, the log shape has
+          # changed (an engine upgrade rewording a message, for example) and this
+          # extraction is now blind. Say so loudly rather than printing an empty
+          # error table that looks like a flake.
+          if ($result -eq 'Failed' -and $errors.Count -eq 0) {
+            Write-Host '::error title=Build failed with no parseable diagnostics::UBT reported Result: Failed but the summary extracted zero errors. The log format may have changed - inspect the uploaded artifact and update the extraction patterns.'
+            $md.Add('> **The build failed but no diagnostic could be extracted from the log.** The log')
+            $md.Add('> format may have changed (engine upgrade?). Download the ue-build-logs artifact')
+            $md.Add('> and update the extraction patterns in this workflow and in')
+            $md.Add('> .github/ue-problem-matcher.json.')
+            $md.Add('')
+          }
+
+          if ($upgrade.Count -gt 0) {
+            # IncludeOrderVersion is deliberately pinned to Unreal5_7, so this block
+            # prints on EVERY build, forever. Collapsed here and never annotated, so
+            # it does not train reviewers to ignore warnings.
+            $md.Add('<details><summary>Expected [Upgrade] notices (IncludeOrderVersion is pinned to Unreal5_7 on purpose - not a regression)</summary>')
+            $md.Add('')
+            $md.Add('```')
+            foreach ($u in ($upgrade | Select-Object -First 40)) { $md.Add($u) }
+            $md.Add('```')
+            $md.Add('')
+            $md.Add('</details>')
+            $md.Add('')
+          }
+
+          $tc = @($lines | Where-Object { $_ -match 'Using Visual Studio|Using ISPC compiler|UBA Storage capacity|Executing up to|physical cores' } | Select-Object -First 12)
+          if ($tc.Count -gt 0) {
+            $md.Add('<details><summary>Toolchain</summary>')
+            $md.Add('')
+            $md.Add('```')
+            foreach ($x in $tc) { $md.Add(($x -replace '^\s*\d+>', '')) }
+            $md.Add('```')
+            $md.Add('')
+            $md.Add('</details>')
+            $md.Add('')
+          }
+
+          # Must match the artifact name in the upload step below, which is run-scoped —
+          # the summary is the first thing read on a red build, so a name that does not
+          # exist sends the operator hunting for an artifact that was never created.
+          if ($result -ne 'Succeeded') { $md.Add("Full log: the **ue-build-logs-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT** artifact attached to this run.") ; $md.Add('') }
+
+          Emit $md
+
+      # ───────────────────────────────────────────────────────────────────────
+      - name: Upload build logs
+        # Only on failure: a green build's log has no diagnostic value, and this
+        # repo is public, so every artifact is world-downloadable.
+        if: failure()
+        # SHA verified against actions/upload-artifact refs/tags/v4. To bump:
+        #   git ls-remote --tags https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ue-build-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ github.workspace }}/Saved/Logs/ci-artifacts/**
+          # Short retention: even scrubbed, build logs describe the machine layout
+          # of a production capture workstation.
+          retention-days: 7
+          # Preflight can fail before any log exists; that must not mask the real
+          # failure with an artifact error.
+          if-no-files-found: warn

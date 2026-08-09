@@ -97,6 +97,89 @@ namespace
         return (L == FDateTime(0)) ? FString(TEXT("not shot yet"))
                                    : FString::Printf(TEXT("last shot %s"), *L.ToString(TEXT("%Y-%m-%d")));
     }
+
+    // Editor toast — the plugin's standard operator feedback. Prep decisions that go
+    // nowhere (a rejected id, a failed save, a bad CSV) have to say so on screen; the
+    // operator is not reading the output log on the floor.
+    void PCAPNotify(const FText& Message)
+    {
+        FNotificationInfo Info(Message);
+        Info.ExpireDuration = 3.0f;
+        FSlateNotificationManager::Get().AddNotification(Info);
+    }
+
+    // Production codes, day ids and shot slots all become package-path segments at record
+    // time (PCAPTakeRecorderSubsystem writes ".../<Code>/Day_<Day>/Session_<Sess>/Shot_<Slot>"),
+    // and UE forbids spaces and punctuation there (INVALID_LONGPACKAGE_CHARACTERS — see
+    // CONTRIBUTING). Reject them here, at the point of entry, instead of at record time.
+    bool PCAPIsPathSafeID(const FString& Id)
+    {
+        if (Id.IsEmpty()) return false;
+        for (const TCHAR C : Id)
+        {
+            const bool bSafe = (C >= TEXT('A') && C <= TEXT('Z')) || (C >= TEXT('a') && C <= TEXT('z'))
+                            || FChar::IsDigit(C) || C == TEXT('_') || C == TEXT('-');
+            if (!bSafe) return false;
+        }
+        return true;
+    }
+
+    // A shot added by hand inherits the day's call-out. Without this the day's called
+    // actors/props stop at the day record: AddShotBySlot used to push an FShot with an
+    // empty Subjects array, so the Operator Console showed a shot with no talent, RECORD
+    // had nothing to arm, and "Send shot to Mocap Manager" greyed out on a day that was
+    // fully called. CSV import already seeds subjects from its rows; this is the same
+    // construction for the manual path, so both entry points agree.
+    //
+    // Called talent is active by default — putting someone on the day's call sheet IS the
+    // call-out. Per-shot toggling off is a shot-level edit on top of that.
+    void PCAPSeedShotFromDayCallout(const FShootDay& Day, FShot& Shot)
+    {
+        if (Day.CalledActorIDs.Num() == 0 && Day.CalledPropIDs.Num() == 0) return;
+
+        FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+        if (Day.CalledActorIDs.Num() > 0)
+        {
+            TMap<FString, UActorRosterEntry*> ActorByID;
+            TArray<FAssetData> F;
+            ARM.Get().GetAssetsByClass(UActorRosterEntry::StaticClass()->GetClassPathName(), F, false);
+            for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) ActorByID.Add(E->ActorID, E);
+
+            for (const FString& A : Day.CalledActorIDs)
+            {
+                FShotSubject Subj;
+                if (UActorRosterEntry* E = ActorByID.FindRef(A)) Subj = UPCAPToolStatics::MakeShotSubjectFromRoster(E);
+                else                                             Subj.ActorID = A;   // called but no roster asset — keep the call, lose the stream detail
+                Subj.bIsActive = true;
+                Shot.Subjects.Add(Subj);
+            }
+        }
+
+        if (Day.CalledPropIDs.Num() > 0)
+        {
+            TMap<FString, UPropRosterEntry*> PropByID;
+            TArray<FAssetData> F;
+            ARM.Get().GetAssetsByClass(UPropRosterEntry::StaticClass()->GetClassPathName(), F, false);
+            for (const FAssetData& AD : F) if (UPropRosterEntry* E = Cast<UPropRosterEntry>(AD.GetAsset())) PropByID.Add(E->PropID, E);
+
+            for (const FString& P : Day.CalledPropIDs)
+            {
+                FPropEntry Pr;
+                if (UPropRosterEntry* E = PropByID.FindRef(P)) { Pr.PropID = E->PropID; Pr.bIsTracked = E->bIsTracked; Pr.LiveLinkSubjectName = E->DefaultLiveLinkName; }
+                else                                           { Pr.PropID = P; }
+                Shot.Props.Add(Pr);
+            }
+        }
+    }
+
+    // The one message every id rejection uses — names the field and says what is allowed.
+    FText PCAPBadIDText(const FString& Field, const FString& Value)
+    {
+        return FText::FromString(FString::Printf(
+            TEXT("%s \"%s\" can't be used — it becomes a folder name on disk. Letters, digits, _ and - only (no spaces)."),
+            *Field, *Value));
+    }
 }
 
 UMocapDatabase* SPCAPCallSheetPanel::GetDB() const
@@ -149,7 +232,28 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::MakeAddPopup(const TArray<FText>& Hints
                 TSharedRef<SEditableTextBox> B = SNew(SEditableTextBox)
                     .HintText(Hints[i])
                     .MinDesiredWidth(170.f)
-                    .OnTextCommitted_Lambda([Commit](const FText&, ETextCommit::Type C){ if (C == ETextCommit::OnEnter) Commit(); });
+                    // ↵ in a non-final field advances to the next one rather than committing —
+                    // otherwise "type a name, press ↵" commits with the later fields still
+                    // blank, the guard rejects it, and the typed text is thrown away.
+                    .OnTextCommitted_Lambda([Boxes, Commit, i](const FText&, ETextCommit::Type C)
+                    {
+                        if (C != ETextCommit::OnEnter) return;
+                        if (Boxes->IsValidIndex(i + 1) && (*Boxes)[i + 1].IsValid())
+                        {
+                            // Deferred like the first-field focus below — the box clears keyboard
+                            // focus around a commit, so take it back on the next tick.
+                            TSharedPtr<SEditableTextBox> Next = (*Boxes)[i + 1];
+                            Next->RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateLambda(
+                                [BoxWeak = TWeakPtr<SEditableTextBox>(Next)](double, float)
+                                {
+                                    if (TSharedPtr<SEditableTextBox> B = BoxWeak.Pin())
+                                        FSlateApplication::Get().SetKeyboardFocus(B, EFocusCause::SetDirectly);
+                                    return EActiveTimerReturnType::Stop;
+                                }));
+                            return;
+                        }
+                        Commit();
+                    });
                 Boxes->Add(B);
                 Fields->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)[ B ];
             }
@@ -204,12 +308,35 @@ void SPCAPCallSheetPanel::SaveDayConfiguration()
         if (UStageConfigAsset* S = D->GetActiveStageConfig())
             if (UPackage* P = S->GetPackage()) Pkgs.AddUnique(P);
     }
-    if (Pkgs.Num() > 0)
-        FEditorFileUtils::PromptForCheckoutAndSave(Pkgs, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
+    if (Pkgs.Num() == 0)
+    {
+        PCAPNotify(LOCTEXT("DayNothingSaved", "Nothing to save — no database loaded."));
+        return;
+    }
 
-    FNotificationInfo Info(LOCTEXT("DaySaved", "Day configuration saved."));
-    Info.ExpireDuration = 3.0f;
-    FSlateNotificationManager::Get().AddNotification(Info);
+    // Report what actually happened. A denied checkout or a read-only .uasset must not
+    // come back as a green "saved" — the day's call sheet would not be on disk.
+    TArray<UPackage*> Failed;
+    const FEditorFileUtils::EPromptReturnCode Result =
+        FEditorFileUtils::PromptForCheckoutAndSave(Pkgs, /*bCheckDirty*/ false, /*bPromptToSave*/ false, &Failed);
+
+    if (Result == FEditorFileUtils::PR_Success && Failed.Num() == 0)
+    {
+        PCAPNotify(LOCTEXT("DaySaved", "Day configuration saved."));
+        return;
+    }
+
+    if (Failed.Num() > 0)
+    {
+        TArray<FString> Names;
+        for (const UPackage* P : Failed) if (P) Names.Add(FPackageName::GetShortName(P->GetName()));
+        PCAPNotify(FText::FromString(FString::Printf(
+            TEXT("Day configuration NOT saved — %s. Check the asset out (or clear read-only) and save again."),
+            *FString::Join(Names, TEXT(", ")))));
+        return;
+    }
+
+    PCAPNotify(LOCTEXT("DaySaveDeclined", "Day configuration NOT saved — the save was cancelled."));
 }
 
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSaveBar()
@@ -226,8 +353,8 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSaveBar()
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
 {
     UMocapDatabase* DB = GetDB();
-    const bool bHasDay = DB && !DB->ActiveProductionCode.IsEmpty()
-        && DB->GetDay(DB->ActiveProductionCode, DB->ActiveDayID) != nullptr;
+    FShootDay* Day = DB ? DB->GetDay(DB->ActiveProductionCode, DB->ActiveDayID) : nullptr;
+    const bool bHasDay = DB && !DB->ActiveProductionCode.IsEmpty() && Day != nullptr;
 
     if (!bHasDay)
     {
@@ -246,13 +373,17 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildHeader() ]            // Production
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildStageArea() ]         // Stage Setup
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
-        [ BuildCallSection(LOCTEXT("CalledActors", "Called actors"), GatherActors(),
+        [ BuildCallSection(LOCTEXT("CalledActors", "Called actors"), GatherActors(), Day->CalledActorIDs,
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsActorCalled(Id); },
             [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetActorCalled(Id, b); D->MarkPackageDirty(); } }) ]
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
-        [ BuildCallSection(LOCTEXT("CalledProps", "Called props"), GatherProps(),
+        [ BuildCallSection(LOCTEXT("CalledProps", "Called props"), GatherProps(), Day->CalledPropIDs,
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsPropCalled(Id); },
             [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetPropCalled(Id, b); D->MarkPackageDirty(); } }) ]
+        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
+        [ BuildCallSection(LOCTEXT("CalledVCams", "Called vcam"), GatherVCams(), Day->CalledVCamIDs,
+            [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsVCamCalled(Id); },
+            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetVCamCalled(Id, b); D->MarkPackageDirty(); } }) ]
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildCallToggles() ]        // Call?
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildShotsSection() ]        // Shot imports
         + SScrollBox::Slot()[ BuildSaveBar() ];                                         // Save day
@@ -301,7 +432,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
                 {
                     const FString C = Pr.ProjectCode;
                     MB.AddMenuEntry(FText::FromString(FString::Printf(TEXT("%s - %s"), *Pr.ProductionName, *Pr.ProjectCode)), FText::GetEmpty(), FSlateIcon(),
-                        FUIAction(FExecuteAction::CreateLambda([this, C]() { if (UMocapDatabase* D2 = GetDB()) { D2->ActiveProductionCode = C; } RebuildSheet(); })));
+                        FUIAction(FExecuteAction::CreateLambda([this, C]() { if (UMocapDatabase* D2 = GetDB()) { D2->ActiveProductionCode = C; D2->MarkPackageDirty(); } RebuildSheet(); })));
                 }
             }
             return MB.MakeWidget();
@@ -321,7 +452,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
                     {
                         const FString Id = Dy.DayID;
                         MB.AddMenuEntry(FText::FromString(Id), FText::GetEmpty(), FSlateIcon(),
-                            FUIAction(FExecuteAction::CreateLambda([this, Id]() { if (UMocapDatabase* D2 = GetDB()) { D2->ActiveDayID = Id; } RebuildSheet(); })));
+                            FUIAction(FExecuteAction::CreateLambda([this, Id]() { if (UMocapDatabase* D2 = GetDB()) { D2->ActiveDayID = Id; D2->MarkPackageDirty(); } RebuildSheet(); })));
                     }
                 }
             return MB.MakeWidget();
@@ -344,12 +475,22 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
               {
                   const FString Name = V.IsValidIndex(0) ? V[0] : FString();
                   const FString Num  = V.IsValidIndex(1) ? V[1] : FString();
-                  if (!Name.IsEmpty() && !Num.IsEmpty())
-                      if (UMocapDatabase* D = GetDB())
-                      {
-                          if (!D->GetProductionByCode(Num)) { FProduction P; P.ProjectCode = Num; P.ProductionName = Name; D->Productions.Add(P); D->MarkPackageDirty(); }
-                          D->ActiveProductionCode = Num;
-                      }
+                  if (Name.IsEmpty() || Num.IsEmpty())
+                  {
+                      PCAPNotify(LOCTEXT("ProdNeedsBoth", "A production needs both a name and a number — nothing was created."));
+                      return;   // nothing changed, so leave the sheet as it is
+                  }
+                  if (!PCAPIsPathSafeID(Num))
+                  {
+                      PCAPNotify(PCAPBadIDText(TEXT("Production number"), Num));
+                      return;
+                  }
+                  if (UMocapDatabase* D = GetDB())
+                  {
+                      if (!D->GetProductionByCode(Num)) { FProduction P; P.ProjectCode = Num; P.ProductionName = Name; D->Productions.Add(P); }
+                      D->ActiveProductionCode = Num;
+                      D->MarkPackageDirty();   // also when the production already existed — the pick itself must persist
+                  }
                   RebuildSheet();
               }) ]
             + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(8.f, 0.f)[ Dot() ]
@@ -359,13 +500,29 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
               [this](const TArray<FString>& V)
               {
                   const FString Id = V.IsValidIndex(0) ? V[0] : FString();
-                  if (!Id.IsEmpty())
-                      if (UMocapDatabase* D = GetDB())
-                          if (FProduction* P = D->GetProductionByCode(D->ActiveProductionCode))
-                          {
-                              if (!D->GetDay(D->ActiveProductionCode, Id)) { FShootDay Dy; Dy.DayID = Id; P->Days.Add(Dy); D->MarkPackageDirty(); }
-                              D->ActiveDayID = Id;
-                          }
+                  if (Id.IsEmpty())
+                  {
+                      PCAPNotify(LOCTEXT("DayNeedsID", "A shoot day needs an id — nothing was created."));
+                      return;
+                  }
+                  if (!PCAPIsPathSafeID(Id))
+                  {
+                      PCAPNotify(PCAPBadIDText(TEXT("Day id"), Id));
+                      return;
+                  }
+                  if (UMocapDatabase* D = GetDB())
+                  {
+                      if (FProduction* P = D->GetProductionByCode(D->ActiveProductionCode))
+                      {
+                          if (!D->GetDay(D->ActiveProductionCode, Id)) { FShootDay Dy; Dy.DayID = Id; P->Days.Add(Dy); }
+                          D->ActiveDayID = Id;
+                          D->MarkPackageDirty();   // also when the day already existed — the pick itself must persist
+                      }
+                      else
+                      {
+                          PCAPNotify(LOCTEXT("DayNeedsProduction", "Pick a production first — a shoot day belongs to one."));
+                      }
+                  }
                   RebuildSheet();
               }) ]
             + SHorizontalBox::Slot().FillWidth(1.f)[ SNullWidget::NullWidget ]
@@ -531,29 +688,50 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallToggles()
 
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
     const TArray<TPair<FString, FString>>& Items,
+    const TArray<FString>& CalledIDs,
     TFunction<bool(const FString&)> IsCalled,
     TFunction<void(const FString&, bool)> SetCalled)
 {
+    const FLinearColor ColAmber(0.878f, 0.627f, 0.188f);
+
+    // One chip per called id. Library-resolved ids come from Items; anything still called
+    // whose roster asset was deleted or renamed is chipped too (flagged, same ✕) — otherwise
+    // it is invisible here yet still counts toward readiness and still reaches the HMC panel.
     TSharedRef<SWrapBox> Chips = SNew(SWrapBox).UseAllottedSize(true);
     int32 Count = 0;
-    for (const TPair<FString, FString>& It : Items)
+    auto AddChip = [this, &Chips, &Count, SetCalled, ColAmber](const FString& Id, bool bMissing)
     {
-        if (!IsCalled(It.Key)) continue;
         ++Count;
-        const FString Id = It.Key;
+        TSharedRef<SHorizontalBox> Row = SNew(SHorizontalBox);
+        if (bMissing)
+            Row->AddSlot().AutoWidth().VAlign(VAlign_Center)
+            [ SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("%s  (missing)"), *Id)))
+              .ToolTipText(LOCTEXT("MissingChipTip", "Called, but no longer in the library — the asset was deleted or renamed. ✕ to un-call it."))
+              .ColorAndOpacity(FSlateColor(ColAmber)) ];
+        else
+            Row->AddSlot().AutoWidth().VAlign(VAlign_Center)
+            [ SNew(STextBlock).Text(FText::FromString(Id)) ];
+        Row->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(7.f, 0.f, 0.f, 0.f)
+        [ SNew(SButton).ButtonStyle(FAppStyle::Get(), "NoBorder")
+          .OnClicked_Lambda([this, Id, SetCalled]() { SetCalled(Id, false); RebuildSheet(); return FReply::Handled(); })
+          [ SNew(STextBlock).Text(FText::FromString(TEXT("✕"))).ColorAndOpacity(FSlateColor(ColText2)) ] ];
+
         Chips->AddSlot().Padding(3.f)
         [
             SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(8.f, 4.f))
-            [
-                SNew(SHorizontalBox)
-                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ SNew(STextBlock).Text(FText::FromString(Id)) ]
-                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(7.f, 0.f, 0.f, 0.f)
-                [ SNew(SButton).ButtonStyle(FAppStyle::Get(), "NoBorder")
-                  .OnClicked_Lambda([this, Id, SetCalled]() { SetCalled(Id, false); RebuildSheet(); return FReply::Handled(); })
-                  [ SNew(STextBlock).Text(FText::FromString(TEXT("✕"))).ColorAndOpacity(FSlateColor(ColText2)) ] ]
-            ]
+            [ Row ]
         ];
+    };
+
+    TSet<FString> Known;
+    for (const TPair<FString, FString>& It : Items)
+    {
+        Known.Add(It.Key);
+        if (IsCalled(It.Key)) AddChip(It.Key, /*bMissing*/ false);
     }
+    for (const FString& Id : CalledIDs)
+        if (!Known.Contains(Id)) AddChip(Id, /*bMissing*/ true);
+
     if (Count == 0)
     {
         Chips->AddSlot().Padding(3.f)[ SNew(STextBlock).Text(LOCTEXT("NoneCalled", "none called")).ColorAndOpacity(FSlateColor(ColText2)) ];
@@ -703,7 +881,10 @@ FSession* SPCAPCallSheetPanel::EnsureActiveSession(bool bCreate)
         DB->MarkPackageDirty();
     }
     if (DB->ActiveSessionID.IsEmpty())
+    {
         DB->ActiveSessionID = Day->Sessions[0].SessionID;
+        DB->MarkPackageDirty();
+    }
 
     for (FSession& S : Day->Sessions)
         if (S.SessionID == DB->ActiveSessionID) return &S;
@@ -714,14 +895,30 @@ void SPCAPCallSheetPanel::AddShotBySlot(const FString& Slot)
 {
     const FString ShotID = NormalizeSlot(Slot);
     if (ShotID.IsEmpty()) return;
+    if (!PCAPIsPathSafeID(ShotID))   // the slot becomes "Shot_<slot>" on disk at record time
+    {
+        PCAPNotify(PCAPBadIDText(TEXT("Shot slot"), ShotID));
+        return;
+    }
     FSession* Sess = EnsureActiveSession(true);
     if (!Sess) return;
-    for (const FShot& S : Sess->Shots) if (S.ShotID == ShotID) return;
+    for (const FShot& S : Sess->Shots)
+        if (S.ShotID == ShotID)
+        {
+            PCAPNotify(FText::FromString(FString::Printf(TEXT("Shot %s is already on this day's list."), *ShotID)));
+            return;
+        }
+    UMocapDatabase* DB = GetDB();
+
     FShot New;
     New.ShotID   = ShotID;
     New.ShotType = ShotTypeFor(FString(), ShotID);
+    if (FShootDay* Day = DB ? DB->GetActiveDay() : nullptr)
+    {
+        PCAPSeedShotFromDayCallout(*Day, New);
+    }
     Sess->Shots.Add(New);
-    if (UMocapDatabase* DB = GetDB()) DB->MarkPackageDirty();
+    if (DB) DB->MarkPackageDirty();
     RebuildSheet();
 }
 
@@ -736,11 +933,12 @@ FReply SPCAPCallSheetPanel::OnRemoveShot(FString ShotID)
     return FReply::Handled();
 }
 
-void SPCAPCallSheetPanel::ApplyRowsToActiveDay(const TArray<FSlateCsvRow>& Rows)
+int32 SPCAPCallSheetPanel::ApplyRowsToActiveDay(const TArray<FSlateCsvRow>& Rows, TArray<FString>& OutRejectedSlots)
 {
+    OutRejectedSlots.Reset();
     UMocapDatabase* DB = GetDB();
     FSession* Sess = EnsureActiveSession(true);
-    if (!DB || !Sess) return;
+    if (!DB || !Sess) return 0;
 
     FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
     TMap<FString, UActorRosterEntry*> ActorByID;
@@ -756,10 +954,17 @@ void SPCAPCallSheetPanel::ApplyRowsToActiveDay(const TArray<FSlateCsvRow>& Rows)
         for (const FAssetData& AD : F) if (UPropRosterEntry* E = Cast<UPropRosterEntry>(AD.GetAsset())) PropByID.Add(E->PropID, E);
     }
 
+    int32 Applied = 0;
     for (const FSlateCsvRow& R : Rows)
     {
         const FString ShotID = NormalizeSlot(R.Slot);
         if (ShotID.IsEmpty()) continue;
+        if (!PCAPIsPathSafeID(ShotID))   // a slot with a space would break the take folder at record time
+        {
+            OutRejectedSlots.Add(ShotID);
+            continue;
+        }
+        ++Applied;
 
         FShot* Existing = Sess->Shots.FindByPredicate([&ShotID](const FShot& S){ return S.ShotID == ShotID; });
         FShot NewShot;
@@ -791,6 +996,7 @@ void SPCAPCallSheetPanel::ApplyRowsToActiveDay(const TArray<FSlateCsvRow>& Rows)
         if (!Existing) Sess->Shots.Add(MoveTemp(NewShot));
     }
     DB->MarkPackageDirty();
+    return Applied;
 }
 
 FSlateCsvRow SPCAPCallSheetPanel::RowFromShot(const FShot& Shot) const
@@ -820,16 +1026,23 @@ void SPCAPCallSheetPanel::ImportShotsCsv()
     if (!FFileHelper::LoadFileToString(Text, *Files[0]))
     {
         UE_LOG(LogTemp, Warning, TEXT("[PCAP] Shot CSV import: could not read %s"), *Files[0]);
+        PCAPNotify(FText::FromString(FString::Printf(TEXT("Import failed — could not read %s."), *FPaths::GetCleanFilename(Files[0]))));
         return;
     }
     TArray<FSlateCsvRow> Rows; FString Err;
     if (!FPCAPSlateCsv::Parse(Text, Rows, Err))
     {
         UE_LOG(LogTemp, Warning, TEXT("[PCAP] Shot CSV import failed: %s"), *Err);
+        PCAPNotify(FText::FromString(FString::Printf(TEXT("Import failed — %s. Nothing was changed."), *Err)));
         return;
     }
-    ApplyRowsToActiveDay(Rows);
-    UE_LOG(LogTemp, Log, TEXT("[PCAP] Imported %d shot(s) from %s"), Rows.Num(), *Files[0]);
+    TArray<FString> Rejected;
+    const int32 Applied = ApplyRowsToActiveDay(Rows, Rejected);
+    UE_LOG(LogTemp, Log, TEXT("[PCAP] Imported %d shot(s) from %s"), Applied, *Files[0]);
+    PCAPNotify(FText::FromString(Rejected.Num() > 0
+        ? FString::Printf(TEXT("Imported %d shot(s). Skipped %d bad slot(s): %s — letters, digits, _ and - only."),
+            Applied, Rejected.Num(), *FString::Join(Rejected, TEXT(", ")))
+        : FString::Printf(TEXT("Imported %d shot(s)."), Applied)));
     RebuildSheet();
 }
 
@@ -837,7 +1050,11 @@ void SPCAPCallSheetPanel::ExportShotsCsv()
 {
     UMocapDatabase* DB = GetDB();
     FSession* Sess = EnsureActiveSession(false);
-    if (!DB || !Sess) return;
+    if (!DB || !Sess)
+    {
+        PCAPNotify(LOCTEXT("ExportNoSession", "Nothing to export — this day has no session yet. Add a shot slot first."));
+        return;
+    }
 
     TArray<FSlateCsvRow> Rows;
     for (const FShot& S : Sess->Shots) Rows.Add(RowFromShot(S));
@@ -855,8 +1072,14 @@ void SPCAPCallSheetPanel::ExportShotsCsv()
 
     FString Path = Out[0];
     if (!Path.EndsWith(TEXT(".csv"))) Path += TEXT(".csv");
-    FFileHelper::SaveStringToFile(Csv, *Path);
+    if (!FFileHelper::SaveStringToFile(Csv, *Path))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[PCAP] Shot CSV export: could not write %s"), *Path);
+        PCAPNotify(FText::FromString(FString::Printf(TEXT("Export failed — could not write %s."), *FPaths::GetCleanFilename(Path))));
+        return;
+    }
     UE_LOG(LogTemp, Log, TEXT("[PCAP] Exported %d shot(s) to %s"), Rows.Num(), *Path);
+    PCAPNotify(FText::FromString(FString::Printf(TEXT("Exported %d shot(s) to %s."), Rows.Num(), *FPaths::GetCleanFilename(Path))));
 }
 
 TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShotsSection()

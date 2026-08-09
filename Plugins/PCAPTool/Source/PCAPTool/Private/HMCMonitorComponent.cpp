@@ -700,6 +700,12 @@ FString UHMCMonitorComponent::GenerateStatusQuip(const FHMCDeviceStatus& S)
 
 // ─── Persistence ─────────────────────────────────────────────────────────────
 
+// This component shares Saved/PCAPTool/HMCConfig.json with UPCAPToolSubsystem — the
+// live Capture tool owns the same file. Save/LoadConfig below MUST therefore round-trip
+// EVERY field the subsystem writes (see UPCAPToolSubsystem::SaveConfig): BeginPlay calls
+// LoadConfig, which RegisterDevice()s each entry, which SaveConfig()s — so any field this
+// class doesn't understand would be silently dropped from the operator's setup the moment
+// someone presses Play. Keep the two schemas in lockstep when either gains a field.
 FString UHMCMonitorComponent::ConfigFilePath()
 {
     return FPaths::ProjectSavedDir() / TEXT("PCAPTool") / TEXT("HMCConfig.json");
@@ -718,6 +724,35 @@ void UHMCMonitorComponent::SaveConfig() const
         DevObj->SetStringField(TEXT("ipAddress"),        C.IPAddress);
         DevObj->SetStringField(TEXT("actorID"),        C.ActorID);
         DevObj->SetStringField(TEXT("webSocketEndpoint"),C.WebSocketEndpoint);
+        DevObj->SetNumberField(TEXT("pipeline"), (double)(uint8)C.Pipeline);
+        DevObj->SetNumberField(TEXT("captureConfig"), (double)(uint8)C.CaptureConfig);
+        DevObj->SetBoolField(TEXT("preppedForPreview"), C.bPreppedForPreview);
+        DevObj->SetBoolField(TEXT("performerPrepConfirmed"), C.bPerformerPrepConfirmed);
+        DevObj->SetBoolField(TEXT("neutralCaptured"), C.bNeutralCaptured);
+        DevObj->SetBoolField(TEXT("teethCaptured"), C.bTeethCaptured);
+        DevObj->SetBoolField(TEXT("romCaptured"), C.bROMCaptured);
+        DevObj->SetStringField(TEXT("neutralStillPath"), C.NeutralStillPath);
+        DevObj->SetStringField(TEXT("teethStillPath"), C.TeethStillPath);
+        DevObj->SetStringField(TEXT("romTakeLabel"), C.ROMTakeLabel);
+        DevObj->SetNumberField(TEXT("focusMinOverride"), C.FocusMinOverride);
+        DevObj->SetBoolField(TEXT("calibStartCaptured"), C.bCalibStartCaptured);
+        DevObj->SetBoolField(TEXT("calibEndCaptured"), C.bCalibEndCaptured);
+        DevObj->SetStringField(TEXT("calibStartStillPath"), C.CalibStartStillPath);
+        DevObj->SetStringField(TEXT("calibEndStillPath"), C.CalibEndStillPath);
+        DevObj->SetStringField(TEXT("sourceRig"), C.SourceRig.ToSoftObjectPath().ToString());
+
+        auto WriteRef = [](const FHMCFramingRef& R) -> TSharedPtr<FJsonObject>
+        {
+            TSharedPtr<FJsonObject> RO = MakeShared<FJsonObject>();
+            RO->SetBoolField  (TEXT("set"),  R.bSet);
+            RO->SetNumberField(TEXT("x"),    R.Center.X);
+            RO->SetNumberField(TEXT("y"),    R.Center.Y);
+            RO->SetNumberField(TEXT("size"), R.Size);
+            return RO;
+        };
+        DevObj->SetObjectField(TEXT("framingRef0"), WriteRef(C.FramingRef0));
+        DevObj->SetObjectField(TEXT("framingRef1"), WriteRef(C.FramingRef1));
+
         DeviceArray.Add(MakeShared<FJsonValueObject>(DevObj));
     }
 
@@ -756,6 +791,47 @@ void UHMCMonitorComponent::LoadConfig()
         DevObj->TryGetStringField(TEXT("ipAddress"),         Config.IPAddress);
         DevObj->TryGetStringField(TEXT("actorID"),         Config.ActorID);
         DevObj->TryGetStringField(TEXT("webSocketEndpoint"), Config.WebSocketEndpoint);
+
+        int32 Pipe = 0;
+        if (DevObj->TryGetNumberField(TEXT("pipeline"), Pipe))
+            Config.Pipeline = (ECapturePipeline)(uint8)Pipe;
+        int32 CapCfg = 0;
+        if (DevObj->TryGetNumberField(TEXT("captureConfig"), CapCfg))
+            Config.CaptureConfig = (ECaptureConfiguration)(uint8)CapCfg;
+        DevObj->TryGetBoolField(TEXT("preppedForPreview"), Config.bPreppedForPreview);
+        DevObj->TryGetBoolField(TEXT("performerPrepConfirmed"), Config.bPerformerPrepConfirmed);
+        DevObj->TryGetBoolField(TEXT("neutralCaptured"), Config.bNeutralCaptured);
+        DevObj->TryGetBoolField(TEXT("teethCaptured"), Config.bTeethCaptured);
+        DevObj->TryGetBoolField(TEXT("romCaptured"), Config.bROMCaptured);
+        DevObj->TryGetStringField(TEXT("neutralStillPath"), Config.NeutralStillPath);
+        DevObj->TryGetStringField(TEXT("teethStillPath"), Config.TeethStillPath);
+        DevObj->TryGetStringField(TEXT("romTakeLabel"), Config.ROMTakeLabel);
+        double FMO = -1.0;
+        if (DevObj->TryGetNumberField(TEXT("focusMinOverride"), FMO)) Config.FocusMinOverride = (float)FMO;
+        DevObj->TryGetBoolField(TEXT("calibStartCaptured"), Config.bCalibStartCaptured);
+        DevObj->TryGetBoolField(TEXT("calibEndCaptured"), Config.bCalibEndCaptured);
+        DevObj->TryGetStringField(TEXT("calibStartStillPath"), Config.CalibStartStillPath);
+        DevObj->TryGetStringField(TEXT("calibEndStillPath"), Config.CalibEndStillPath);
+        FString SR;
+        if (DevObj->TryGetStringField(TEXT("sourceRig"), SR) && !SR.IsEmpty())
+            Config.SourceRig = TSoftObjectPtr<UHMCRigEntry>(FSoftObjectPath(SR));
+
+        auto ReadRef = [](const TSharedPtr<FJsonObject>& Parent, const TCHAR* Key, FHMCFramingRef& R)
+        {
+            const TSharedPtr<FJsonObject>* RO = nullptr;
+            if (Parent->TryGetObjectField(Key, RO) && RO && RO->IsValid())
+            {
+                (*RO)->TryGetBoolField(TEXT("set"), R.bSet);
+                double X = 0.5, Y = 0.5, S = 0.0;
+                (*RO)->TryGetNumberField(TEXT("x"),    X);
+                (*RO)->TryGetNumberField(TEXT("y"),    Y);
+                (*RO)->TryGetNumberField(TEXT("size"), S);
+                R.Center = FVector2D(X, Y);
+                R.Size   = (float)S;
+            }
+        };
+        ReadRef(DevObj, TEXT("framingRef0"), Config.FramingRef0);
+        ReadRef(DevObj, TEXT("framingRef1"), Config.FramingRef1);
 
         if (!Config.DeviceName.IsEmpty())
         {

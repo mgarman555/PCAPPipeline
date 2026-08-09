@@ -186,6 +186,16 @@ int32 UPCAPMocapBridge::SpawnShotToStage(UWorld* World, const FShot& Shot,
 
     for (const FShotSubject& Subject : Shot.Subjects)
     {
+        // Only the talent actually called to this shot. A shot's Subjects list is
+        // the roster of everyone who *could* be in it; bIsActive is the call-out.
+        // The record backend already filters on it (PCAPTakeRecorderSubsystem), so
+        // staging every listed subject would put performers in the level that the
+        // recorder then ignores.
+        if (!Subject.bIsActive)
+        {
+            continue;
+        }
+
         if (ACapturePerformer* Performer = SpawnPerformerForSubject(World, Subject))
         {
             OutSpawned.Add(Performer);

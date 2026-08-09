@@ -13,6 +13,7 @@ Short usage pages, one per tool (also linked from the [plugin README](../Plugins
 - [Operator Console](tools/operator-console.md) — run the takes
 - [HMC Monitor](tools/hmc-monitor.md) — per-camera health checks
 - [VCam Operator](tools/vcam-operator.md) — virtual camera
+- [Take Browser](tools/take-browser.md) — label takes, run the end-of-day queue
 - [Volume Visualizer](tools/volume-visualizer.md) — see the floor to scale
 
 ## Design specs & plans — [`specs/`](specs/)
@@ -34,10 +35,20 @@ Short usage pages, one per tool (also linked from the [plugin README](../Plugins
 
 **Operator**
 - [2026-06-12 Operator Console comfort + integration](specs/2026-06-12-operator-console-comfort-integration.md).
+- [2026-08-09 Send shot to Mocap Manager](specs/2026-08-09-mocap-manager-send-shot-design.md) — **current.** The Operator Console action that stages a called shot onto Epic's Performance Capture actors; closes follow-up #1 of the 5.8 integration.
+
+**Take Browser & post-take**
+- [2026-08-09 Take Browser + processing queue](specs/2026-08-09-take-browser-and-processing-queue-design.md) — **current.** Layer 5. Filter/label takes and drive `FTakeProcessingState`. Read the honesty section: body solve and HMC solve happen outside Unreal, so every step is operator *attestation*, not execution.
 
 **Engine / platform**
 - [2026-06-29 UE 5.8 — Mocap Manager / Performance Capture integration](specs/2026-06-29-ue58-mocap-manager-integration-design.md) — **current.** Engine bump to 5.8; `UPCAPMocapBridge` drives Epic's `ACapturePerformer` / `UPCapPropComponent` from the called shot.
 - [2026-06-29 PCAPTool databases → Mocap Manager (PCap) data model](specs/2026-06-29-pcap-database-adoption-design.md) — **current.** Reflection-based sync projecting our roster/productions onto Epic's `UPCapPerformerDataAsset` / `UPCapPropDataAsset` + `FPCap*Record` DataTables.
+- [2026-08-09 Stage alignment](specs/2026-08-09-pcap-stage-alignment-design.md) — **current.** Pairs `UStageConfigAsset` to Epic's stage by `AssetUID` and reports divergence *before* a shoot day. Closes follow-up #3.
+- [2026-08-09 Take-record reconciliation](specs/2026-08-09-pcap-take-record-reconciliation-design.md) — **current.** Publishes `FTake` into `FPCapTakeRecord` / `FPCapSlateRecord`, plus the deferral policy that stops PCAPTool and the Mocap Manager double-recording. Closes follow-up #4.
+
+## Build & CI — [`ci-setup.md`](ci-setup.md)
+
+[CI setup and operations](ci-setup.md) — registering the self-hosted Windows runner that builds `PCAPPipelineEditor` on every push, the security posture behind having no `pull_request` trigger, and how to read a failed build. Until that runner is registered, the Windows compile gate is still manual: **nothing in this repo is verified until it builds on Windows.**
 
 **VCam**
 - [2026-06-12 VCam panel design](specs/2026-06-12-vcam-panel-design.md) ([core plan](specs/2026-06-12-vcam-panel-c++-core.md)) + [input-layer design](specs/2026-06-12-vcam-input-layer-design.md) — WVCAM replacement; controller input over UDP.

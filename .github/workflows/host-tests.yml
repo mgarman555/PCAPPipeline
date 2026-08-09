@@ -1,0 +1,275 @@
+name: host-tests
+
+# Engine-free gate for the VCam numeric core.
+#
+# Plugins/PCAPTool/HostTests/run.sh compiles the REAL shipping translation units
+# (VCamInputLayer.cpp, VCamProcessor.cpp, VCamCurveSmoothing.cpp) against the UE-math
+# stubs in HostTests/stubs with a plain compiler — no Unreal Engine, no Windows, no
+# Vicon SDK, no MSVC. It therefore runs on free GitHub-hosted runners, which means
+# `main` stays verifiable even when the UE 5.8 build box is powered off. Wall time is
+# ~2.5s of real work; the run is dominated by runner acquisition and checkout.
+#
+# SCOPE — READ THIS BEFORE TREATING A GREEN CHECK AS "IT BUILDS ON WINDOWS".
+# This job catches pure-logic regressions in FVCamInputLayer / FPCAPVCamProcessor /
+# FVCamCurveSmoothing. It catches NEITHER of the two failures recorded in this repo:
+#   (a) The UnrealBuildTool shared-build-environment rejection
+#       ("PCAPPipelineEditor modifies the values of properties …", repo file CodeErrors).
+#       That is a UBT target-configuration error raised before any compiler runs.
+#   (b) The MSVC C4459 unity-build break ("declaration of 'Dt' hides global
+#       declaration", repo file CurrentErrorCodes). That collision exists ONLY because
+#       UBT batches ~47 .cpp files into a single Module.PCAPTool.cpp. run.sh compiles
+#       every file as its own translation unit and never compiles Private/Tests/*.cpp
+#       at all, so it is structurally incapable of reproducing it.
+# Both remain the responsibility of the self-hosted Windows UE build workflow.
+
+on:
+  push:
+    # Every branch: this is the always-available gate, so it must not depend on
+    # branch naming conventions. `branches` (not `tags`) means tag pushes are skipped.
+    branches: ['**']
+  # Fork PRs are safe here and are deliberately allowed: GitHub-hosted runners are
+  # disposable VMs, the token is read-only, and this repo has no Actions secrets.
+  # NEVER convert this to `pull_request_target` — that would run the same
+  # attacker-authored C++ with repository secrets and a write token.
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege. Unlisted scopes are set to `none`, so this is a one-line allowlist.
+# The job only needs to clone. This matters more than usual because the job compiles
+# AND EXECUTES contributor-authored C++.
+permissions:
+  contents: read
+
+concurrency:
+  # `event_name` is part of the key on purpose: a same-repo PR branch fires BOTH a
+  # push and a pull_request event. Without it the two runs share a group and cancel
+  # each other, which can leave a required PR check permanently "cancelled".
+  # `head_ref || ref` keys PR runs on the source branch rather than the merge ref.
+  group: host-tests-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# NOTE: deliberately no `paths:` filter. A path-filtered workflow reports NO status at
+# all on runs that miss the filter, so making it a required check would block merges
+# forever on an unresolvable "Expected — waiting for status". It costs well under a
+# minute; run it unconditionally.
+
+jobs:
+  hosttests:
+    name: VCam host tests (${{ matrix.cxx }} on ${{ matrix.image }})
+    runs-on: ${{ matrix.image }}
+    # ~2.5s of real work. 10 minutes is pure runaway protection.
+    timeout-minutes: 10
+    # The canary leg is allowed to fail without failing the job (see matrix below).
+    continue-on-error: ${{ matrix.canary }}
+    strategy:
+      # Never abort siblings: seeing WHICH legs broke is the whole diagnostic value.
+      # If only the clang leg reddens, suspect the runner image, not the code.
+      fail-fast: false
+      matrix:
+        include:
+          # Both compilers are preinstalled on the image — no setup/install step, which
+          # is what keeps this job dependency-light. Two frontends catch UB and sloppy
+          # conformance that a single compiler would wave through. Both are
+          # warning-clean on this tree today.
+          - cxx: clang++
+            image: ubuntu-24.04
+            canary: false
+          - cxx: g++
+            image: ubuntu-24.04
+            canary: false
+          # `ubuntu-24.04` is PINNED above rather than `ubuntu-latest`, because the
+          # `-latest` label migrates to the next LTS image automatically and can change
+          # the default compiler mid-sprint. This third leg tracks `ubuntu-latest` as a
+          # non-blocking early-warning canary: when it reddens, the next image
+          # migration is about to break the pinned legs and the pin should be bumped.
+          - cxx: clang++
+            image: ubuntu-latest
+            canary: true
+
+    steps:
+      # Pinned to a full 40-char commit SHA, not a tag — a tag is mutable, a SHA is not.
+      # This workflow is the template the rest of the repo's CI will be copied from, so
+      # it must not normalise floating tags.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Shallow: nothing here needs history. (Note: UnrealBuildTool's adaptive-unity
+          # `git status` probe is a concern for the WINDOWS job only — this harness has
+          # no unity build and does not care about depth.)
+          fetch-depth: 1
+          # Keep GITHUB_TOKEN out of .git/config. This job executes a binary built from
+          # contributor-authored source in the same workspace; that binary must not be
+          # able to read a token off disk.
+          persist-credentials: false
+
+      - name: Guard — run.sh must have LF line endings
+        # .gitattributes has `* text=auto` but NO explicit `*.sh text eol=lf` rule, and
+        # this repo is also checked out on a Windows box. A run.sh committed with CRLF
+        # from there fails on Linux with an opaque `$'\r': command not found`. Three
+        # lines here turn that into a named, actionable failure.
+        shell: bash
+        run: |
+          if grep -q $'\r' Plugins/PCAPTool/HostTests/run.sh; then
+            echo "::error file=Plugins/PCAPTool/HostTests/run.sh,title=CRLF line endings::run.sh has CRLF line endings and cannot execute on Linux. Re-commit it with LF, and add '*.sh text eol=lf' to .gitattributes to stop it recurring."
+            exit 1
+          fi
+
+      - name: Build + run host tests
+        # `shell: bash` is REQUIRED, not stylistic. The implicit Linux shell is
+        # `bash -e {0}` with NO pipefail, so `run.sh | tee` would report tee's exit
+        # status (always 0) and every failing test would sail through as green.
+        # Declaring `shell: bash` gives `bash --noprofile --norc -eo pipefail {0}`.
+        shell: bash
+        env:
+          # run.sh honours $CXX (quoted at run.sh:11-13, so it must be a bare command
+          # name or a path — flags cannot be smuggled in through this variable).
+          CXX: ${{ matrix.cxx }}
+          LOG: ${{ runner.temp }}/host-tests.log
+        run: |
+          set -o pipefail  # belt-and-braces; `shell: bash` already sets it
+          # Toolchain provenance goes into the same log, so the job summary records
+          # exactly which compiler produced the result. That is what tells you whether
+          # a red leg is a real regression or a runner-image change.
+          {
+            echo "== toolchain =="
+            "$CXX" --version
+            echo
+          } | tee "$LOG"
+          # run.sh exits non-zero on BOTH failure modes — a failed assertion
+          # (test_main.cpp returns 1 when g_fail != 0) and a compile error
+          # (run.sh:5 `set -euo pipefail`). No extra exit-code handling is needed.
+          # Invoked via `bash` so a lost executable bit cannot break the job.
+          bash Plugins/PCAPTool/HostTests/run.sh 2>&1 | tee -a "$LOG"
+
+      - name: Surface results in job summary
+        # `always()` so a FAILING run — the case that actually needs explaining — still
+        # gets its summary. This step must never change the job's verdict, hence the
+        # careful `|| true` on every grep (grep exits 1 on "no match", which `set -e`
+        # would otherwise treat as a fatal error).
+        if: always()
+        shell: bash
+        env:
+          LOG: ${{ runner.temp }}/host-tests.log
+          CXX: ${{ matrix.cxx }}
+          IMAGE: ${{ matrix.image }}
+          CANARY: ${{ matrix.canary }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          set -uo pipefail  # NOT -e: partial data must still be reported
+
+          hdr="## \`$CXX\` on \`$IMAGE\`"
+          if [ "$CANARY" = "true" ]; then
+            hdr="$hdr — non-blocking canary"
+          fi
+          printf '%s\n\n' "$hdr" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ ! -s "$LOG" ]; then
+            printf '_No output captured — the build step did not start (see the step log)._\n\n' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # ---- headline -------------------------------------------------------
+          # test_main.cpp:312 prints e.g. "38/40 checks passed (2 failed)".
+          # Its ABSENCE means the harness never ran, i.e. compilation failed.
+          result="$(grep -E '^[0-9]+/[0-9]+ checks passed' "$LOG" | tail -n 1 || true)"
+          if [ -n "$result" ]; then
+            if [ "$OUTCOME" = "success" ]; then
+              printf '**%s** ✅\n\n' "$result" >> "$GITHUB_STEP_SUMMARY"
+            else
+              printf '**%s** ❌\n\n' "$result" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            printf '**Compilation failed — the test binary was never produced.**\n\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # ---- failed assertions ----------------------------------------------
+          # Check() prints failures as "  FAIL: <description>" (test_main.cpp:19).
+          fails="$(grep -E '^[[:space:]]+FAIL: ' "$LOG" || true)"
+          if [ -n "$fails" ]; then
+            printf '### Failed checks\n\n' >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r line; do
+              desc="${line#*FAIL: }"
+              printf -- '- `%s`\n' "$desc" >> "$GITHUB_STEP_SUMMARY"
+              # Annotations are safe to build from log text here: workflow commands are
+              # only recognised at the START of a line, and `read` hands us exactly one
+              # line, so contributor-authored text cannot open a new command.
+              echo "::error title=Host test failed ($CXX)::$desc"
+            done <<< "$fails"
+            printf '\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # ---- compile errors --------------------------------------------------
+          # clang/gcc emit "<path>:<line>:<col>: error: <message>". run.sh passes
+          # absolute paths containing "..", so normalise to repo-relative before
+          # annotating or the annotation will not attach to the diff in Files changed.
+          errs="$(grep -E ':[0-9]+:[0-9]+: (fatal error|error): ' "$LOG" \
+                  | sed -E 's/^(.+):([0-9]+):([0-9]+): (fatal error|error): (.*)$/\1\t\2\t\3\t\5/' || true)"
+          if [ -n "$errs" ]; then
+            printf '### Compile errors\n\n' >> "$GITHUB_STEP_SUMMARY"
+            n=0
+            while IFS=$'\t' read -r f l c m; do
+              [ -n "${f:-}" ] || continue
+              abs="$(realpath -m -- "$f" 2>/dev/null || printf '%s' "$f")"
+              rel="$abs"
+              case "$abs" in
+                "$GITHUB_WORKSPACE"/*) rel="${abs#"$GITHUB_WORKSPACE"/}" ;;
+              esac
+              printf -- '- `%s:%s:%s` — %s\n' "$rel" "$l" "$c" "$m" >> "$GITHUB_STEP_SUMMARY"
+              n=$((n + 1))
+              # GitHub silently drops anything past 10 error annotations per step, so
+              # stop emitting them at 10 — but keep listing every error in the summary
+              # above, which has no such cap.
+              if [ "$n" -le 10 ]; then
+                echo "::error file=$rel,line=$l,col=$c,title=Host test compile error ($CXX)::$m"
+              fi
+            done <<< "$errs"
+            printf '\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # ---- full log --------------------------------------------------------
+          # Collapsed so a green run stays quiet, but always present so nobody has to
+          # dig through step logs. Tail-capped because a template-heavy compile error
+          # can produce very large output and $GITHUB_STEP_SUMMARY is limited to 1 MiB.
+          total="$(wc -l < "$LOG")"
+          printf '<details><summary>Full output (%s lines)</summary>\n\n' "$total" >> "$GITHUB_STEP_SUMMARY"
+          printf '`````text\n' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$total" -gt 400 ]; then
+            printf '… truncated, showing the last 400 of %s lines …\n' "$total" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          tail -n 400 "$LOG" >> "$GITHUB_STEP_SUMMARY"
+          printf '`````\n\n</details>\n\n' >> "$GITHUB_STEP_SUMMARY"
+
+  gate:
+    # Single stable name to put in branch protection. Matrix leg names change whenever
+    # the matrix does, so requiring them directly makes branch protection brittle; this
+    # job's name never changes. Add `host-tests / gate` as the required check on main.
+    name: gate
+    needs: hosttests
+    # `always()` so a failed/cancelled matrix reaches this job instead of skipping it —
+    # a skipped required check never resolves and blocks the merge forever.
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check blocking legs
+        shell: bash
+        env:
+          # Aggregate result of the matrix. Legs marked `continue-on-error` (the
+          # ubuntu-latest canary) cannot make this anything other than success, so a
+          # canary break warns without blocking.
+          RESULT: ${{ needs.hosttests.result }}
+        run: |
+          echo "host-tests matrix result: $RESULT"
+          if [ "$RESULT" != "success" ]; then
+            echo "::error title=Host tests failed::Engine-free VCam host tests did not pass (matrix result: $RESULT). See the per-leg job summaries above."
+            exit 1
+          fi
+          echo "All blocking host-test legs passed."
+
+# CROSS-WORKFLOW NOTE for whoever owns the self-hosted Windows UE workflow:
+# `needs:` cannot span workflow FILES, so the Windows job cannot declare
+# `needs: hosttests` against this file. To make this a true bulkhead in front of the
+# operator's build box, either (1) move the Windows job into this file so it can use
+# `needs: gate`, or (2) make `host-tests / gate` a required status check on `main` so
+# nothing merges without it. Option (2) does not stop a push-triggered Windows build
+# from starting in parallel; only option (1) does.

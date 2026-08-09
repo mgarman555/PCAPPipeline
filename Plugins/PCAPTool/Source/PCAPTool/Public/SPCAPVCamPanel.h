@@ -29,8 +29,6 @@ private:
     TSharedPtr<SBox> StatusBox;        // live status line (rebuilt ~10Hz)
     TSharedPtr<SBox> BodyBox;          // controls (rebuilt on config change)
     TSharedPtr<SBox> InputMonitorBox;  // live controller-input readout (rebuilt ~10Hz)
-    int32  MonPrevPacketCount = -1;
-    double MonLastChangeTime = 0.0;
 
     void RebuildStatus();
     void RebuildBody();

@@ -71,7 +71,7 @@ namespace
         return FSoftObjectPath();
     }
 
-    IAssetRegistry* GetAssetRegistry()
+    IAssetRegistry* MocapDataGetAssetRegistry()
     {
         FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
         return &ARM.Get();
@@ -119,7 +119,7 @@ namespace
         return FGuid();
     }
 
-    void SavePackageFor(UObject* Obj)
+    void MocapDataSavePackageFor(UObject* Obj)
     {
         if (Obj)
         {
@@ -146,7 +146,7 @@ TArray<FPCAPPerformerInfo> UPCAPMocapData::GetAllPerformers()
     TArray<FPCAPPerformerInfo> Result;
 
 #if WITH_PCAP_WORKFLOW
-    IAssetRegistry* AR = GetAssetRegistry();
+    IAssetRegistry* AR = MocapDataGetAssetRegistry();
     if (!AR) { return Result; }
 
     TArray<FAssetData> Found;
@@ -177,7 +177,7 @@ TArray<FPCAPPropInfo> UPCAPMocapData::GetAllProps()
     TArray<FPCAPPropInfo> Result;
 
 #if WITH_PCAP_WORKFLOW
-    IAssetRegistry* AR = GetAssetRegistry();
+    IAssetRegistry* AR = MocapDataGetAssetRegistry();
     if (!AR) { return Result; }
 
     TArray<FAssetData> Found;
@@ -209,7 +209,7 @@ TArray<FPCAPCharacterInfo> UPCAPMocapData::GetAllCharacters()
     TArray<FPCAPCharacterInfo> Result;
 
 #if WITH_PCAP_WORKFLOW
-    IAssetRegistry* AR = GetAssetRegistry();
+    IAssetRegistry* AR = MocapDataGetAssetRegistry();
     if (!AR) { return Result; }
 
     TArray<FAssetData> Found;
@@ -240,7 +240,7 @@ UPCAPPerformerExtension* UPCAPMocapData::FindPerformerExtension(const FGuid& Per
 {
     if (!PerformerUID.IsValid()) { return nullptr; }
 
-    IAssetRegistry* AR = GetAssetRegistry();
+    IAssetRegistry* AR = MocapDataGetAssetRegistry();
     if (!AR) { return nullptr; }
 
     TArray<FAssetData> Found;
@@ -290,7 +290,7 @@ UObject* UPCAPMocapData::CreatePerformerAsset(const FString& PackagePath, FName 
     EnsureGuid(Asset, TEXT("AssetUID"), bAssigned);
 
     FAssetRegistryModule::AssetCreated(Asset);
-    SavePackageFor(Asset);
+    MocapDataSavePackageFor(Asset);
     return Asset;
 #else
     return nullptr;
@@ -303,7 +303,7 @@ UPCAPPerformerExtension* UPCAPMocapData::EnsurePerformerExtension(UObject* Perfo
 
     bool bAssigned = false;
     const FGuid UID = EnsureGuid(PerformerAsset, TEXT("AssetUID"), bAssigned);
-    if (bAssigned) { SavePackageFor(PerformerAsset); }   // persist a freshly-minted UID
+    if (bAssigned) { MocapDataSavePackageFor(PerformerAsset); }   // persist a freshly-minted UID
     if (!UID.IsValid()) { return nullptr; }
 
     if (UPCAPPerformerExtension* Existing = FindPerformerExtension(UID))
@@ -324,7 +324,7 @@ UPCAPPerformerExtension* UPCAPMocapData::EnsurePerformerExtension(UObject* Perfo
     Ext->PerformerAsset   = PerformerAsset;
 
     FAssetRegistryModule::AssetCreated(Ext);
-    SavePackageFor(Ext);
+    MocapDataSavePackageFor(Ext);
     return Ext;
 }
 
@@ -354,7 +354,7 @@ UObject* UPCAPMocapData::CreatePropAsset(const FString& PackagePath, FName PropN
     EnsureGuid(Asset, TEXT("AssetUID"), bAssigned);
 
     FAssetRegistryModule::AssetCreated(Asset);
-    SavePackageFor(Asset);
+    MocapDataSavePackageFor(Asset);
     return Asset;
 #else
     return nullptr;
@@ -365,7 +365,7 @@ UPCAPPropExtension* UPCAPMocapData::FindPropExtension(const FGuid& PropUID)
 {
     if (!PropUID.IsValid()) { return nullptr; }
 
-    IAssetRegistry* AR = GetAssetRegistry();
+    IAssetRegistry* AR = MocapDataGetAssetRegistry();
     if (!AR) { return nullptr; }
 
     TArray<FAssetData> Found;
@@ -390,7 +390,7 @@ UPCAPPropExtension* UPCAPMocapData::EnsurePropExtension(UObject* PropAsset)
 
     bool bAssigned = false;
     const FGuid UID = EnsureGuid(PropAsset, TEXT("AssetUID"), bAssigned);
-    if (bAssigned) { SavePackageFor(PropAsset); }
+    if (bAssigned) { MocapDataSavePackageFor(PropAsset); }
     if (!UID.IsValid()) { return nullptr; }
 
     if (UPCAPPropExtension* Existing = FindPropExtension(UID))
@@ -410,7 +410,7 @@ UPCAPPropExtension* UPCAPMocapData::EnsurePropExtension(UObject* PropAsset)
     Ext->PropAsset   = PropAsset;
 
     FAssetRegistryModule::AssetCreated(Ext);
-    SavePackageFor(Ext);
+    MocapDataSavePackageFor(Ext);
     return Ext;
 }
 
@@ -419,7 +419,7 @@ int32 UPCAPMocapData::MigrateRosterToPCap(const FString& PackagePath)
     int32 Created = 0;
 
 #if WITH_PCAP_WORKFLOW
-    IAssetRegistry* AR = GetAssetRegistry();
+    IAssetRegistry* AR = MocapDataGetAssetRegistry();
     if (!AR) { return 0; }
 
     TArray<FAssetData> Found;
@@ -443,7 +443,7 @@ int32 UPCAPMocapData::MigrateRosterToPCap(const FString& PackagePath)
             Ext->Headshot               = Roster->Headshot;
             Ext->ProductionHistory      = Roster->ProductionHistory;
             Ext->Notes                  = Roster->Notes;
-            SavePackageFor(Ext);
+            MocapDataSavePackageFor(Ext);
         }
         ++Created;
     }

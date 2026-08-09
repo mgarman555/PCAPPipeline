@@ -5,7 +5,6 @@
 #include "PCAPToolTypes.h"       // EStreamStatus
 
 #include "Engine/Engine.h"
-#include "HAL/PlatformTime.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
@@ -20,6 +19,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
+#include "Styling/SlateColor.h"
 #include "PropertyCustomizationHelpers.h"
 #include "AssetRegistry/AssetData.h"
 
@@ -194,16 +194,22 @@ void SPCAPVCamPanel::RebuildInputMonitor()
     UPCAPVCamSubsystem* V = GetVCam();
     if (!V) { InputMonitorBox->SetContent(SNullWidget::NullWidget); return; }
 
-    const int32 Count = V->GetInputPacketCount();
-    const double Now = FPlatformTime::Seconds();
-    if (Count != MonPrevPacketCount) { MonPrevPacketCount = Count; MonLastChangeTime = Now; }
-    const bool bReceiving = (Count > 0) && ((Now - MonLastChangeTime) < 0.5);
+    // Staleness comes from the subsystem, not a local timer: it is the same gate the tick uses to
+    // decide whether the last packet may still drive the camera, so this readout can never say
+    // "stalled" while the camera is still being flown by a dead feed.
+    const int32  Count      = V->GetInputPacketCount();
+    const bool   bReceiving = V->IsReceivingControllerInput();
+    const FString FeedError = V->GetControllerFeedError();
 
     const FVCamControllerInput In = V->GetLatestInput();
 
-    const FString Status = bReceiving
-        ? FString::Printf(TEXT("receiving · seq %d"), Count)
+    // A failed bind reads differently from silence — "port in use" and "the script isn't running"
+    // are different problems with different fixes.
+    const FString Status = !FeedError.IsEmpty()
+        ? FeedError
+        : bReceiving ? FString::Printf(TEXT("receiving · seq %d"), Count)
         : (Count > 0 ? TEXT("stalled (no new packets)") : TEXT("waiting for WVCAM…"));
+    const FLinearColor StatusCol = !FeedError.IsEmpty() ? ColRed : (bReceiving ? ColGreen : ColText2);
 
     auto Pill = [this](const FString& L, bool bOn) -> TSharedRef<SWidget>
     {
@@ -247,7 +253,7 @@ void SPCAPVCamPanel::RebuildInputMonitor()
                 [ SNew(STextBlock).Text(LOCTEXT("InHdr", "Controller input")).ColorAndOpacity(ColLabel) ]
                 + SHorizontalBox::Slot().FillWidth(1.f)[ SNew(SSpacer) ]
                 + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-                [ SNew(STextBlock).Text(FText::FromString(Status)).ColorAndOpacity(bReceiving ? ColGreen : ColText2) ]
+                [ SNew(STextBlock).Text(FText::FromString(Status)).ColorAndOpacity(StatusCol) ]
             ]
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
             [ SNew(STextBlock).Font(FCoreStyle::GetDefaultFontStyle("Mono", 11)).Text(FText::FromString(Axes)) ]
@@ -299,12 +305,15 @@ TSharedRef<SWidget> SPCAPVCamPanel::OffsetField(int32 OffsetId, bool bRotation, 
             if (bRotation) { return (float)((Comp == 0) ? O->Rotation.Pitch : (Comp == 1) ? O->Rotation.Yaw : O->Rotation.Roll); }
             return (float)((Comp == 0) ? O->Translation.X : (Comp == 1) ? O->Translation.Y : O->Translation.Z);
         })
-        .OnValueChanged_Lambda([Resolve, bRotation, Comp](float NewVal)
+        .OnValueChanged_Lambda([this, Resolve, bRotation, Comp](float NewVal)
         {
             FPCAPVCamAlignOffset* O = Resolve();
             if (!O) { return; }
             if (bRotation) { if (Comp == 0) O->Rotation.Pitch = NewVal; else if (Comp == 1) O->Rotation.Yaw = NewVal; else O->Rotation.Roll = NewVal; }
             else           { if (Comp == 0) O->Translation.X = NewVal; else if (Comp == 1) O->Translation.Y = NewVal; else O->Translation.Z = NewVal; }
+            // Rig axis calibration typed here is a shoot day's work — dirty the asset so the
+            // editor prompts to save it (the config is a real saved package).
+            if (UPCAPVCamSubsystem* S = GetVCam()) { S->MarkConfigDirty(); }
         });
 }
 
@@ -341,6 +350,7 @@ TSharedRef<SWidget> SPCAPVCamPanel::BuildOffsetBlock(const FText& Title, int32 O
                 {
                     const FPCAPVCamAlignOffset Def;
                     if (OffsetId == 0) C->AlignRigidBody = Def; else if (OffsetId == 1) C->Setup = Def; else C->Navigate = Def;
+                    V->MarkConfigDirty();
                 }
                 return FReply::Handled();
             })
@@ -385,13 +395,13 @@ TSharedRef<SWidget> SPCAPVCamPanel::BuildModesSection()
         + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 12.f, 0.f)
         [ SNew(SSpinBox<float>).MinValue(1.f).MaxValue(20.f).MinDesiredWidth(54.f)
             .Value_Lambda([this]() { UPCAPVCamSubsystem* S=GetVCam(); UPCAPVCamConfig* C=S?S->GetActiveConfig():nullptr; return C?C->Smoothing.PositionSmoothing:10.f; })
-            .OnValueChanged_Lambda([this](float v) { UPCAPVCamSubsystem* S=GetVCam(); if (UPCAPVCamConfig* C=S?S->GetActiveConfig():nullptr) C->Smoothing.PositionSmoothing=v; }) ]
+            .OnValueChanged_Lambda([this](float v) { UPCAPVCamSubsystem* S=GetVCam(); if (UPCAPVCamConfig* C=S?S->GetActiveConfig():nullptr) { C->Smoothing.PositionSmoothing=v; S->MarkConfigDirty(); } }) ]
         + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 4.f, 0.f)
         [ SNew(STextBlock).Text(LOCTEXT("SmRot", "Smooth rot")).ColorAndOpacity(ColText2) ]
         + SHorizontalBox::Slot().AutoWidth()
         [ SNew(SSpinBox<float>).MinValue(1.f).MaxValue(20.f).MinDesiredWidth(54.f)
             .Value_Lambda([this]() { UPCAPVCamSubsystem* S=GetVCam(); UPCAPVCamConfig* C=S?S->GetActiveConfig():nullptr; return C?C->Smoothing.RotationSmoothing:10.f; })
-            .OnValueChanged_Lambda([this](float v) { UPCAPVCamSubsystem* S=GetVCam(); if (UPCAPVCamConfig* C=S?S->GetActiveConfig():nullptr) C->Smoothing.RotationSmoothing=v; }) ]
+            .OnValueChanged_Lambda([this](float v) { UPCAPVCamSubsystem* S=GetVCam(); if (UPCAPVCamConfig* C=S?S->GetActiveConfig():nullptr) { C->Smoothing.RotationSmoothing=v; S->MarkConfigDirty(); } }) ]
     ];
 
     return MakeSection(LOCTEXT("ModesSec", "Options / modes"), Box);
@@ -435,42 +445,38 @@ TSharedRef<SWidget> SPCAPVCamPanel::BuildLensSection()
 
 TSharedRef<SWidget> SPCAPVCamPanel::BuildScalingSection()
 {
-    auto ScaleField = [this](bool bWorld, int32 Comp) -> TSharedRef<SWidget>
+    // World scale only. There is no camera-space scaling step in the locked 14-step chain
+    // (design §5) and nothing reads Scaling.CameraSpaceScale, so the old "Cam" row was a control
+    // that looked identical to this one and did nothing at all.
+    auto ScaleField = [this](int32 Comp) -> TSharedRef<SWidget>
     {
         return SNew(SSpinBox<float>).MinValue(0.01f).MaxValue(100.f).MinDesiredWidth(44.f)
-            .Value_Lambda([this, bWorld, Comp]() -> float
+            .Value_Lambda([this, Comp]() -> float
             {
                 UPCAPVCamSubsystem* S = GetVCam(); UPCAPVCamConfig* C = S ? S->GetActiveConfig() : nullptr;
                 if (!C) { return 1.f; }
-                const FVector& Vec = bWorld ? C->Scaling.WorldSpaceScale : C->Scaling.CameraSpaceScale;
+                const FVector& Vec = C->Scaling.WorldSpaceScale;
                 return (float)((Comp == 0) ? Vec.X : (Comp == 1) ? Vec.Y : Vec.Z);
             })
-            .OnValueChanged_Lambda([this, bWorld, Comp](float NewVal)
+            .OnValueChanged_Lambda([this, Comp](float NewVal)
             {
                 UPCAPVCamSubsystem* S = GetVCam(); UPCAPVCamConfig* C = S ? S->GetActiveConfig() : nullptr;
                 if (!C) { return; }
-                FVector& Vec = bWorld ? C->Scaling.WorldSpaceScale : C->Scaling.CameraSpaceScale;
+                FVector& Vec = C->Scaling.WorldSpaceScale;
                 if (Comp == 0) Vec.X = NewVal; else if (Comp == 1) Vec.Y = NewVal; else Vec.Z = NewVal;
+                S->MarkConfigDirty();
             });
     };
 
     return MakeSection(LOCTEXT("ScaleSec", "Scaling"),
         SNew(SVerticalBox)
-        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
-        [
-            SNew(SHorizontalBox)
-            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 4.f, 0.f)[ SNew(STextBlock).Text(LOCTEXT("World", "World")).ColorAndOpacity(ColText2) ]
-            + SHorizontalBox::Slot().FillWidth(1.f).Padding(1.f, 0.f)[ ScaleField(true, 0) ]
-            + SHorizontalBox::Slot().FillWidth(1.f).Padding(1.f, 0.f)[ ScaleField(true, 1) ]
-            + SHorizontalBox::Slot().FillWidth(1.f).Padding(1.f, 0.f)[ ScaleField(true, 2) ]
-        ]
         + SVerticalBox::Slot().AutoHeight()
         [
             SNew(SHorizontalBox)
-            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 4.f, 0.f)[ SNew(STextBlock).Text(LOCTEXT("Cam", "Cam")).ColorAndOpacity(ColText2) ]
-            + SHorizontalBox::Slot().FillWidth(1.f).Padding(1.f, 0.f)[ ScaleField(false, 0) ]
-            + SHorizontalBox::Slot().FillWidth(1.f).Padding(1.f, 0.f)[ ScaleField(false, 1) ]
-            + SHorizontalBox::Slot().FillWidth(1.f).Padding(1.f, 0.f)[ ScaleField(false, 2) ]
+            + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 4.f, 0.f)[ SNew(STextBlock).Text(LOCTEXT("World", "World")).ColorAndOpacity(ColText2) ]
+            + SHorizontalBox::Slot().FillWidth(1.f).Padding(1.f, 0.f)[ ScaleField(0) ]
+            + SHorizontalBox::Slot().FillWidth(1.f).Padding(1.f, 0.f)[ ScaleField(1) ]
+            + SHorizontalBox::Slot().FillWidth(1.f).Padding(1.f, 0.f)[ ScaleField(2) ]
         ]
     );
 }
@@ -559,7 +565,7 @@ TSharedRef<SWidget> SPCAPVCamPanel::BuildControllerSection()
         ]
     ];
 
-    Box->AddSlot().AutoHeight()
+    Box->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
     [
         SNew(SHorizontalBox)
         + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 4.f, 0.f)
@@ -568,6 +574,45 @@ TSharedRef<SWidget> SPCAPVCamPanel::BuildControllerSection()
         [ SNew(SSpinBox<float>).MinValue(0.01f).MaxValue(1.f)
             .Value_Lambda([this]() { UPCAPVCamSubsystem* S=GetVCam(); return S ? S->GetTranslationGain() : 0.5f; })
             .OnValueChanged_Lambda([this](float v) { if (UPCAPVCamSubsystem* S=GetVCam()) S->SetTranslationGain(v); }) ]
+    ];
+
+    // Controller feed — which UDP endpoint the listener is on, whether the socket is actually
+    // open, and the way back from a failed bind. The endpoint itself lives on the config
+    // (edited in the VCam Database); this row is the operator's read on it from here.
+    Box->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+    [
+        SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 4.f, 0.f)
+        [ SNew(STextBlock).Text(LOCTEXT("Feed", "Feed")).ColorAndOpacity(ColText2) ]
+        + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+        [ SNew(STextBlock).Font(FCoreStyle::GetDefaultFontStyle("Mono", 11))
+            .Text_Lambda([this]() { UPCAPVCamSubsystem* S=GetVCam(); return FText::FromString(S ? S->GetControllerFeedEndpoint() : TEXT("--")); })
+            .ColorAndOpacity_Lambda([this]() { UPCAPVCamSubsystem* S=GetVCam(); return FSlateColor((S && S->IsControllerFeedBound()) ? ColGreen : ColRed); }) ]
+        + SHorizontalBox::Slot().AutoWidth()
+        [ SNew(SButton).Text(LOCTEXT("Reconnect", "Reconnect"))
+            .ToolTipText(LOCTEXT("ReconnectTip", "Re-open the controller-feed socket. Use after a failed bind (port already in use — a second editor or a leftover WVCAM process), or after editing ControllerFeedIP/Port on the config."))
+            .OnClicked_Lambda([this]() { if (UPCAPVCamSubsystem* S=GetVCam()) S->RestartControllerFeed(); return FReply::Handled(); }) ]
+    ];
+
+    // Sony platforming leaves its XY offset on the config, and the processor applies it whatever
+    // layout is active — so a stale offset biases every later shot. This is the manual clear;
+    // switching away from the Sony layout also folds it out (without moving the camera).
+    Box->AddSlot().AutoHeight()
+    [
+        SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 4.f, 0.f)
+        [ SNew(STextBlock).Text(LOCTEXT("Plat", "Platform XY")).ColorAndOpacity(ColText2) ]
+        + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+        [ SNew(STextBlock).Font(FCoreStyle::GetDefaultFontStyle("Mono", 11))
+            .Text_Lambda([this]()
+            {
+                UPCAPVCamSubsystem* S=GetVCam(); UPCAPVCamConfig* C=S?S->GetActiveConfig():nullptr;
+                return FText::FromString(C ? FString::Printf(TEXT("%+.1f / %+.1f cm"), C->Platform.Translation.X, C->Platform.Translation.Y) : TEXT("--"));
+            }) ]
+        + SHorizontalBox::Slot().AutoWidth()
+        [ SNew(SButton).Text(LOCTEXT("ZeroPlat", "Zero"))
+            .ToolTipText(LOCTEXT("ZeroPlatTip", "Clear the Sony platform offset. The camera moves back by that offset. While the Sony layout is live the stick accumulator re-applies it on the next packet — the controller's right_x is the clear that also zeroes the accumulator."))
+            .OnClicked_Lambda([this]() { if (UPCAPVCamSubsystem* S=GetVCam()) S->ResetPlatformOffset(); return FReply::Handled(); }) ]
     ];
 
     return MakeSection(LOCTEXT("CtlSec", "Controller"), Box);
