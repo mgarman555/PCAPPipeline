@@ -16,6 +16,8 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Views/STableRow.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "PropertyCustomizationHelpers.h"
 #include "Styling/AppStyle.h"
 #include "Engine/Texture2D.h"
@@ -24,6 +26,8 @@
 #include "Modules/ModuleManager.h"
 #include "FileHelpers.h"
 #include "ObjectTools.h"
+#include "Misc/PackageName.h"
+#include "ScopedTransaction.h"
 #include "UObject/Package.h"
 #include "Editor.h"
 #include "Subsystems/AssetEditorSubsystem.h"
@@ -33,6 +37,9 @@
 
 #include "SPCAPPanelStyle.h"
 
+// Helpers are prefixed per-panel: under UE's unity (combined-translation-unit) builds
+// every anonymous namespace in the blob is the same namespace, so a bare name shared
+// with a sibling panel is a redefinition (see the note in SPCAPPanelStyle.h).
 namespace
 {
     // Short card summary: the rig's type (= capture config) + its IP.
@@ -42,6 +49,43 @@ namespace
         const FString TypeStr = StaticEnum<ECaptureConfiguration>()->GetDisplayNameTextByValue((int64)R->Type).ToString();
         const FString IPStr   = R->IPAddress.IsEmpty() ? FString(TEXT("no IP")) : R->IPAddress;
         return FString::Printf(TEXT("%s · %s"), *TypeStr, *IPStr);
+    }
+
+    // Editor toast — the plugin's standard operator feedback (SPCAPActorDatabasePanel's
+    // PCAPActorDBNotify). A create that goes nowhere has to say so on screen; nobody is
+    // reading the output log on the floor.
+    void PCAPHMCDBNotify(const FText& Message)
+    {
+        FNotificationInfo Info(Message);
+        Info.ExpireDuration = 4.0f;
+        FSlateNotificationManager::Get().AddNotification(Info);
+    }
+
+    // The typed rig name as an asset name: spaces to underscores (folder/package names are
+    // space-free), then UE's own object-name sanitizer. Shared by the create path and its
+    // collision check so both agree on what "Orion 2" actually lands on — "Orion_2".
+    FString PCAPHMCDBAssetName(const FString& RigName)
+    {
+        FString AssetName = RigName;
+        AssetName.ReplaceInline(TEXT(" "), TEXT("_"));
+        return ObjectTools::SanitizeObjectName(AssetName);
+    }
+
+    // Apply one committed edit to the rig: transacted (the asset is created RF_Transactional,
+    // so Ctrl-Z works) and dirtied. Without the dirty the scrim — which closes the card on any
+    // click outside it, the natural dismiss gesture — throws the edit away: nothing is dirty,
+    // so the editor never prompts at exit. "Save" below the card is then a shortcut, not the
+    // only path a typed IP has to disk.
+    void PCAPHMCDBEditRig(const TWeakObjectPtr<UHMCRigEntry>& WeakRig, const FText& TransactionText,
+                          TFunction<void(UHMCRigEntry&)> Edit)
+    {
+        UHMCRigEntry* Rig = WeakRig.Get();
+        if (!Rig) { return; }
+
+        const FScopedTransaction Transaction(TransactionText);
+        Rig->Modify();
+        Edit(*Rig);
+        Rig->MarkPackageDirty();
     }
 }
 
@@ -146,9 +190,8 @@ UHMCRigEntry* SPCAPHMCDatabasePanel::CreateRigAsset(const FString& RigName)
 {
     if (RigName.IsEmpty()) return nullptr;
 
-    FString AssetName = RigName;
-    AssetName.ReplaceInline(TEXT(" "), TEXT("_"));
-    AssetName = ObjectTools::SanitizeObjectName(AssetName);
+    const FString AssetName = PCAPHMCDBAssetName(RigName);
+    if (AssetName.IsEmpty()) return nullptr;
 
     const FString PackageName = FString::Printf(TEXT("%s/%s"), *PCAPPaths::HMCRigsDir(), *AssetName);
     if (FPackageName::DoesPackageExist(PackageName)) return nullptr;
@@ -234,11 +277,44 @@ void SPCAPHMCDatabasePanel::OnNewRigCommitted(const FText& Text, ETextCommit::Ty
     if (CommitType != ETextCommit::OnEnter) return;
     const FString Name = Text.ToString().TrimStartAndEnd();
     if (Name.IsEmpty()) return;
-    if (UHMCRigEntry* Created = CreateRigAsset(Name))
+
+    // Every way this can fail says so. CreateRigAsset only reports nullptr, and its two
+    // failures look identical from here — an operator who presses ↵ and gets no card has
+    // no way to tell a name clash from a broken package. Same shape as the Prop library's
+    // OnNewPropCommitted, and as the Production library's number-collision toast.
+    const FString AssetName = PCAPHMCDBAssetName(Name);
+    if (AssetName.IsEmpty())
     {
-        ReloadRigs();
-        if (TileView.IsValid()) TileView->SetSelection(TWeakObjectPtr<UHMCRigEntry>(Created));
+        PCAPHMCDBNotify(FText::Format(LOCTEXT("NewBadName", "\"{0}\" has no characters that are legal in an asset name."), Text));
+        return;
     }
+
+    const FString RigsDir = PCAPPaths::HMCRigsDir();
+    if (FPackageName::DoesPackageExist(FString::Printf(TEXT("%s/%s"), *RigsDir, *AssetName)))
+    {
+        // Quote the *sanitized* name back: spaces became underscores, so "Orion 2" collides
+        // with an existing "Orion_2" and the typed name alone would look free. The tiles come
+        // from the asset registry while this check reads disk, so at editor start the rig can
+        // exist with no card showing yet — say which of the two the operator is looking at.
+        const bool bListed = AllRigs.ContainsByPredicate([&AssetName](const TWeakObjectPtr<UHMCRigEntry>& R)
+            { return R.IsValid() && R->GetName().Equals(AssetName, ESearchCase::IgnoreCase); });
+
+        PCAPHMCDBNotify(bListed
+            ? FText::Format(LOCTEXT("NewExists", "An HMC rig named \"{0}\" already exists."), FText::FromString(AssetName))
+            : FText::Format(LOCTEXT("NewExistsUnlisted", "An HMC rig named \"{0}\" already exists — the library is still loading, so its card is not showing yet."), FText::FromString(AssetName)));
+        return;
+    }
+
+    UHMCRigEntry* Created = CreateRigAsset(Name);
+    if (!Created)
+    {
+        PCAPHMCDBNotify(FText::Format(LOCTEXT("NewFailed", "Could not create HMC rig \"{0}\" — see the output log."), FText::FromString(AssetName)));
+        UE_LOG(LogTemp, Warning, TEXT("[PCAP] HMC Database: CreateRigAsset failed for '%s' at %s."), *AssetName, *RigsDir);
+        return;
+    }
+
+    ReloadRigs();
+    if (TileView.IsValid()) TileView->SetSelection(TWeakObjectPtr<UHMCRigEntry>(Created));
 }
 
 void SPCAPHMCDatabasePanel::CloseDetail()
@@ -322,13 +398,29 @@ TSharedRef<SWidget> SPCAPHMCDatabasePanel::BuildDetailFor(UHMCRigEntry* Entry)
                     + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 2.f)
                     [ SNew(STextBlock).Text(LOCTEXT("RigName", "Rig name")).ColorAndOpacity(FSlateColor(ColLabel)) ]
                     + SVerticalBox::Slot().AutoHeight()
-                    [ SNew(SEditableTextBox).Text(FText::FromString(Entry->RigName)).OnTextCommitted_Lambda([this, Weak](const FText& T, ETextCommit::Type){ if (Weak.IsValid()) { Weak->RigName = T.ToString(); if (TileView.IsValid()) TileView->RequestListRefresh(); } }) ]
+                    [ SNew(SEditableTextBox).Text(FText::FromString(Entry->RigName)).OnTextCommitted_Lambda([this, Weak](const FText& T, ETextCommit::Type)
+                      {
+                          // Text boxes commit on focus loss too — only spend a transaction (and
+                          // dirty the package) when the value actually changed.
+                          const FString NewName = T.ToString();
+                          if (!Weak.IsValid() || Weak->RigName == NewName) return;
+                          PCAPHMCDBEditRig(Weak, LOCTEXT("RigNameTx", "Rename HMC Rig"),
+                              [&NewName](UHMCRigEntry& R) { R.RigName = NewName; });
+                          if (TileView.IsValid()) TileView->RequestListRefresh();
+                      }) ]
                     + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 2.f)
                     [ SNew(STextBlock).Text(LOCTEXT("Img", "Card image")).ColorAndOpacity(FSlateColor(ColLabel)) ]
                     + SVerticalBox::Slot().AutoHeight()
                     [ SNew(SObjectPropertyEntryBox).AllowedClass(UTexture2D::StaticClass()).DisplayThumbnail(false)
                       .ObjectPath_Lambda([Weak]() { return Weak.IsValid() ? Weak->Thumbnail.ToString() : FString(); })
-                      .OnObjectChanged_Lambda([this, Weak](const FAssetData& AD) { if (Weak.IsValid()) { Weak->Thumbnail = TSoftObjectPtr<UTexture2D>(AD.GetSoftObjectPath()); if (SelectedRig.IsValid() && DetailBox.IsValid()) DetailBox->SetContent(BuildDetailFor(SelectedRig.Get())); } }) ]
+                      .OnObjectChanged_Lambda([this, Weak](const FAssetData& AD)
+                      {
+                          const FSoftObjectPath NewThumb = AD.GetSoftObjectPath();
+                          if (!Weak.IsValid() || Weak->Thumbnail.ToSoftObjectPath() == NewThumb) return;
+                          PCAPHMCDBEditRig(Weak, LOCTEXT("RigThumbTx", "Set HMC Rig Card Image"),
+                              [&NewThumb](UHMCRigEntry& R) { R.Thumbnail = TSoftObjectPtr<UTexture2D>(NewThumb); });
+                          if (SelectedRig.IsValid() && DetailBox.IsValid()) DetailBox->SetContent(BuildDetailFor(SelectedRig.Get()));
+                      }) ]
                 ]
             ]
 
@@ -336,17 +428,35 @@ TSharedRef<SWidget> SPCAPHMCDatabasePanel::BuildDetailFor(UHMCRigEntry* Entry)
             [ SNew(STextBlock).Text(LOCTEXT("RigCfg", "Rig setup")).ColorAndOpacity(FSlateColor(ColGreen)) ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f)
-            [ MakeEnumRow(TEXT("Type"), StaticEnum<ECaptureConfiguration>(), (int32)Entry->Type, [Weak](int32 V){ if (Weak.IsValid()) Weak->Type = (ECaptureConfiguration)V; }) ]
+            [ MakeEnumRow(TEXT("Type"), StaticEnum<ECaptureConfiguration>(), (int32)Entry->Type, [Weak](int32 V)
+              {
+                  if (!Weak.IsValid() || Weak->Type == (ECaptureConfiguration)V) return;
+                  PCAPHMCDBEditRig(Weak, LOCTEXT("RigTypeTx", "Set HMC Rig Type"),
+                      [V](UHMCRigEntry& R) { R.Type = (ECaptureConfiguration)V; });
+              }) ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 2.f)
             [ SNew(STextBlock).Text(LOCTEXT("IP", "IP address")).ColorAndOpacity(FSlateColor(ColLabel)) ]
             + SVerticalBox::Slot().AutoHeight()
-            [ SNew(SEditableTextBox).Text(FText::FromString(Entry->IPAddress)).OnTextCommitted_Lambda([this, Weak](const FText& T, ETextCommit::Type){ if (Weak.IsValid()) { Weak->IPAddress = T.ToString(); if (TileView.IsValid()) TileView->RequestListRefresh(); } }) ]
+            [ SNew(SEditableTextBox).Text(FText::FromString(Entry->IPAddress)).OnTextCommitted_Lambda([this, Weak](const FText& T, ETextCommit::Type)
+              {
+                  const FString NewIP = T.ToString();
+                  if (!Weak.IsValid() || Weak->IPAddress == NewIP) return;
+                  PCAPHMCDBEditRig(Weak, LOCTEXT("RigIPTx", "Set HMC Rig IP Address"),
+                      [&NewIP](UHMCRigEntry& R) { R.IPAddress = NewIP; });
+                  if (TileView.IsValid()) TileView->RequestListRefresh();
+              }) ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 2.f)
             [ SNew(STextBlock).Text(LOCTEXT("Notes", "Notes")).ColorAndOpacity(FSlateColor(ColLabel)) ]
             + SVerticalBox::Slot().AutoHeight()
-            [ SNew(SMultiLineEditableTextBox).Text(FText::FromString(Entry->Notes)).OnTextCommitted_Lambda([Weak](const FText& T, ETextCommit::Type){ if (Weak.IsValid()) Weak->Notes = T.ToString(); }) ]
+            [ SNew(SMultiLineEditableTextBox).Text(FText::FromString(Entry->Notes)).OnTextCommitted_Lambda([Weak](const FText& T, ETextCommit::Type)
+              {
+                  const FString NewNotes = T.ToString();
+                  if (!Weak.IsValid() || Weak->Notes == NewNotes) return;
+                  PCAPHMCDBEditRig(Weak, LOCTEXT("RigNotesTx", "Edit HMC Rig Notes"),
+                      [&NewNotes](UHMCRigEntry& R) { R.Notes = NewNotes; });
+              }) ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 14.f, 0.f, 0.f)
             [

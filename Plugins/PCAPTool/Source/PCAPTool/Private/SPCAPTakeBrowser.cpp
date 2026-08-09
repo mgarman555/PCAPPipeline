@@ -639,11 +639,11 @@ bool SPCAPTakeBrowser::CanProcessAllQueued(FText& OutReason, FString& OutSummary
 
     for (const FPCAPTakeKey& Handle : Eligible)
     {
-        FString BlockedReason;
+        FText BlockedReason;
         if (!Queue->CanQueueTake(Handle, BlockedReason))
         {
             ++NumBlocked;
-            if (FirstBlockedReason.IsEmpty()) { FirstBlockedReason = BlockedReason; }
+            if (FirstBlockedReason.IsEmpty()) { FirstBlockedReason = BlockedReason.ToString(); }
             continue;
         }
         ++NumAdmittable;
@@ -663,11 +663,33 @@ bool SPCAPTakeBrowser::CanProcessAllQueued(FText& OutReason, FString& OutSummary
 
     if (NumAdmittable <= 0)
     {
+        // The loop above only ever sees takes the queue already judged eligible, so a take
+        // that IS labelled Best or Alt but was rejected for having no record timestamp (a
+        // seeded calibration / test / retarget slot) or for having already finished never
+        // reaches CanQueueTake. Ask about the labelled takes directly before falling back to
+        // "nothing is labelled", which would otherwise contradict the operator who just
+        // labelled one. Captured is the untouched default and is not a blocker.
+        if (NumBlocked <= 0)
+        {
+            for (const FTakeRowPtr& Ptr : AllTakes)
+            {
+                if (!Ptr.IsValid() || Ptr->Label == ETakeLabel::Captured) { continue; }
+
+                FText LabelledReason;
+                if (!Queue->CanQueueTake(PCAPTakeBrowserHandleFor(*Ptr), LabelledReason))
+                {
+                    ++NumBlocked;
+                    if (FirstBlockedReason.IsEmpty()) { FirstBlockedReason = LabelledReason.ToString(); }
+                }
+            }
+        }
+
         // Name the actual blocker rather than guessing at it — CanQueueTake already
-        // phrased it for the operator.
+        // phrased it for the operator. "labelled" rather than "eligible": the scan above
+        // deliberately includes takes the eligibility rule rejected.
         OutReason = (NumBlocked > 0)
             ? FText::FromString(FString::Printf(
-                TEXT("Nothing new to queue — %d eligible take(s), none admittable right now. %s"),
+                TEXT("Nothing new to queue — %d labelled take(s), none admittable right now. %s"),
                 NumBlocked, *FirstBlockedReason))
             : LOCTEXT("QueueNothingWaiting", "Nothing to queue — no take is labelled Best or Alt. Select a take and label it Best or Alt first; Burn is archived raw and is never processed.");
         return false;
@@ -769,7 +791,35 @@ FReply SPCAPTakeBrowser::OnProcessAllQueuedClicked()
     const FPCAPQueueReport Result = Queue->QueueAllTakes();
 
     UE_LOG(LogTemp, Log, TEXT("[PCAP] Take Browser: %s"), *Queue->DescribeReport(Result));
-    NotifyOperator(FText::FromString(Queue->DescribeReport(Result)));
+
+    // The counts alone are how a take vanishes from a shoot day with nobody seeing it go.
+    // The queue writes one operator-facing line per skipped take — Burn included, so the
+    // archived-raw rule is seen being applied — and every one of them goes to the log.
+    for (const FString& SkipLine : Result.SkipReasons)
+    {
+        UE_LOG(LogTemp, Log, TEXT("[PCAP] Take Browser: skipped — %s"), *SkipLine);
+    }
+
+    // The toast names as many as it can hold and points at the log for the rest. The lines
+    // are in the order the pass walked the database, so a long run of already-queued takes
+    // on a second press can push the others past the cap — the log is the complete record.
+    FString Toast = Queue->DescribeReport(Result);
+    if (Result.SkipReasons.Num() > 0)
+    {
+        const int32 MaxNamed = 4;
+        const int32 NumNamed = FMath::Min(Result.SkipReasons.Num(), MaxNamed);
+        for (int32 Index = 0; Index < NumNamed; ++Index)
+        {
+            Toast += TEXT("\n") + Result.SkipReasons[Index];
+        }
+        if (Result.SkipReasons.Num() > NumNamed)
+        {
+            Toast += FString::Printf(
+                TEXT("\n…and %d more — every skipped take is named in the Output Log."),
+                Result.SkipReasons.Num() - NumNamed);
+        }
+    }
+    NotifyOperator(FText::FromString(Toast));
 
     RefreshAll();
     return FReply::Handled();
@@ -1171,10 +1221,10 @@ TSharedRef<SWidget> SPCAPTakeBrowser::BuildProcessingSection(const FPCAPTakeBrow
             {
                 UPCAPTakeProcessingQueue* Q = GetQueue();
                 if (!Q) { NotifyOperator(PCAPTakeBrowserNoQueueText()); return FReply::Handled(); }
-                FString Reason;
-                if (!Q->RemoveTakeFromQueue(Handle, Reason))
+                FText Reason;
+                if (!Q->RemoveFromQueue(Handle, Reason))
                 {
-                    NotifyOperator(FText::FromString(Reason));
+                    NotifyOperator(Reason);
                     return FReply::Handled();
                 }
                 RefreshAll();
@@ -1271,7 +1321,7 @@ TSharedRef<SWidget> SPCAPTakeBrowser::BuildProcessingSection(const FPCAPTakeBrow
             // Attestation controls. The queue owns the state machine and fills OutReason
             // with the operator-facing explanation whenever it refuses — so every disabled
             // control here says why, and every refusal is spoken rather than swallowed.
-            FString BeginReason, CompleteReason, FailReason, ResetReason;
+            FText BeginReason, CompleteReason, FailReason, ResetReason;
             const bool bCanBegin    = Queue->CanBeginStep(Handle, Step, BeginReason);
             const bool bCanComplete = Queue->CanCompleteStep(Handle, Step, CompleteReason);
             const bool bCanFail     = Queue->CanFailStep(Handle, Step, FailReason);
@@ -1286,14 +1336,14 @@ TSharedRef<SWidget> SPCAPTakeBrowser::BuildProcessingSection(const FPCAPTakeBrow
                     .Text(LOCTEXT("MarkStarted", "Mark started"))
                     .ToolTipText(bCanBegin
                         ? LOCTEXT("MarkStartedTip", "Record that the operator has begun this step elsewhere. It starts nothing in the editor.")
-                        : FText::FromString(BeginReason))
+                        : BeginReason)
                     .IsEnabled(bCanBegin)
                     .OnClicked_Lambda([this, Handle, Step]()
                     {
                         UPCAPTakeProcessingQueue* Q = GetQueue();
                         if (!Q) { NotifyOperator(PCAPTakeBrowserNoQueueText()); return FReply::Handled(); }
-                        FString Reason;
-                        if (!Q->BeginStep(Handle, Step, Reason)) { NotifyOperator(FText::FromString(Reason)); return FReply::Handled(); }
+                        FText Reason;
+                        if (!Q->BeginStep(Handle, Step, Reason)) { NotifyOperator(Reason); return FReply::Handled(); }
                         RefreshAll();
                         return FReply::Handled();
                     })
@@ -1304,14 +1354,14 @@ TSharedRef<SWidget> SPCAPTakeBrowser::BuildProcessingSection(const FPCAPTakeBrow
                     .Text(LOCTEXT("MarkComplete", "Mark complete"))
                     .ToolTipText(bCanComplete
                         ? LOCTEXT("MarkCompleteTip", "Record that the operator has finished this step, for every performer it covers.")
-                        : FText::FromString(CompleteReason))
+                        : CompleteReason)
                     .IsEnabled(bCanComplete)
                     .OnClicked_Lambda([this, Handle, Step]()
                     {
                         UPCAPTakeProcessingQueue* Q = GetQueue();
                         if (!Q) { NotifyOperator(PCAPTakeBrowserNoQueueText()); return FReply::Handled(); }
-                        FString Reason;
-                        if (!Q->CompleteStep(Handle, Step, Reason)) { NotifyOperator(FText::FromString(Reason)); return FReply::Handled(); }
+                        FText Reason;
+                        if (!Q->CompleteStep(Handle, Step, Reason)) { NotifyOperator(Reason); return FReply::Handled(); }
                         RefreshAll();
                         return FReply::Handled();
                     })
@@ -1324,14 +1374,14 @@ TSharedRef<SWidget> SPCAPTakeBrowser::BuildProcessingSection(const FPCAPTakeBrow
                     .Text(LOCTEXT("ResetStep", "Reset"))
                     .ToolTipText(bCanReset
                         ? LOCTEXT("ResetStepTip", "Put this step back in the queue. Any step that depends on it is reset too, since a result built on it is no longer true.")
-                        : FText::FromString(ResetReason))
+                        : ResetReason)
                     .IsEnabled(bCanReset)
                     .OnClicked_Lambda([this, Handle, Step]()
                     {
                         UPCAPTakeProcessingQueue* Q = GetQueue();
                         if (!Q) { NotifyOperator(PCAPTakeBrowserNoQueueText()); return FReply::Handled(); }
-                        FString Reason;
-                        if (!Q->ResetStep(Handle, Step, Reason)) { NotifyOperator(FText::FromString(Reason)); return FReply::Handled(); }
+                        FText Reason;
+                        if (!Q->RetryStep(Handle, Step, Reason)) { NotifyOperator(Reason); return FReply::Handled(); }
                         RefreshAll();
                         return FReply::Handled();
                     })
@@ -1346,7 +1396,7 @@ TSharedRef<SWidget> SPCAPTakeBrowser::BuildProcessingSection(const FPCAPTakeBrow
                     .HintText(LOCTEXT("ErrorHint", "record a problem  ↵"))
                     .ToolTipText(bCanFail
                         ? LOCTEXT("FailTip", "Record what went wrong. The message is required and is shown against this step until it is reset.")
-                        : FText::FromString(FailReason))
+                        : FailReason)
                     .IsEnabled(bCanFail)
                     .OnTextCommitted_Lambda([this, Handle, Step](const FText& Committed, ETextCommit::Type CommitType)
                     {
@@ -1355,8 +1405,8 @@ TSharedRef<SWidget> SPCAPTakeBrowser::BuildProcessingSection(const FPCAPTakeBrow
                         if (Message.IsEmpty()) { return; }
                         UPCAPTakeProcessingQueue* Q = GetQueue();
                         if (!Q) { NotifyOperator(PCAPTakeBrowserNoQueueText()); return; }
-                        FString Reason;
-                        if (!Q->FailStep(Handle, Step, Message, Reason)) { NotifyOperator(FText::FromString(Reason)); return; }
+                        FText Reason;
+                        if (!Q->FailStep(Handle, Step, Message, Reason)) { NotifyOperator(Reason); return; }
                         RefreshAll();
                     })
                 ]

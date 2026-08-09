@@ -27,6 +27,25 @@
 #include "Textures/SlateIcon.h"
 #include "Styling/AppStyle.h"
 #include "Styling/SlateColor.h"
+#include "Brushes/SlateDynamicImageBrush.h"   // identity/calibration stills shown back as thumbnails
+#include "Misc/Paths.h"
+#include "HAL/FileManager.h"
+
+namespace
+{
+    // Shared wording for the four still-capture buttons. They all fail the same way —
+    // the camera has no cached frame yet (no subject, stalled feed) — and the subsystem
+    // reports it only through a bool, so the panel has to say it out loud.
+    FString StillResultText(bool bSaved, const TCHAR* What, int32 CameraIndex)
+    {
+        const TCHAR* Cam = (CameraIndex == 0) ? TEXT("TOP") : TEXT("BOT");
+        return bSaved
+            ? FString::Printf(TEXT("%s captured from %s."), What, Cam)
+            : FString::Printf(
+                TEXT("%s NOT captured — no frame from %s yet. Check the feed is live and the face is in shot."),
+                What, Cam);
+    }
+}
 
 UPCAPToolSubsystem* SHMCSetupPanel::GetSubsystem()
 {
@@ -388,7 +407,27 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildActorDropdown(const FString& DeviceName
 void SHMCSetupPanel::OnActorChosen(FString DeviceName, FString ActorID)
 {
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
+    {
+        // Scan readiness is per ACTOR, not per headset — prep / neutral / teeth / ROM were
+        // confirmed for whoever wore this rig before. Moving it to a new performer has to
+        // retire them, or the gate keeps reading READY TO SCAN for a face that was never
+        // calibrated. AssignActor already clears the framing refs and the agents; it does
+        // NOT touch readiness, so do it here, on the only path that reassigns a headset.
+        // Test the same field AssignActor tests (it no-ops on an unchanged actor) so
+        // re-picking the same name can't wipe a completed calibration.
+        const bool bActorChanged = Sub->GetDeviceConfig(DeviceName).ActorID != ActorID;
+
         Sub->AssignActor(DeviceName, ActorID);
+
+        if (bActorChanged)
+        {
+            Sub->ClearScanReadiness(DeviceName);
+            GateMessage = TEXT("New performer on this headset — prep, neutral, teeth and ROM cleared.");
+            bGateMessageIsError = false;
+            UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s reassigned to actor '%s' - scan readiness cleared"),
+                *DeviceName, *ActorID);
+        }
+    }
 }
 
 // ── Add Device modal ────────────────────────────────────────────────────────
@@ -585,7 +624,18 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildDetailPanel()
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot().FillWidth(1.f).Padding(0,0,4,0) [ BuildSetupFeed(0, TEXT("TOP")) ]
-            + SHorizontalBox::Slot().FillWidth(1.f)                  [ BuildSetupFeed(1, TEXT("BOT")) ]
+            // Second camera only exists on a stereo head mount. A mono/tripod/phone rig
+            // never returns a cam1 frame, so showing its cell would be a permanent
+            // "No Feed" with a red border for a camera the rig doesn't have.
+            + SHorizontalBox::Slot().FillWidth(1.f)
+            [
+                SNew(SBox)
+                .Visibility_Lambda([this]()
+                {
+                    return ActiveCameraCount() > 1 ? EVisibility::Visible : EVisibility::Collapsed;
+                })
+                [ BuildSetupFeed(1, TEXT("BOT")) ]
+            ]
         ]
 
         // Status line — writes out every active reason for the selected HMC (red); empty when good.
@@ -932,7 +982,15 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCaptureMonitor()
             + SHorizontalBox::Slot().AutoWidth() [ BuildConfigDropdown() ]
         ]
         + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCheckReadout(0) ]
-        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCheckReadout(1) ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4)
+        [
+            SNew(SBox)   // stereo only — see the BOT feed note in BuildDetailPanel
+            .Visibility_Lambda([this]()
+            {
+                return ActiveCameraCount() > 1 ? EVisibility::Visible : EVisibility::Collapsed;
+            })
+            [ BuildCheckReadout(1) ]
+        ]
         + SVerticalBox::Slot().AutoHeight().Padding(0, 6, 0, 4) [ BuildScanReadinessGate() ]
         + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildFocusHelper() ]
         + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 4) [ BuildCalibrationSection() ];
@@ -966,13 +1024,13 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildPipelineDropdown()
 
 FString SHMCSetupPanel::ConfigName(ECaptureConfiguration Config)
 {
-    switch (Config)
-    {
-        case ECaptureConfiguration::MonoTripod:      return TEXT("Mono - Tripod");
-        case ECaptureConfiguration::MonoHeadMount:   return TEXT("Mono - Head Mount");
-        case ECaptureConfiguration::StereoHeadMount: return TEXT("Stereo - Head Mount");
-        default:                                     return TEXT("Stereo - Head Mount");
-    }
+    // Reflected from the UENUM display names — the same way the HMC Database panel renders
+    // a rig's Type. A hardcoded switch here knew only three of the four values, so a phone
+    // rig picked from the library (which seeds CaptureConfig) fell into the default branch
+    // and displayed as "Stereo - Head Mount": the operator read the wrong definition off
+    // the panel and had no way to select Phone back.
+    const UEnum* E = StaticEnum<ECaptureConfiguration>();
+    return E ? E->GetDisplayNameTextByValue((int64)Config).ToString() : FString();
 }
 
 TSharedRef<SWidget> SHMCSetupPanel::BuildConfigDropdown()
@@ -990,15 +1048,17 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildConfigDropdown()
         ]
         .OnGetMenuContent_Lambda([this]() -> TSharedRef<SWidget>
         {
+            // Enumerated by reflection so every ECaptureConfiguration value is offered —
+            // a hand-written list is exactly what dropped PhoneHeadMount.
             FMenuBuilder MB(true, nullptr);
-            const ECaptureConfiguration Configs[] = {
-                ECaptureConfiguration::MonoTripod,
-                ECaptureConfiguration::MonoHeadMount,
-                ECaptureConfiguration::StereoHeadMount };
-            for (ECaptureConfiguration C : Configs)
+            if (const UEnum* E = StaticEnum<ECaptureConfiguration>())
             {
-                MB.AddMenuEntry(FText::FromString(ConfigName(C)), FText::GetEmpty(), FSlateIcon(),
-                    FUIAction(FExecuteAction::CreateSP(this, &SHMCSetupPanel::OnConfigChosen, (int32)C)));
+                for (int32 i = 0; i < E->NumEnums() - 1; ++i)   // skip the implicit _MAX
+                {
+                    const int32 Val = (int32)E->GetValueByIndex(i);
+                    MB.AddMenuEntry(E->GetDisplayNameTextByIndex(i), FText::GetEmpty(), FSlateIcon(),
+                        FUIAction(FExecuteAction::CreateSP(this, &SHMCSetupPanel::OnConfigChosen, Val)));
+                }
             }
             return MB.MakeWidget();
         });
@@ -1011,13 +1071,41 @@ void SHMCSetupPanel::OnConfigChosen(int32 ConfigValue)
             Sub->SetDeviceCaptureConfig(ActiveDeviceName, (ECaptureConfiguration)ConfigValue);
 }
 
+FPipelineCheckProfile SHMCSetupPanel::ActiveDefinition() const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (!Sub || ActiveDeviceName.IsEmpty())
+        return UPCAPToolStatics::GetDefinition(ECapturePipeline::MetaHumanHMC,
+                                               ECaptureConfiguration::StereoHeadMount);
+
+    const FHMCDeviceConfig C = Sub->GetDeviceConfig(ActiveDeviceName);
+    FPipelineCheckProfile P = UPCAPToolStatics::GetDefinition(C.Pipeline, C.CaptureConfig);
+
+    // The rig-tuned focus floor is what the watcher actually runs — the subsystem's frame
+    // path applies the override exactly like this. Reading the pipeline default instead
+    // left the Focus box grey ("not tuned yet") while the live check was already raising
+    // OutOfFocus and reddening the feed: the panel contradicted itself.
+    if (C.FocusMinOverride >= 0.f) P.FocusMin = C.FocusMinOverride;
+    return P;
+}
+
+int32 SHMCSetupPanel::ActiveCameraCount() const
+{
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (!Sub || ActiveDeviceName.IsEmpty()) return 2;
+    // Stereo head mount is the only two-camera configuration; tripod, mono head mount
+    // and phone head mount are all single-camera rigs (see the capture-configuration
+    // axis in the watcher-definition design).
+    return Sub->GetDeviceCaptureConfig(ActiveDeviceName) == ECaptureConfiguration::StereoHeadMount ? 2 : 1;
+}
+
 int32 SHMCSetupPanel::SubjectCameraIndex() const
 {
     UPCAPToolSubsystem* Sub = GetSubsystem();
     if (Sub && !ActiveDeviceName.IsEmpty())
     {
         if (Sub->GetImageMetrics(ActiveDeviceName, 0).bHasSubject) return 0;
-        if (Sub->GetImageMetrics(ActiveDeviceName, 1).bHasSubject) return 1;
+        if (ActiveCameraCount() > 1 && Sub->GetImageMetrics(ActiveDeviceName, 1).bHasSubject) return 1;
     }
     return 0;
 }
@@ -1037,7 +1125,16 @@ FReply SHMCSetupPanel::OnCaptureNeutral()
 {
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
         if (!ActiveDeviceName.IsEmpty())
-            Sub->CaptureIdentityStill(ActiveDeviceName, SubjectCameraIndex(), false);
+        {
+            // CaptureIdentityStill returns false when the camera has no cached frame yet.
+            // Discarding that was the whole bug: the ○ never became ✓ and nothing said why.
+            const int32 Cam = SubjectCameraIndex();
+            const bool  bOK = Sub->CaptureIdentityStill(ActiveDeviceName, Cam, false);
+            GateMessage = StillResultText(bOK, TEXT("Neutral"), Cam);
+            bGateMessageIsError = !bOK;
+            UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s cam%d neutral still %s"),
+                *ActiveDeviceName, Cam, bOK ? TEXT("saved") : TEXT("FAILED - no cached frame"));
+        }
     return FReply::Handled();
 }
 
@@ -1045,7 +1142,14 @@ FReply SHMCSetupPanel::OnCaptureTeeth()
 {
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
         if (!ActiveDeviceName.IsEmpty())
-            Sub->CaptureIdentityStill(ActiveDeviceName, SubjectCameraIndex(), true);
+        {
+            const int32 Cam = SubjectCameraIndex();
+            const bool  bOK = Sub->CaptureIdentityStill(ActiveDeviceName, Cam, true);
+            GateMessage = StillResultText(bOK, TEXT("Teeth"), Cam);
+            bGateMessageIsError = !bOK;
+            UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s cam%d teeth still %s"),
+                *ActiveDeviceName, Cam, bOK ? TEXT("saved") : TEXT("FAILED - no cached frame"));
+        }
     return FReply::Handled();
 }
 
@@ -1055,9 +1159,101 @@ FReply SHMCSetupPanel::OnRecordROM()
         if (!ActiveDeviceName.IsEmpty())
         {
             const FString Take = GetStatus(ActiveDeviceName).CurrentTakeName;
-            Sub->MarkROMCaptured(ActiveDeviceName, Take.IsEmpty() ? TEXT("ROM") : Take);
+            const FString Label = Take.IsEmpty() ? FString(TEXT("ROM")) : Take;
+            Sub->MarkROMCaptured(ActiveDeviceName, Label);
+            GateMessage = FString::Printf(TEXT("ROM marked against device take '%s'."), *Label);
+            bGateMessageIsError = false;
         }
     return FReply::Handled();
+}
+
+const FSlateBrush* SHMCSetupPanel::StillThumbnail(const FString& FullPath)
+{
+    if (FullPath.IsEmpty()) return nullptr;
+
+    // MinValue = the file isn't there: nothing captured yet, or the still was cleared
+    // between sessions while the flag survived.
+    const FDateTime Stamp = IFileManager::Get().GetTimeStamp(*FullPath);
+    if (Stamp == FDateTime::MinValue())
+    {
+        StillBrushes.Remove(FullPath);
+        StillBrushStamps.Remove(FullPath);
+        return nullptr;
+    }
+
+    TSharedPtr<FSlateDynamicImageBrush>& Brush  = StillBrushes.FindOrAdd(FullPath);
+    FDateTime&                           Cached = StillBrushStamps.FindOrAdd(FullPath);
+
+    if (!Brush.IsValid() || Cached != Stamp)
+    {
+        // A re-capture reuses the same filename, so the previous brush — and the texture
+        // Slate cached under that name — must be released first, or the panel keeps
+        // showing the old take. Dropping the last shared ref releases the resource.
+        Brush.Reset();
+
+        // Match the feed's rotation-aware display aspect so the thumb isn't squashed.
+        const FHMCDeviceStatus Snap = GetStatus(ActiveDeviceName);
+        float AspectWH = 0.75f;
+        if (Snap.FrameWidth > 0 && Snap.FrameHeight > 0)
+        {
+            const bool  bSwap = (((Snap.Rotation0 % 180) + 180) % 180) == 90;
+            const float DW = bSwap ? (float)Snap.FrameHeight : (float)Snap.FrameWidth;
+            const float DH = bSwap ? (float)Snap.FrameWidth  : (float)Snap.FrameHeight;
+            if (DH > 0.f) AspectWH = DW / DH;
+        }
+        const float ThumbH = 96.f;
+
+        // A dynamic image brush loads the PNG off disk itself (its resource name IS the
+        // absolute path) and Slate owns the texture — no UObject lifetime to manage here.
+        Brush = MakeShareable(new FSlateDynamicImageBrush(
+            FName(*FPaths::ConvertRelativePathToFull(FullPath)),
+            FVector2D(ThumbH * FMath::Max(0.2f, AspectWH), ThumbH)));
+        Cached = Stamp;
+    }
+    return Brush.Get();
+}
+
+TSharedRef<SWidget> SHMCSetupPanel::BuildStillThumb(const FString& Caption, TFunction<FString()> PathFn)
+{
+    return SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
+        [
+            SNew(SBox).WidthOverride(76.f).HeightOverride(96.f)
+            [
+                SNew(SBorder)
+                .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                .BorderBackgroundColor(FLinearColor(0.03f, 0.03f, 0.03f))
+                .Padding(0.f)
+                [
+                    SNew(SOverlay)
+                    + SOverlay::Slot()
+                    [
+                        SNew(SScaleBox).Stretch(EStretch::ScaleToFit)
+                        [
+                            SNew(SImage)
+                            .Image_Lambda([this, PathFn]() -> const FSlateBrush*
+                            {
+                                return PathFn ? StillThumbnail(PathFn()) : nullptr;
+                            })
+                        ]
+                    ]
+                    // Placeholder until the still exists on disk.
+                    + SOverlay::Slot().VAlign(VAlign_Center).HAlign(HAlign_Center)
+                    [
+                        SNew(STextBlock)
+                        .Text(FText::FromString(TEXT("○")))
+                        .ColorAndOpacity(FSlateColor(ColGray))
+                        .Visibility_Lambda([this, PathFn]()
+                        {
+                            const bool bHas = PathFn && StillThumbnail(PathFn()) != nullptr;
+                            return bHas ? EVisibility::Collapsed : EVisibility::HitTestInvisible;
+                        })
+                    ]
+                ]
+            ]
+        ]
+        + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0.f, 2.f, 0.f, 0.f)
+        [ SNew(STextBlock).Text(FText::FromString(Caption)).ColorAndOpacity(FSlateColor(ColMuted)) ];
 }
 
 TSharedRef<SWidget> SHMCSetupPanel::BuildScanReadinessGate()
@@ -1113,6 +1309,38 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildScanReadinessGate()
                 [this]() { UPCAPToolSubsystem* S = GetSubsystem(); return S && S->GetDeviceConfig(ActiveDeviceName).bROMCaptured; },
                 TEXT("Mark"), FOnClicked::CreateSP(this, &SHMCSetupPanel::OnRecordROM)) ]
 
+            // The captured stills, read back off disk — the operator can see WHICH face is
+            // in the neutral instead of trusting a tick. Empty cells until they're taken.
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 8, 0, 0)
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 8, 0)
+                [ BuildStillThumb(TEXT("neutral"), [this]() -> FString
+                  {
+                      UPCAPToolSubsystem* S = GetSubsystem();
+                      return S ? S->GetDeviceConfig(ActiveDeviceName).NeutralStillPath : FString();
+                  }) ]
+                + SHorizontalBox::Slot().AutoWidth()
+                [ BuildStillThumb(TEXT("teeth"), [this]() -> FString
+                  {
+                      UPCAPToolSubsystem* S = GetSubsystem();
+                      return S ? S->GetDeviceConfig(ActiveDeviceName).TeethStillPath : FString();
+                  }) ]
+            ]
+
+            // Why the last Capture / Mark did or didn't take.
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 6, 0, 0)
+            [
+                SNew(STextBlock)
+                .AutoWrapText(true)
+                .Visibility_Lambda([this]() { return GateMessage.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible; })
+                .Text_Lambda([this]() { return FText::FromString(GateMessage); })
+                .ColorAndOpacity_Lambda([this]()
+                {
+                    return FSlateColor(bGateMessageIsError ? ColRed : ColMuted);
+                })
+            ]
+
             + SVerticalBox::Slot().AutoHeight().Padding(0, 8, 0, 0)
             [
                 SNew(SBorder)
@@ -1147,26 +1375,64 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildScanReadinessGate()
 
 FReply SHMCSetupPanel::OnCaptureFocusSharp()
 {
-    if (UPCAPToolSubsystem* Sub = GetSubsystem())
-        if (!ActiveDeviceName.IsEmpty())
-            FocusSharpSample = Sub->GetImageMetrics(ActiveDeviceName, SubjectCameraIndex()).FocusScore;
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (!Sub || ActiveDeviceName.IsEmpty()) return FReply::Handled();
+
+    // Only record a real measurement — sampling before the first analysis would bank a
+    // 0.000 that then proposes a nonsense floor.
+    const FHMCImageMetrics M = Sub->GetImageMetrics(ActiveDeviceName, SubjectCameraIndex());
+    if (!M.bValid)
+    {
+        FocusMessage = TEXT("No analysis yet — wait for the feed before sampling.");
+        return FReply::Handled();
+    }
+    FocusSharpSample = M.FocusScore;
+    FocusMessage = FString::Printf(TEXT("Sharp sample %.3f."), FocusSharpSample);
     return FReply::Handled();
 }
 
 FReply SHMCSetupPanel::OnCaptureFocusSoft()
 {
-    if (UPCAPToolSubsystem* Sub = GetSubsystem())
-        if (!ActiveDeviceName.IsEmpty())
-            FocusSoftSample = Sub->GetImageMetrics(ActiveDeviceName, SubjectCameraIndex()).FocusScore;
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (!Sub || ActiveDeviceName.IsEmpty()) return FReply::Handled();
+
+    const FHMCImageMetrics M = Sub->GetImageMetrics(ActiveDeviceName, SubjectCameraIndex());
+    if (!M.bValid)
+    {
+        FocusMessage = TEXT("No analysis yet — wait for the feed before sampling.");
+        return FReply::Handled();
+    }
+    FocusSoftSample = M.FocusScore;
+    FocusMessage = FString::Printf(TEXT("Soft sample %.3f."), FocusSoftSample);
     return FReply::Handled();
 }
 
 FReply SHMCSetupPanel::OnUseFocusMin()
 {
-    if (FocusSharpSample >= 0.f && FocusSoftSample >= 0.f && FocusSharpSample > FocusSoftSample)
-        if (UPCAPToolSubsystem* Sub = GetSubsystem())
-            if (!ActiveDeviceName.IsEmpty())
-                Sub->SetFocusMinOverride(ActiveDeviceName, 0.5f * (FocusSharpSample + FocusSoftSample));
+    // Every early-out used to be silent — "Use" looked identical whether it armed the
+    // check or did nothing at all.
+    UPCAPToolSubsystem* Sub = GetSubsystem();
+    if (!Sub || ActiveDeviceName.IsEmpty())
+    {
+        FocusMessage = TEXT("Select a headset first.");
+        return FReply::Handled();
+    }
+    if (FocusSharpSample < 0.f || FocusSoftSample < 0.f)
+    {
+        FocusMessage = TEXT("Capture a sharp AND a soft frame first.");
+        return FReply::Handled();
+    }
+    if (FocusSharpSample <= FocusSoftSample)
+    {
+        FocusMessage = TEXT("Sharp must read higher than soft — re-take the two samples.");
+        return FReply::Handled();
+    }
+
+    const float Proposed = 0.5f * (FocusSharpSample + FocusSoftSample);
+    Sub->SetFocusMinOverride(ActiveDeviceName, Proposed);
+    FocusMessage = FString::Printf(TEXT("Focus check ON for this rig — FocusMin %.3f."), Proposed);
+    UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s FocusMin override %.3f (sharp %.3f / soft %.3f)"),
+        *ActiveDeviceName, Proposed, FocusSharpSample, FocusSoftSample);
     return FReply::Handled();
 }
 
@@ -1196,11 +1462,38 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildFocusHelper()
                         FString Pr = TEXT("-");
                         if (FocusSharpSample >= 0.f && FocusSoftSample >= 0.f && FocusSharpSample > FocusSoftSample)
                             Pr = FString::Printf(TEXT("%.3f"), 0.5f * (FocusSharpSample + FocusSoftSample));
-                        return FText::FromString(FString::Printf(TEXT("sharp %s · soft %s · FocusMin %s"), *Sh, *So, *Pr));
+
+                        // What the watcher is running RIGHT NOW: the saved override, else
+                        // the definition's floor, else off. Without this the helper only
+                        // ever showed its own proposal and never confirmed it had landed.
+                        FString InUse = TEXT("off");
+                        UPCAPToolSubsystem* S = GetSubsystem();
+                        if (S && !ActiveDeviceName.IsEmpty())
+                        {
+                            const float Live = ActiveDefinition().FocusMin;
+                            if (Live > 0.f)
+                            {
+                                InUse = FString::Printf(TEXT("%.3f%s"), Live,
+                                    S->GetDeviceConfig(ActiveDeviceName).FocusMinOverride >= 0.f
+                                        ? TEXT("") : TEXT(" (pipeline)"));
+                            }
+                        }
+                        return FText::FromString(FString::Printf(
+                            TEXT("sharp %s · soft %s · proposed %s · in use %s"), *Sh, *So, *Pr, *InUse));
                     })
                 ]
                 + SHorizontalBox::Slot().AutoWidth()
                 [ SNew(SButton).Text(FText::FromString(TEXT("Use"))).OnClicked(this, &SHMCSetupPanel::OnUseFocusMin) ]
+            ]
+
+            // Why the last Use / sample did or didn't take.
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 4, 0, 0)
+            [
+                SNew(STextBlock)
+                .AutoWrapText(true)
+                .Visibility_Lambda([this]() { return FocusMessage.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible; })
+                .Text_Lambda([this]() { return FText::FromString(FocusMessage); })
+                .ColorAndOpacity(FSlateColor(ColMuted))
             ]
         ];
 }
@@ -1218,7 +1511,14 @@ FReply SHMCSetupPanel::OnCaptureCalibStart()
 {
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
         if (!ActiveDeviceName.IsEmpty())
-            Sub->CaptureCalibrationStill(ActiveDeviceName, SubjectCameraIndex(), false);
+        {
+            const int32 Cam = SubjectCameraIndex();
+            const bool  bOK = Sub->CaptureCalibrationStill(ActiveDeviceName, Cam, false);
+            GateMessage = StillResultText(bOK, TEXT("Start-of-session board"), Cam);
+            bGateMessageIsError = !bOK;
+            UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s cam%d calib start still %s"),
+                *ActiveDeviceName, Cam, bOK ? TEXT("saved") : TEXT("FAILED - no cached frame"));
+        }
     return FReply::Handled();
 }
 
@@ -1226,7 +1526,14 @@ FReply SHMCSetupPanel::OnCaptureCalibEnd()
 {
     if (UPCAPToolSubsystem* Sub = GetSubsystem())
         if (!ActiveDeviceName.IsEmpty())
-            Sub->CaptureCalibrationStill(ActiveDeviceName, SubjectCameraIndex(), true);
+        {
+            const int32 Cam = SubjectCameraIndex();
+            const bool  bOK = Sub->CaptureCalibrationStill(ActiveDeviceName, Cam, true);
+            GateMessage = StillResultText(bOK, TEXT("End-of-session board"), Cam);
+            bGateMessageIsError = !bOK;
+            UE_LOG(LogTemp, Log, TEXT("[PCAPTool] HMC %s cam%d calib end still %s"),
+                *ActiveDeviceName, Cam, bOK ? TEXT("saved") : TEXT("FAILED - no cached frame"));
+        }
     return FReply::Handled();
 }
 
@@ -1295,6 +1602,24 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCalibrationSection()
                 [this]() { UPCAPToolSubsystem* S = GetSubsystem(); return S && S->GetDeviceConfig(ActiveDeviceName).bCalibEndCaptured; },
                 FOnClicked::CreateSP(this, &SHMCSetupPanel::OnCaptureCalibEnd)) ]
 
+            // Board stills read back, so the pose can be eyeballed against the rubric below.
+            + SVerticalBox::Slot().AutoHeight().Padding(0, 8, 0, 0)
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().Padding(0, 0, 8, 0)
+                [ BuildStillThumb(TEXT("start"), [this]() -> FString
+                  {
+                      UPCAPToolSubsystem* S = GetSubsystem();
+                      return S ? S->GetDeviceConfig(ActiveDeviceName).CalibStartStillPath : FString();
+                  }) ]
+                + SHorizontalBox::Slot().AutoWidth()
+                [ BuildStillThumb(TEXT("end"), [this]() -> FString
+                  {
+                      UPCAPToolSubsystem* S = GetSubsystem();
+                      return S ? S->GetDeviceConfig(ActiveDeviceName).CalibEndStillPath : FString();
+                  }) ]
+            ]
+
             + SVerticalBox::Slot().AutoHeight().Padding(0, 6, 0, 0)
             [
                 SNew(STextBlock).AutoWrapText(true).ColorAndOpacity(FSlateColor(ColMuted))
@@ -1346,10 +1671,11 @@ TSharedRef<SWidget> SHMCSetupPanel::BuildCheckBox(const FString& Label, int32 Fl
         {
             UPCAPToolSubsystem* Sub = GetSubsystem();
             if (!Sub || ActiveDeviceName.IsEmpty()) return FSlateColor(ColGray);
-            // Grey when THIS check is inactive — the pipeline doesn't run it, or (focus)
+            // Grey when THIS check is inactive — the definition doesn't run it, or (focus)
             // FocusMin is still 0/untuned. Green only means an active check is passing.
-            const FPipelineCheckProfile P =
-                UPCAPToolStatics::GetPipelineProfile(Sub->GetDevicePipeline(ActiveDeviceName));
+            // Resolved via the full definition (pipeline x configuration + the rig's focus
+            // override), so the boxes reflect the checks the watcher is actually running.
+            const FPipelineCheckProfile P = ActiveDefinition();
             if (!BoxCheckActive(Label, P)) return FSlateColor(ColGray);
             const int32 F = Sub->GetEffectiveIssueFlags(ActiveDeviceName, CameraIndex);
             return FSlateColor((F & FlagBit) ? ColRed : ColGreen);
@@ -1369,13 +1695,12 @@ FString SHMCSetupPanel::CheckExplanation(const FString& Label, int32 FlagBit, in
     UPCAPToolSubsystem* Sub = GetSubsystem();
     if (Sub && !ActiveDeviceName.IsEmpty())
     {
-        const FPipelineCheckProfile P =
-            UPCAPToolStatics::GetPipelineProfile(Sub->GetDevicePipeline(ActiveDeviceName));
+        const FPipelineCheckProfile P = ActiveDefinition();
         if (!BoxCheckActive(Label, P))
         {
             if (Label == TEXT("Focus") && P.bCheckFocus && P.FocusMin <= 0.f)
-                return TEXT("Focus: not tuned yet - set FocusMin on the rig to enable focus detection.");
-            return FString::Printf(TEXT("%s: not checked by this pipeline."), *Label);
+                return TEXT("Focus: not tuned yet - use the Focus Helper below (capture a sharp and a soft frame, then Use) to turn focus detection on for this rig.");
+            return FString::Printf(TEXT("%s: not checked by this configuration."), *Label);
         }
     }
     const int32 F = (Sub && !ActiveDeviceName.IsEmpty())
@@ -1421,7 +1746,11 @@ FString SHMCSetupPanel::SetupStatusText() const
         return TEXT("OFFLINE");
 
     FString Out;
-    for (int32 Cam = 0; Cam < 2; ++Cam)
+    // Only the cameras this configuration has. A one-camera rig never returns a cam1
+    // frame, so cam1 latches NoFace forever — reporting it would pin "BOT: NO FACE IN
+    // FRAME · Reframe" on the panel for a camera the rig doesn't own.
+    const int32 NumCams = ActiveCameraCount();
+    for (int32 Cam = 0; Cam < NumCams; ++Cam)
     {
         const int32 Flags = Sub->GetEffectiveIssueFlags(ActiveDeviceName, Cam);
         if (UPCAPToolStatics::GetIssueSeverity(Flags) == EHMCIssueSeverity::None) continue;

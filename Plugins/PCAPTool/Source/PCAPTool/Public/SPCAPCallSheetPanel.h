@@ -50,8 +50,11 @@ private:
     static UObject* CreateAssetIn(UClass* Class, const FString& Dir, const FString& Id, TFunction<void(UObject*)> Init = nullptr);
     // One shared called-section builder, type-erased via lambdas. Calls existing
     // (preset) library entries only — create new ones in their Database tabs.
+    // CalledIDs is the day's raw called list, so ids whose library asset has since been
+    // deleted or renamed still get a chip (flagged) and can still be un-called.
     TSharedRef<SWidget> BuildCallSection(const FText& Title,
         const TArray<TPair<FString, FString>>& Items,
+        const TArray<FString>& CalledIDs,
         TFunction<bool(const FString&)> IsCalled,
         TFunction<void(const FString&, bool)> SetCalled);
     TArray<TPair<FString, FString>> GatherActors() const;   // id, display
@@ -68,7 +71,9 @@ private:
     FReply OnRemoveShot(FString ShotID);
     void   ImportShotsCsv();
     void   ExportShotsCsv();
-    void   ApplyRowsToActiveDay(const TArray<FSlateCsvRow>& Rows);
+    // Returns how many rows were applied; slots that can't be a folder name land in
+    // OutRejectedSlots so the import can report what it skipped.
+    int32  ApplyRowsToActiveDay(const TArray<FSlateCsvRow>& Rows, TArray<FString>& OutRejectedSlots);
     FSlateCsvRow RowFromShot(const FShot& Shot) const;
     static FString   NormalizeSlot(const FString& Slot);
     static EShotType ShotTypeFor(const FString& TypeText, const FString& Slot);

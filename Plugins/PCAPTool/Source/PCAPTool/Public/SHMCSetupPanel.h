@@ -9,6 +9,7 @@ class SVerticalBox;
 class SEditableTextBox;
 class SWindow;
 struct FSlateBrush;
+struct FSlateDynamicImageBrush;
 
 class PCAPTOOL_API SHMCSetupPanel : public SCompoundWidget
 {
@@ -77,6 +78,14 @@ private:
     // Is the check behind this box actually running for the pipeline? (Focus also needs
     // FocusMin > 0.) A box only goes green when its check is active AND passing.
     static bool BoxCheckActive(const FString& Label, const FPipelineCheckProfile& P);
+    // The watcher definition actually running for the selected device: pipeline x capture
+    // configuration, with the device's tuned FocusMinOverride applied. Mirrors the
+    // resolution the subsystem does per frame, so the boxes agree with the live checks.
+    FPipelineCheckProfile ActiveDefinition() const;
+    // Cameras the selected device's capture configuration uses — 2 for a stereo head
+    // mount, 1 for every mono/tripod/phone rig. The BOT feed, its read-out and the
+    // status line follow this so a one-camera rig isn't judged on a camera it lacks.
+    int32 ActiveCameraCount() const;
     // Aggregated red status line for the selected HMC (both cameras) — empty when good.
     FString SetupStatusText() const;
     // True only when a shoot day is active but NOT flagged "HMCs used today?" — drives
@@ -120,6 +129,22 @@ private:
     EHMCBoardState BoardState(int32 CameraIndex) const;
     float  FocusSharpSample = -1.f;
     float  FocusSoftSample  = -1.f;
+
+    // Result of the last gate / focus action, shown in its section. The still captures
+    // fail when the camera has no cached frame yet (no subject, stalled feed) — without
+    // these the operator presses Capture, nothing changes, and nothing says why.
+    FString GateMessage;
+    bool    bGateMessageIsError = false;   // drives the message colour (red vs muted)
+    FString FocusMessage;
+
+    // Identity + calibration stills loaded back off disk as thumbnails, so the operator
+    // can see WHICH face is in the neutral. Keyed by file path; the brush is rebuilt when
+    // the file's timestamp changes (a re-capture reuses the same filename). Slate loads
+    // and owns the texture for a dynamic brush — there is no UObject lifetime to manage.
+    TMap<FString, TSharedPtr<FSlateDynamicImageBrush>> StillBrushes;
+    TMap<FString, FDateTime>                          StillBrushStamps;
+    const FSlateBrush*  StillThumbnail(const FString& FullPath);
+    TSharedRef<SWidget> BuildStillThumb(const FString& Caption, TFunction<FString()> PathFn);
 
     FHMCDeviceStatus GetStatus(const FString& DeviceName) const;
     static UPCAPToolSubsystem* GetSubsystem();

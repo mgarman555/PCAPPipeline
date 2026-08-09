@@ -2,6 +2,7 @@
 #include "MocapDatabase.h"
 #include "PCAPToolSettings.h"
 #include "PCAPToolTypes.h"
+#include "StageConfigAsset.h"
 #include "SPCAPRosterCard.h"
 
 #include "Widgets/SOverlay.h"
@@ -9,15 +10,49 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Views/STableRow.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Styling/AppStyle.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Modules/ModuleManager.h"
+
 #define LOCTEXT_NAMESPACE "PCAPProductionDatabase"
+
+// Helpers are prefixed per-panel: under UE's unity (combined-translation-unit) builds
+// every anonymous namespace in the blob is the same namespace, so a bare name shared
+// with a sibling panel is a redefinition (see the note in SPCAPPanelStyle.h).
+namespace
+{
+    // Every stage config in the project, ordered the way the Call Sheet's stage picker
+    // orders them. Stages are made in the Stage Database — this only picks from them.
+    TArray<UStageConfigAsset*> PCAPProdDBAllStages()
+    {
+        FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+        TArray<FAssetData> Found;
+        ARM.Get().GetAssetsByClass(UStageConfigAsset::StaticClass()->GetClassPathName(), Found, /*bSearchSubClasses*/ false);
+
+        TArray<UStageConfigAsset*> Stages;
+        for (const FAssetData& AD : Found)
+            if (UStageConfigAsset* S = Cast<UStageConfigAsset>(AD.GetAsset())) Stages.Add(S);
+        Stages.Sort([](const UStageConfigAsset& A, const UStageConfigAsset& B){ return A.ConfigName < B.ConfigName; });
+        return Stages;
+    }
+
+    // A stage's display label — its ConfigName, falling back to the asset name. Same rule
+    // the Call Sheet's picker uses, so the two read as the same stage.
+    FString PCAPProdDBStageLabel(const UStageConfigAsset* Stage)
+    {
+        if (!Stage) return FString(TEXT("(none)"));
+        return Stage->ConfigName.IsEmpty() ? Stage->GetName() : Stage->ConfigName;
+    }
+}
 
 UMocapDatabase* SPCAPProductionDatabasePanel::GetDB() const
 {
@@ -83,7 +118,7 @@ void SPCAPProductionDatabasePanel::Construct(const FArguments& InArgs)
             .OnMouseButtonDown_Lambda([this](const FGeometry&, const FPointerEvent&) { CloseDetail(); return FReply::Handled(); })
             .HAlign(HAlign_Center).VAlign(VAlign_Center)
             [
-                SNew(SBox).WidthOverride(372.f).MaxDesiredHeight(360.f)
+                SNew(SBox).WidthOverride(372.f).MaxDesiredHeight(430.f)   // + the default-stage row
                 [ SAssignNew(DetailBox, SBox) ]
             ]
         ]
@@ -239,6 +274,48 @@ TSharedRef<SWidget> SPCAPProductionDatabasePanel::BuildDetailFor(const FString& 
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)
         [ SNew(STextBlock).AutoWrapText(true)
             .Text(LOCTEXT("RenumberNote", "Renumber before shooting — once takes are recorded, their folders stay under the old number."))
+            .ColorAndOpacity(FSlateColor(ColText2)) ]
+
+        // The production-wide stage. UMocapDatabase::GetActiveStageConfig resolves "day
+        // override, else production", but only the day half had a writer (the Call Sheet's
+        // picker), so the production fallback could never fire and every freshly added day
+        // read "No stage set" until someone re-picked the stage for it. Set it here once and
+        // days inherit it. The Stage Database's delete guard already lists this as "the
+        // production's stage", so a stage set here can't be deleted out from under the show.
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 2.f)
+        [ SNew(STextBlock).Text(LOCTEXT("Stage", "Default stage")).ColorAndOpacity(FSlateColor(ColText2)) ]
+        + SVerticalBox::Slot().AutoHeight()
+        [
+            SNew(SComboButton)
+            .ButtonContent()[ SNew(STextBlock).Text(FText::FromString(PCAPProdDBStageLabel(P->ActiveStageConfig.LoadSynchronous()))) ]
+            .OnGetMenuContent_Lambda([this, Code]() -> TSharedRef<SWidget>
+            {
+                FMenuBuilder MB(/*bCloseAfterSelection*/ true, nullptr);
+                MB.AddMenuEntry(LOCTEXT("StageNone", "(none)"), FText::GetEmpty(), FSlateIcon(),
+                    FUIAction(FExecuteAction::CreateLambda([this, Code]()
+                    {
+                        if (UMocapDatabase* D = GetDB()) if (FProduction* Pr = D->GetProductionByCode(Code))
+                        { Pr->ActiveStageConfig = TSoftObjectPtr<UStageConfigAsset>(); D->MarkPackageDirty(); }   // back to unset
+                        OpenDetail(Code);
+                    })));
+                for (UStageConfigAsset* S : PCAPProdDBAllStages())
+                {
+                    TWeakObjectPtr<UStageConfigAsset> W(S);
+                    MB.AddMenuEntry(FText::FromString(PCAPProdDBStageLabel(S)), FText::GetEmpty(), FSlateIcon(),
+                        FUIAction(FExecuteAction::CreateLambda([this, Code, W]()
+                        {
+                            if (!W.IsValid()) return;
+                            if (UMocapDatabase* D = GetDB()) if (FProduction* Pr = D->GetProductionByCode(Code))
+                            { Pr->ActiveStageConfig = W.Get(); D->MarkPackageDirty(); }
+                            OpenDetail(Code);
+                        })));
+                }
+                return MB.MakeWidget();
+            })
+        ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)
+        [ SNew(STextBlock).AutoWrapText(true)
+            .Text(LOCTEXT("StageNote", "Days inherit this until the Call Sheet sets a stage for the day."))
             .ColorAndOpacity(FSlateColor(ColText2)) ]
 
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)

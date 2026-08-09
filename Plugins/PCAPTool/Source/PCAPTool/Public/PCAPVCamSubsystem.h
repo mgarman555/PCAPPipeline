@@ -42,6 +42,13 @@ public:
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetActiveConfig(UPCAPVCamConfig* Config);
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") UPCAPVCamConfig* GetActiveConfig() const { return ActiveConfig; }
 
+    // The config is a saved DataAsset, so an operator-intent edit (rig alignment, setup, saved
+    // positions, scale, layout) has to dirty the package or a whole shoot day of calibration is
+    // gone on restart with no prompt. Called by the operator panel after its direct field writes.
+    // NOT called from the per-frame integration (Navigate/focal length/Sony XY) — that is runtime
+    // state living on the asset, and dirtying it every tick would bake it in.
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void MarkConfigDirty();
+
     // The single camera actor (found-or-spawned in the editor world). Used by the record controller.
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") APCAPVCamActor* GetOrCreateVCamActor();
 
@@ -75,8 +82,15 @@ public:
     // Joystick/d-pad translation rate (units/sec); the tick accumulates it into Navigate.
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetNavigateRate(FVector Rate);
 
-    // Active controller layout (0=Default, 1=Sony) — stored on the config.
+    // Active controller layout (0=Default, 1=Sony) — stored on the config. Leaving Sony folds
+    // its platform offset into Navigate first (see FoldPlatformXYIntoNavigate).
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void SetActiveButtonLayout(int32 Layout);
+
+    // Clears the Sony-driven platform offset (Config.Platform X/Y). The camera moves back by the
+    // offset — this is the explicit operator reset, unlike the layout switch which preserves the
+    // pose. While the Sony layout is live the accumulator re-writes it next tick; the controller's
+    // right_x is the clear that also zeroes the accumulator.
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void ResetPlatformOffset();
 
     // ── Readouts ───────────────────────────────────────────────────────────────
     UFUNCTION(BlueprintCallable, Category="PCAP|VCam") EStreamStatus GetStreamStatus() const { return StreamStatus; }
@@ -100,6 +114,21 @@ public:
     FVCamControllerInput GetLatestInput() const;
     int32 GetInputPacketCount() const;
 
+    // ── Controller feed (the UDP listener) ─────────────────────────────────────
+    // True while packets are actually arriving. This is the same gate the tick uses to decide
+    // whether the last packet may still drive the camera, so the panel's readout and the camera's
+    // behaviour can never disagree.
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") bool IsReceivingControllerInput() const;
+
+    // Listener state, so "nobody is sending" reads differently from "I could not open the socket".
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") bool    IsControllerFeedBound() const { return InputSocket != nullptr; }
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") FString GetControllerFeedEndpoint() const;
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") FString GetControllerFeedError() const { return InputListenerError; }
+
+    // Re-open the listener on the active config's current IP/port. The way back from a bind
+    // failure (port in use) without de-picking and re-picking the config.
+    UFUNCTION(BlueprintCallable, Category="PCAP|VCam") void RestartControllerFeed();
+
     UPROPERTY(BlueprintAssignable, Category="PCAP|VCam") FOnPCAPVCamStreamStatusChanged OnStreamStatusChanged;
 
 private:
@@ -113,17 +142,26 @@ private:
     bool ReadLiveLinkTransform(FTransform& OutTransform) const;
     void SetStreamStatus(EStreamStatus NewStatus);
 
+    // Folds the Sony-driven platform offset (Config.Platform X/Y) into Navigate and clears it,
+    // leaving the output transform unchanged. Used when the platform stops being driven but the
+    // camera must not jump (reconciliation §3).
+    void FoldPlatformXYIntoNavigate();
+
     // ── Controller input (WVCAM raw-broadcast UDP listener → input layer) ──────
     FVCamInputLayer InputLayer;
     FVCamControllerInput LatestInput;       // written on the receiver thread, read on tick
     mutable FCriticalSection InputMutex;
     bool bHasInput = false;
+    double LastInputPacketTime = 0.0;       // FPlatformTime::Seconds() of the last packet
     int32 InputPacketCount = 0;
     bool bPrevInputHold = false;            // so SetHold only fires on change (re-solves Setup)
     FSocket* InputSocket = nullptr;
     FUdpSocketReceiver* InputReceiver = nullptr;
     int32 ActiveInputPort = 0;
     FString ActiveInputIP;                  // bound interface; with the port, gates re-binding
+    int32 RequestedInputPort = 0;           // last endpoint we *tried* to bind (success or not) —
+    FString RequestedInputIP;               // the tick compares it to the config to spot an edit
+    FString InputListenerError;             // empty while the socket is open
 
     void StartInputListener(const FString& BindIP, int32 Port);
     void StopInputListener();

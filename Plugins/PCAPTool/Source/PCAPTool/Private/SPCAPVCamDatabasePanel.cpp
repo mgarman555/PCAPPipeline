@@ -134,11 +134,16 @@ void SPCAPVCamDatabasePanel::ApplyFilter()
 UPCAPVCamConfig* SPCAPVCamDatabasePanel::CreateVCamAsset(const FString& VCamID)
 {
     if (VCamID.IsEmpty()) return nullptr;
-    const FString PackageName = FString::Printf(TEXT("%s/%s"), *PCAPPaths::VCamsDir(), *VCamID);
+
+    FString AssetName = VCamID;
+    AssetName.ReplaceInline(TEXT(" "), TEXT("_"));
+    AssetName = ObjectTools::SanitizeObjectName(AssetName);
+
+    const FString PackageName = FString::Printf(TEXT("%s/%s"), *PCAPPaths::VCamsDir(), *AssetName);
     if (FPackageName::DoesPackageExist(PackageName)) return nullptr;
     UPackage* Package = CreatePackage(*PackageName);
     if (!Package) return nullptr;
-    UPCAPVCamConfig* Entry = NewObject<UPCAPVCamConfig>(Package, FName(*VCamID), RF_Public | RF_Standalone | RF_Transactional);
+    UPCAPVCamConfig* Entry = NewObject<UPCAPVCamConfig>(Package, FName(*AssetName), RF_Public | RF_Standalone | RF_Transactional);
     FAssetRegistryModule::AssetCreated(Entry);
     Package->MarkPackageDirty();
     FEditorFileUtils::PromptForCheckoutAndSave({ Package }, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
@@ -241,9 +246,12 @@ TSharedRef<SWidget> SPCAPVCamDatabasePanel::BuildDetailFor(UPCAPVCamConfig* Entr
           })
           .OnCheckStateChanged_Lambda([Weak](ECheckBoxState State)
           {
+              // The call-out lives in the master DB asset, not in this vcam's — and DB edits only
+              // MarkPackageDirty, so without dirtying it the call never reaches disk. Same as the
+              // Call Sheet's actor/prop rows.
               UPCAPToolSettings* Set = UPCAPToolSettings::Get();
               if (UMocapDatabase* DB = (Set ? Set->GetDatabase() : nullptr))
-                  if (Weak.IsValid()) DB->SetVCamCalled(Weak->GetName(), State == ECheckBoxState::Checked);
+                  if (Weak.IsValid()) { DB->SetVCamCalled(Weak->GetName(), State == ECheckBoxState::Checked); DB->MarkPackageDirty(); }
           })
           [ SNew(STextBlock).Text(LOCTEXT("Call", "Called to today's shoot")) ] ]
 

@@ -30,12 +30,17 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="bIsTracked"))
     FName DefaultLiveLinkName;   // FName — Live Link's native key type
 
+    // History and status are the extension layer's job now: the Prop Database reads and
+    // writes them on the Epic prop's UPCAPPropExtension, not here. Kept for back-compat
+    // (existing roster assets) and as a migration source — like bIsTracked above, nothing
+    // in the plugin reads either field.
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FString> ProductionHistory;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString Notes;
 
+    // See ProductionHistory — back-compat only.
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     EStreamStatus StreamStatus = EStreamStatus::Disconnected;
 };

@@ -5,9 +5,15 @@
 #include "PCAPToolTypes.h"   // FBodyStreamEntry / FFaceStreamEntry / FAudioStreamEntry
 #include "ActorRosterEntry.generated.h"
 
-// Permanent per-performer record. Saved to Content/Mocap/_Roster/Actors/[actorID].uasset.
+// Permanent per-performer record, saved as [actorID].uasset under PCAPPaths::ActorsDir()
+// (PCAPToolPaths.h — never a hardcoded /Game/… path; see CONTRIBUTING).
 // Created once per performer; never recreated per-production or per-session.
 // FirstName/LastName are metadata only — ActorID is the displayed name everywhere.
+//
+// Legacy: the Actor Database now lists Epic performer assets (UPCapPerformerDataAsset).
+// These entries are imported once by UPCAPMocapData::MigrateRosterToPCap — "Import legacy
+// roster" on the Actor Database toolbar — and are still read by the Call Sheet, the HMC
+// panels and the Take Browser until that migration is complete.
 UCLASS(BlueprintType)
 class PCAPTOOL_API UActorRosterEntry : public UDataAsset
 {
