@@ -124,6 +124,55 @@ namespace
         return true;
     }
 
+    // A shot added by hand inherits the day's call-out. Without this the day's called
+    // actors/props stop at the day record: AddShotBySlot used to push an FShot with an
+    // empty Subjects array, so the Operator Console showed a shot with no talent, RECORD
+    // had nothing to arm, and "Send shot to Mocap Manager" greyed out on a day that was
+    // fully called. CSV import already seeds subjects from its rows; this is the same
+    // construction for the manual path, so both entry points agree.
+    //
+    // Called talent is active by default — putting someone on the day's call sheet IS the
+    // call-out. Per-shot toggling off is a shot-level edit on top of that.
+    void PCAPSeedShotFromDayCallout(const FShootDay& Day, FShot& Shot)
+    {
+        if (Day.CalledActorIDs.Num() == 0 && Day.CalledPropIDs.Num() == 0) return;
+
+        FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+        if (Day.CalledActorIDs.Num() > 0)
+        {
+            TMap<FString, UActorRosterEntry*> ActorByID;
+            TArray<FAssetData> F;
+            ARM.Get().GetAssetsByClass(UActorRosterEntry::StaticClass()->GetClassPathName(), F, false);
+            for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) ActorByID.Add(E->ActorID, E);
+
+            for (const FString& A : Day.CalledActorIDs)
+            {
+                FShotSubject Subj;
+                if (UActorRosterEntry* E = ActorByID.FindRef(A)) Subj = UPCAPToolStatics::MakeShotSubjectFromRoster(E);
+                else                                             Subj.ActorID = A;   // called but no roster asset — keep the call, lose the stream detail
+                Subj.bIsActive = true;
+                Shot.Subjects.Add(Subj);
+            }
+        }
+
+        if (Day.CalledPropIDs.Num() > 0)
+        {
+            TMap<FString, UPropRosterEntry*> PropByID;
+            TArray<FAssetData> F;
+            ARM.Get().GetAssetsByClass(UPropRosterEntry::StaticClass()->GetClassPathName(), F, false);
+            for (const FAssetData& AD : F) if (UPropRosterEntry* E = Cast<UPropRosterEntry>(AD.GetAsset())) PropByID.Add(E->PropID, E);
+
+            for (const FString& P : Day.CalledPropIDs)
+            {
+                FPropEntry Pr;
+                if (UPropRosterEntry* E = PropByID.FindRef(P)) { Pr.PropID = E->PropID; Pr.bIsTracked = E->bIsTracked; Pr.LiveLinkSubjectName = E->DefaultLiveLinkName; }
+                else                                           { Pr.PropID = P; }
+                Shot.Props.Add(Pr);
+            }
+        }
+    }
+
     // The one message every id rejection uses — names the field and says what is allowed.
     FText PCAPBadIDText(const FString& Field, const FString& Value)
     {
@@ -859,11 +908,17 @@ void SPCAPCallSheetPanel::AddShotBySlot(const FString& Slot)
             PCAPNotify(FText::FromString(FString::Printf(TEXT("Shot %s is already on this day's list."), *ShotID)));
             return;
         }
+    UMocapDatabase* DB = GetDB();
+
     FShot New;
     New.ShotID   = ShotID;
     New.ShotType = ShotTypeFor(FString(), ShotID);
+    if (FShootDay* Day = DB ? DB->GetActiveDay() : nullptr)
+    {
+        PCAPSeedShotFromDayCallout(*Day, New);
+    }
     Sess->Shots.Add(New);
-    if (UMocapDatabase* DB = GetDB()) DB->MarkPackageDirty();
+    if (DB) DB->MarkPackageDirty();
     RebuildSheet();
 }
 

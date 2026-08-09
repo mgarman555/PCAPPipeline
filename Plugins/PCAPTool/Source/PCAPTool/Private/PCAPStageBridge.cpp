@@ -64,13 +64,13 @@ static const TCHAR* GUpdateAllFieldsFunctionName = TEXT("UpdateAllFields");
 
 namespace
 {
-    IAssetRegistry* GetAssetRegistry()
+    IAssetRegistry* StageBridgeGetAssetRegistry()
     {
         FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
         return &ARM.Get();
     }
 
-    void SavePackageFor(UObject* Obj)
+    void StageBridgeSavePackageFor(UObject* Obj)
     {
         if (Obj)
         {
@@ -338,7 +338,7 @@ namespace
     void GatherSessionTemplates(TArray<UObject*>& OutAssets)
     {
         UClass* TemplateClass = ResolveSessionTemplateClass();
-        IAssetRegistry* AssetRegistry = GetAssetRegistry();
+        IAssetRegistry* AssetRegistry = StageBridgeGetAssetRegistry();
         if (!TemplateClass || !AssetRegistry) { return; }
 
         TArray<FAssetData> Found;
@@ -552,13 +552,13 @@ bool UPCAPStageBridge::PairStageConfig(UStageConfigAsset* StageConfig, UObject* 
     }
     if (bAssignedUID)
     {
-        SavePackageFor(StageAsset);   // persist a freshly-minted UID
+        StageBridgeSavePackageFor(StageAsset);   // persist a freshly-minted UID
     }
 
     StageConfig->Modify();
     StageConfig->PCapStageUID   = StageUID;
     StageConfig->PCapStageAsset = StageAsset;
-    SavePackageFor(StageConfig);
+    StageBridgeSavePackageFor(StageConfig);
 
     UE_LOG(LogTemp, Display, TEXT("[PCAP] Stage config '%s' paired to Mocap Manager stage '%s' (%s)."),
         *StageConfig->ConfigName, *StageAsset->GetName(), *StageUID.ToString(EGuidFormats::DigitsWithHyphens));
@@ -586,7 +586,7 @@ bool UPCAPStageBridge::UnpairStageConfig(UStageConfigAsset* StageConfig)
     StageConfig->Modify();
     StageConfig->PCapStageUID = FGuid();
     StageConfig->PCapStageAsset.Reset();
-    SavePackageFor(StageConfig);
+    StageBridgeSavePackageFor(StageConfig);
     return true;
 }
 
@@ -594,7 +594,7 @@ UStageConfigAsset* UPCAPStageBridge::FindStageConfigForStage(const FGuid& StageU
 {
     if (!StageUID.IsValid()) { return nullptr; }
 
-    IAssetRegistry* AssetRegistry = GetAssetRegistry();
+    IAssetRegistry* AssetRegistry = StageBridgeGetAssetRegistry();
     if (!AssetRegistry) { return nullptr; }
 
     TArray<FAssetData> Found;
@@ -718,7 +718,7 @@ int32 UPCAPStageBridge::ApplyStageConfigToSession(const UStageConfigAsset* Stage
     // write none of them, but this is the protocol the asset expects and it keeps
     // the write path correct if a tokenised field is ever added here.
     CallUpdateAllFields(Template);
-    SavePackageFor(Template);
+    StageBridgeSavePackageFor(Template);
 
     UE_LOG(LogTemp, Display,
         TEXT("[PCAP] Stage config '%s' applied to Mocap Manager stage '%s': %s = %s."),

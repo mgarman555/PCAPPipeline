@@ -109,7 +109,7 @@ namespace
         return Struct;
     }
 
-    IAssetRegistry* GetAssetRegistry()
+    IAssetRegistry* TakeRecordWriterGetAssetRegistry()
     {
         FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
         return &ARM.Get();
@@ -122,7 +122,7 @@ namespace
     {
         if (!RowStruct) { return; }
 
-        IAssetRegistry* AR = GetAssetRegistry();
+        IAssetRegistry* AR = TakeRecordWriterGetAssetRegistry();
         if (!AR) { return; }
 
         TArray<FAssetData> Found;

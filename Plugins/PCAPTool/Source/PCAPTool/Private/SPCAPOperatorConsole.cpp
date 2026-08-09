@@ -477,14 +477,39 @@ void SPCAPOperatorConsole::RebuildContext()
 
     UMocapDatabase* DB = GetDB();
     FShot* Shot = DB ? DB->GetShot(SelProduction, SelDay, SelSession, SelShot) : nullptr;
+
+    // Resolve the record state BEFORE the no-shot guard. REVIEWING has exactly one
+    // non-error exit in the whole plugin — the review card's Done, which calls
+    // FinishReview — so if a selection stops resolving mid-review (a shot renamed or
+    // removed under us, or Active* pointing at a day that no longer holds it) and this
+    // returned early, the console would sit in amber REVIEWING with no way out and every
+    // take stuck on the default Captured label.
+    UPCAPTakeRecorderSubsystem* Rec = GetRecorder();
+    EPCAPRecordState State = Rec ? Rec->GetRecordState() : EPCAPRecordState::Ready;
+
     if (!Shot)
     {
+        if (State == EPCAPRecordState::Reviewing)
+        {
+            ShotContextBox->SetContent(
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+                [ SNew(STextBlock)
+                    .Text(LOCTEXT("ReviewNoShot", "Reviewing the last take, but its shot is no longer selectable.\nFinish the review to get back to the shot list."))
+                    .AutoWrapText(true)
+                    .ColorAndOpacity(FSlateColor(ColAmber)) ]
+                + SVerticalBox::Slot().AutoHeight()
+                [ SNew(SButton)
+                    .Text(LOCTEXT("ReviewNoShotDone", "Done"))
+                    .ToolTipText(LOCTEXT("ReviewNoShotDoneTip", "Close the review and return to READY. The take keeps whatever label it already has."))
+                    .OnClicked(this, &SPCAPOperatorConsole::OnFinishReviewClicked) ]);
+            return;
+        }
+
         ShotContextBox->SetContent(SNew(STextBlock).Text(LOCTEXT("PickShot", "Select a shot from the list.")).ColorAndOpacity(FSlateColor(ColText2)));
         return;
     }
 
-    UPCAPTakeRecorderSubsystem* Rec = GetRecorder();
-    EPCAPRecordState State = Rec ? Rec->GetRecordState() : EPCAPRecordState::Ready;
     FString NextTakeID;
     if (DB) { DB->ActiveProductionCode = SelProduction; DB->ActiveDayID = SelDay; DB->ActiveSessionID = SelSession; DB->ActiveShotID = SelShot; NextTakeID = DB->BuildNextTakeID(); }
 
@@ -1225,8 +1250,11 @@ bool SPCAPOperatorConsole::CanSendShotToMocapManager(FText& OutReason) const
     if (!bAnyCalledTalent && Shot->Props.Num() == 0)
     {
         OutReason = Shot->Subjects.Num() > 0
-            ? LOCTEXT("SendNoneCalled", "No talent is called to this shot — toggle them on in the Call Sheet first.")
-            : LOCTEXT("SendNothingCalled", "Nothing called to this shot — add talent or props in the Call Sheet first.");
+            // Name a control that actually exists. The Call Sheet's shot rows are a
+            // read-only summary — there is no per-shot toggle to send anyone to. Talent
+            // reaches a shot from the day's call-out, so that is where to point.
+            ? LOCTEXT("SendNoneCalled", "This shot's talent are all toggled off. Call them on the day in the Call Sheet, then re-add the shot — shots inherit the day's call-out when they're created.")
+            : LOCTEXT("SendNothingCalled", "Nothing called to this shot. Call actors and props for the day in the Call Sheet, then add the shot — it inherits the day's call-out.");
         return false;
     }
 
