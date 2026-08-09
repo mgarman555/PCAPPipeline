@@ -65,4 +65,21 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage|Volume")
     float VizYaw = 0.0f;
+
+    // ── Mocap Manager pairing ──────────────────────────────────────────
+    // Durable link to the Epic Performance Capture stage this config describes —
+    // a UPCapSessionTemplate, keyed by its UPCapDataAsset AssetUID. Same pairing
+    // mechanism as UPCAPPerformerExtension::PCapPerformerUID and
+    // UPCAPPropExtension::PCapPropUID: the GUID is the key, so the pairing
+    // survives the Epic asset being renamed, moved, or re-pathed.
+    // Invalid = not paired; every UPCAPStageBridge call then logs and no-ops.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage|Mocap Manager")
+    FGuid PCapStageUID;
+
+    // Convenience soft ref to the same Epic asset — a cache, never the key.
+    // UPCAPStageBridge::ResolvePairedStage uses it only while it still carries
+    // PCapStageUID, and falls back to a UID search when it has gone stale.
+    // Typed as UObject to avoid a dependency on the Workflow plugin's private header.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage|Mocap Manager")
+    TSoftObjectPtr<UObject> PCapStageAsset;
 };
