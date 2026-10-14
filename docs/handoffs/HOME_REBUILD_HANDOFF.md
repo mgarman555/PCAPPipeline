@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-14 · **Author:** Claude (chat session with Madi) · **For:** Claude Code on the P620 (`mgarman-threadripper`, RTX 3080 Ti, UE 5.8)
 **Deadline:** one performer, fully working, this weekend (Sat 2026-10-17).
-**Status:** Spec. Madi signs off between phases. Nothing here is implemented yet.
+**Status:** Spec, rev 2 (hardware answers folded in). Madi signs off between phases. Nothing here is implemented yet.
 
 ---
 
@@ -33,6 +33,10 @@
 - **No sync hardware yet.** Takes align by record-start for now. A sync box comes later and becomes the timecode source.
 - **Actors, projects, days, takes** come from the roster and database (already built). Setup should be quick for a returning actor.
 - **Mid-take failure:** alert **and** flag the take. Detailed alarm behavior gets designed later with Madi; build the minimum in §6 and keep it configurable.
+- **Weekend hardware (confirmed 2026-10-14):** OneHMC, which can run mono or stereo and is usually stereo, on firmware **0.2.0** before the shoot. A **4K USB webcam** for body (60 fps support unknown; the device agent finds out). A **Rode wireless kit** (square transmitter/receiver style) with the receiver plugged into the P620. **One performer, a friend of Madi's.** Madi is not in the volume; she operates and directs.
+- **Performer prep:** Madi builds the performer's MetaHuman (identity solve) before the shoot. During the shoot she wants to **review each take's facial performance on several game rigs**, not just the performer's MetaHuman (§5.1).
+- **Body live preview is wanted** if achievable. Epic's markerless solve stays the real body data (§4.2b).
+- **Storage:** ~**1 TB** free on the P620 for capture.
 - **Host:** P620 runs Unreal; everything lives in the PCAPTool plugin. Repo has push access. Same agent setup (architect, implementer, verifier) plus a device-integration agent per adapter (§8).
 
 ---
@@ -129,11 +133,15 @@ class IPCAPAudioSource { /* GetLevelDb(), GetHealth(), ArmTakeRecorderSource(UTa
 
 **Weekend adapters:**
 
-**(a) `FOneHMCFacialDevice`.** What we know (from Madi, not yet verified in code): Soma recorder + Synapse sync box, D-Tap powered, web GUI over Wi-Fi at `soma-xxxx.local`, `:9000` for record, `:8080` for firmware. **Units shipped on pre-0.2.0 firmware with an internal-storage recording bug; the builder said not to record internally until 0.2.0.** Unknown and must be observed by the OneHMC device agent before code: mono or stereo; preview stream format and URL; record start/stop requests; take naming; file list and download endpoints; file container, codec, resolution, fps; whether there are status fields (battery, storage, temp); behavior on Wi-Fi drop mid-take. Method: open the GUI in a browser, read its JS, and capture its network requests. Write it all to `docs/devices/onehmc.md` first. If preview is not available over the network, the HMC feeds show "no preview" and the agents run on the first downloaded file after the take (still useful, but say so in the UI).
+**(a) `FOneHMCFacialDevice`.** What we know (from Madi, not yet verified in code): Soma recorder + Synapse sync box, D-Tap powered, web GUI over Wi-Fi at `soma-xxxx.local`, `:9000` for record, `:8080` for firmware. **Units shipped on pre-0.2.0 firmware with an internal-storage recording bug; the builder said not to record internally until 0.2.0.** Madi is updating to 0.2.0 before the shoot; the adapter reads the firmware version on connect and **blocks Record with a red reason if it is below 0.2.0.** The unit runs mono or stereo (usually stereo); the adapter reports which mode is active and the Capture Setup Mono/Stereo button must match it, or Record is blocked. Unknown and must be observed by the OneHMC device agent before code: how mono/stereo is switched and reported; preview stream format and URL; record start/stop requests; take naming; file list and download endpoints; file container, codec, resolution, fps; whether there are status fields (battery, storage, temp); behavior on Wi-Fi drop mid-take. Method: open the GUI in a browser, read its JS, and capture its network requests. Write it all to `docs/devices/onehmc.md` first. If preview is not available over the network, the HMC feeds show "no preview" and the agents run on the first downloaded file after the take (still useful, but say so in the UI).
 
 **(b) `FMarkerlessBodyCamera`.** One fixed USB/UVC camera (Epic lists any UVC device for mono video; disable autofocus and auto-exposure where possible). One process owns the camera: an **FFmpeg child process** (dshow input) that records **H.264 CRF 18, 60 fps** straight into the take folder, **and** emits a low-rate MJPEG preview (5 to 10 fps) on localhost that the existing frame pump reads. That avoids two apps fighting over the camera on Windows. The body feed runs through the agent system with the `MarkerlessBody` profile (§4.3). FFmpeg path lives in plugin settings; the same FFmpeg is pointed at Live Link Hub's transcoder setting. Device agent verifies: chosen camera actually delivers 60 fps at the chosen resolution, dropped-frame reporting from FFmpeg stderr, and clean stop (file finalized, `moov` written) when Stop is pressed or the process is killed.
 
-**(c) `FRodeAudioSource`.** Record through Take Recorder's microphone audio source so the audio lands in the take's Level Sequence with no extra step. Live level meter for the alarm (silence for N seconds while recording = alarm; clipping above threshold = warning). Record at 48 kHz (clears Epic's 16 kHz floor). One performer, one mic, one file, per Epic's one-speaker rule. Device agent verifies: which Take Recorder source class records mic input in 5.8 (resolve by `/Script/...` path the same way `AddLiveLinkSource` does), the Rode shows as a selectable input, and the recorded asset sample rate. **Needs from Madi: which Rode and how it connects** (§11).
+*Camera mode (Madi's camera is 4K, 60 fps unknown).* The device agent lists every mode the webcam offers (`ffmpeg -f dshow -list_options true -i video="<name>"`), then measures real delivered fps for each candidate, because webcams often advertise modes they can't sustain. Epic's rule is HD or 4K **at 60 fps**. Many 4K webcams only do 4K at 30 and 1080p at 60. **If so, default to 1080p60 over 4K30** (Epic sets 60 fps as the target and only requires a face at least 1/30 of the frame, which 1080p clears for a full-body framing). Record the measured modes in `docs/devices/body-camera.md` and make the mode a setting, not a constant. If the camera can't hold 60 fps at any useful resolution, say so in the fact sheet and Capture Setup shows amber with the reason.
+
+*Live body preview (stretch, Phase 4b).* Epic has no realtime body path in 5.8: the markerless solve is offline, and the realtime MetaHuman path is face only. So live body is a **monitoring preview, not capture data**. Plan: a small pose-estimation process (a MediaPipe-class model) reads the **same localhost preview stream** FFmpeg already emits, so the webcam still has one owner. It publishes a Live Link skeleton subject that drives a preview character in the level. Take Recorder records it as a reference track, labelled "preview, not final". The real body animation still comes from Epic's offline solve on the recorded video. It is worth it for directing (you see the performer move a character live) but it is the first thing cut if the weekend runs short. The device agent must confirm the preview stream framerate is enough to be watchable (target 15+ fps for the pose process, separate from the 5 to 10 fps the frame agents need).
+
+**(c) `FRodeAudioSource`.** Record through Take Recorder's microphone audio source so the audio lands in the take's Level Sequence with no extra step. Live level meter for the alarm (silence for N seconds while recording = alarm; clipping above threshold = warning). Record at 48 kHz (clears Epic's 16 kHz floor). One performer, one mic, one file, per Epic's one-speaker rule. Device agent verifies: which Take Recorder source class records mic input in 5.8 (resolve by `/Script/...` path the same way `AddLiveLinkSource` does), the Rode shows as a selectable input, and the recorded asset sample rate. Madi's setup: a Rode wireless kit with the receiver on the P620 over USB (it enumerates as a USB audio input) and the transmitter on the performer. The device agent records the exact model from the USB device name. **If the model supports on-board recording in the transmitter, turn it on as a safety backup** (a wireless dropout then costs nothing), and add a "drop transmitter files into the take folder" step to offload. Alarm on: receiver missing, silence while recording, clipping, and the receiver's own disconnect if the OS exposes it.
 
 ### 4.3 Agents (the floor watchers)
 
@@ -148,6 +156,17 @@ Reuse `FHMCAgentOrchestrator` / `FHMCCameraAgent` for every camera feed, facial 
 
 `Plugins/PCAPTool/Guidelines/manifest.json`: 66 images from Epic's 5.8 pages, each tagged `good`/`bad`, category, the presets it applies to, the issue flag or board state it illustrates (`maps_to`, or `operator` when a person judges it), and its source page. `fetch_guidelines.ps1` downloads them into the gitignored `images/`. Skill threshold comments should reference the manifest `id` they were tuned against.
 
+### 4.5 Storage and offload budget (decide before the shoot)
+
+Epic's figure for stereo HMC capture is **~45 GB per minute** (60 fps, 1440×1920). With ~1 TB free, that is roughly **20 minutes of stereo footage in total** before body video, audio, and ingest copies. Ingest also transcodes into new capture data assets, so plan for raw plus imported.
+
+The bigger risk is **offload speed**. If OneHMC files are anywhere near that size and the only path off the unit is Wi-Fi, a one-minute take can take many minutes to download, and offload falls behind the shoot. The OneHMC device agent must measure, on the real unit, before Phase 4 is designed in detail:
+- Actual file size per minute in stereo and in mono at the settings Madi will use.
+- Download throughput over the network path available (Wi-Fi, and Ethernet if the Soma has it).
+- Whether storage can be pulled and read directly on the P620 (card or drive), and how long that takes.
+
+Then the offload design picks one of: **background during the shoot** (only if throughput keeps up), **batch at breaks** (offload queue runs when Madi presses "Offload now" or between setups), or **media pull** (copy from the removed storage, with the tool verifying files against the take list). The Operator Console shows: free space on `CaptureRoot`, estimated minutes left at the current config, and the offload queue backlog in minutes of footage. **Free space below a set threshold (default 15 minutes of capture) is amber; below 5 minutes is red.** The HMC's own free storage is a separate health item.
+
 ---
 
 ## 5. Take flow (one Record press)
@@ -158,6 +177,16 @@ Reuse `FHMCAgentOrchestrator` / `FHMCCameraAgent` for every camera feed, facial 
 4. **Stop fan-out**, then harvest the Level Sequence (existing `HandleTakeFinished`).
 5. **Offload (automatic, background):** list and download the HMC take files and move the body video into the **take folder on disk**: `<CaptureRoot>/<Production>/<Day>/<Shot>/<TakeID>/{face,body,audio}/`. `CaptureRoot` is a plugin setting (default `D:/PCAPCapture`). It is **outside** `Content/`; raw video never goes in Git or the asset tree. Write `take.json` (identity, devices, presets, start offsets, alarms, file hashes). Progress shows on the Operator Console; failures raise an amber alarm and are retryable.
 6. **Ingest + solve (Phase 5):** queue Capture Manager Mono Video Ingest on the take folder, then create a MetaHuman Performance per stream with the preset's settings, Process, Export Animation, and add the AnimSequence to the take's Level Sequence on the performer's MetaHuman, offset by the logged start delta. **Spike first:** confirm what is scriptable in 5.8 (Python or C++) for Capture Manager ingest and for MetaHuman Performance process/export. If ingest is not scriptable, the tool opens Live Link Hub with the folder path ready and a one-click "ingest done" re-scan; solve/export still automated if the Performance API allows. Document the outcome in `docs/devices/mha-automation.md`.
+
+### 5.1 Review on multiple game rigs
+
+Madi wants to judge a take's facial performance on several characters, not only the performer's MetaHuman. Design:
+
+- A **Rig Set** DataAsset per production: a list of target characters (skeletal mesh or Blueprint) plus, per target, how face animation reaches it.
+- **MetaHuman targets:** all MetaHumans share one face rig, so the exported face AnimSequence plays on any of them directly. No mapping step. This is the cheap case and should work first.
+- **Non-MetaHuman game rigs** (custom or extracted characters): need a per-rig mapping from MetaHuman face controls/curves to that rig's controls. Use what the engine already provides for this (a Control Rig or Pose Asset that reads MetaHuman curves and drives the target), authored once per rig and stored on the Rig Set entry. No mapping, no entry: the target shows "needs face mapping" instead of silently playing nothing.
+- **Take review:** after the solve lands (Phase 5), the take's Level Sequence gets one track per Rig Set target, and the Operator Console has a "Review on: [rig ▾]" switcher (or side-by-side). Body animation follows MetaHuman retarget rules: Existing Skeleton export for MetaHumans, IK Retargeter for others (the repo's `FRetargetConfig` already holds IK Rig/Retargeter refs).
+- Timing: this is Phase 5b. It depends on the solve, and facial is not realtime by Madi's decision, so review happens after each take, not live.
 
 ---
 
@@ -187,6 +216,7 @@ In `PCAPToolTypes.h` (append enum values at the end; never reorder, because save
 - New `FPCAPDeviceHealth` (§4.2). New `FPCAPAlarmEvent { FDateTime When; double TakeOffsetSec; FName Source; int32 Flags; EHMCIssueSeverity Severity; FString Reason; }`.
 - `FTake`: add `bool bAutoFlagged`, `TArray<FPCAPAlarmEvent> Alarms`, `FString CaptureFolder`, `TMap<FName,double> DeviceStartOffsets`, `ESyncMethod Sync = RecordStart` (values `RecordStart`, `Timecode`).
 - New DataAsset `UPCAPFacialProcessingPreset` (solver choice, head stabilization, tongue, expected device class, notes) under `PCAPPaths::Databases()/FacialPresets`.
+- New DataAsset `UPCAPRigSet` (Phase 5b): array of `{ TSoftObjectPtr<UObject> Target; bool bIsMetaHuman; TSoftObjectPtr<UObject> FaceMapping; FRetargetConfig BodyRetarget; }` under `PCAPPaths::Databases()/RigSets`. `FProduction` gets a soft ref to its Rig Set.
 - `UActorRosterEntry`: add `FName DefaultFacialVendor`, `ECaptureConfiguration DefaultFacialConfig`, `TSoftObjectPtr<UPCAPFacialProcessingPreset> DefaultFacialPreset`, `FName DefaultBodySource`, `FName DefaultAudioSource`. The existing `MetaHuman` soft ref is the solve and playback target.
 - `HMCConfig.json` stays readable (keep the deprecated `WebSocketEndpoint` field as documented).
 
@@ -217,11 +247,15 @@ Device agent PASS logs live in `docs/devices/<device>-verification.md` with date
 
 **Phase 3: Agents + alarm (Sat).** `MarkerlessBody` profile and body framing skill, device-health agent, `UPCAPAlarmSubsystem` with overlay, chime, and auto-flag. Pre-roll gate. Reference rubric in Setup. *Gate: pull the HMC's Wi-Fi mid-take, the alarm fires within ~3 s and the take is flagged; walk out of the body frame, the alarm fires; mute the mic, the alarm fires.*
 
-**Phase 4: Offload (Sat).** Background download, take folder layout, `take.json`, progress and retry. *Gate: three back-to-back takes offload without operator action.*
+**Phase 4: Offload (Sat).** Mode chosen from the §4.5 measurements (background, batch at breaks, or media pull). Take folder layout, `take.json`, progress, retry, storage readout and low-space alarms. *Gate: three back-to-back takes offload in the chosen mode without manual file moves; free-space and backlog readouts are correct.*
 
-**Weekend line.** Phases 0–4 are the weekend. Phase 5 is next.
+**Phase 4b: Live body preview (stretch, Sat).** Pose-estimation process on the shared preview stream, Live Link skeleton subject, preview character in the level, recorded as a labelled reference track (§4.2b). *Gate: performer moves, preview character follows at a watchable rate, nothing about the real body recording changes.* Cut first if time runs short.
+
+**Weekend line.** Phases 0–4 are the weekend; 4b if time allows. Phase 5 is next.
 
 **Phase 5: Ingest, solve, playback.** Automation spike first (§5 step 6), then automate as far as 5.8 allows. Face and body AnimSequences land in the take's Level Sequence, offset by logged start deltas. *Gate: open a take, press play, see face + body + audio together.*
+
+**Phase 5b: Multi-rig review.** Rig Set DataAsset, MetaHuman targets first, then per-rig face mappings for non-MetaHuman game rigs, review switcher in the Operator Console (§5.1). *Gate: one take plays on the performer's MetaHuman and at least one other character from the Rig Set.*
 
 **Phase 6: Multi-performer and sync.** N performers in Capture Setup, per-performer agents and alarms, sync box as `ESyncMethod::Timecode`, Xsens adapter via Live Link through the existing Mocap Manager bridge.
 
@@ -238,6 +272,9 @@ Device agent PASS logs live in `docs/devices/<device>-verification.md` with date
 - [ ] Pre-roll gate blocks on red with a readable reason.
 - [ ] Body and HMC feeds judged by agents with Epic-sourced thresholds; Setup shows the matching good/bad references.
 - [ ] Red during a take: full-screen flash (or border, per setting), chime until acknowledged, take auto-flagged with reason and offset.
+- [ ] OneHMC firmware below 0.2.0, or a Mono/Stereo mismatch with Capture Setup, blocks Record with a readable reason.
+- [ ] Body camera mode chosen from measured modes (1080p60 preferred over 4K30 if 4K60 isn't real).
+- [ ] Storage readout: free space, minutes left at the current config, offload backlog. Amber/red thresholds fire.
 - [ ] Files offload into `<CaptureRoot>/<Prod>/<Day>/<Shot>/<TakeID>/` with `take.json`, no manual file moves.
 - [ ] Audio is in the take's Level Sequence.
 - [ ] `docs/` updated: this handoff's status, device sheets, tool how-tos.
@@ -246,12 +283,11 @@ Device agent PASS logs live in `docs/devices/<device>-verification.md` with date
 
 ## 11. Open questions for Madi (answers change the build)
 
-1. **OneHMC: mono or stereo, and is it on firmware 0.2.0 yet?** Stereo means calibration takes every session and ~45 GB/min. Pre-0.2.0 means no internal recording, which blocks the offload design.
-2. **Body camera:** which camera, how does it connect, can it do 60 fps at 1080p, and where does it mount? Phase 2 depends on it.
-3. **Rode:** which model, and does it plug into the P620 by USB, or record to itself?
-4. **Performer:** is the weekend performer you? If you're in the HMC, the alarm screen and acknowledge need to work from inside the volume.
-5. **MetaHuman:** does the performer already have a MetaHuman (and identity, if stereo) in the project for solve and playback?
-6. **Capture drive:** is `D:/PCAPCapture` right on the P620, and how much free space is there?
+Answered 2026-10-14: OneHMC is mono or stereo (usually stereo), on 0.2.0 before the shoot. Body camera is a 4K USB webcam, 60 fps unknown. Rode wireless kit, receiver into the P620. Performer is a friend, not Madi. Madi builds the performer's MetaHuman beforehand. ~1 TB free. Still open:
+
+1. **Mono or stereo for this weekend?** Stereo gives the depth solve but needs calibration takes at the start and end of the session, plus ~45 GB/min (about 20 minutes of total footage on 1 TB). Mono is lighter and simpler, with lower solve quality. The device agent's real file-size and offload-speed numbers (§4.5) should go to Madi before she decides.
+2. **Which game rigs** go in the Rig Set (§5.1)? MetaHumans are free. Each non-MetaHuman rig needs a one-time face mapping.
+3. **Capture folder:** which drive holds the 1 TB? `CaptureRoot` defaults to `D:/PCAPCapture` until Madi says otherwise.
 
 ---
 
