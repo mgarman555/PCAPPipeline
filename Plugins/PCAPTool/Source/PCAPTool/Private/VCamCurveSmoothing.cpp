@@ -100,7 +100,7 @@ void FVCamCurveSmoothing::SmoothRotations(TArray<FQuat>& InOut, const FVCamSmoot
         FQuat Q = InOut[0];
         for (int32 i = 0; i < N; ++i)
         {
-            Q = FMath::Slerp(Q, InOut[i], Blend);
+            Q = FQuat::Slerp(Q, InOut[i], Blend);
             InOut[i] = Q;
         }
         return;
