@@ -12,6 +12,10 @@ DerivedDataCache/
 *.xcodeproj
 Build/
 
+# Machine-local paths file and agent worktrees
+CLAUDE.local.md
+.claude/worktrees/
+
 # Brainstorming visual companion (local only)
 .superpowers/
 

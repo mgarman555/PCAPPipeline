@@ -40,6 +40,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "CaptureManagerEditor",
+			"Enabled": true
+		},
+		{
 			"Name": "LiveLink",
 			"Enabled": true
 		},
