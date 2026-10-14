@@ -25,3 +25,7 @@ Plugins/PCAPTool/HostTests/*.dSYM/
 # real API. The README itself is tracked; everything else under Reference/ is not.
 /Reference/*
 !/Reference/README.md
+
+# Epic MetaHuman guideline images (Epic-owned docs content). The manifest + fetch
+# script are tracked; the downloaded images never are. See Plugins/PCAPTool/Guidelines/.
+/Plugins/PCAPTool/Guidelines/images/

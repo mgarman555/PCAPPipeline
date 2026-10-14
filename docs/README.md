@@ -48,4 +48,6 @@ Step-by-step guides for hand-building the HMC UMG widget blueprints: [Monitor](b
 
 ## Handoffs — [`handoffs/`](handoffs/)
 
+**Current:** [Home rebuild: device layer + alarms (2026-10-14)](handoffs/HOME_REBUILD_HANDOFF.md). Adapters for OneHMC / markerless body / Rode, floor alarm, offload, agent team. Guideline image manifest: [`Plugins/PCAPTool/Guidelines/`](../Plugins/PCAPTool/Guidelines/manifest.json).
+
 Historical session handoff notes (point-in-time; may be stale): [HMC session 5](handoffs/HMC_SESSION5_HANDOFF.md) · [Realtime Operator](handoffs/REALTIME_OPERATOR_HANDOFF.md) (the `claude/gallant-cerf-fe61d0` branch's pending work).

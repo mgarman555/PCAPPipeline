@@ -1,0 +1,890 @@
+{
+  "schema": 1,
+  "retrieved": "2026-10-14",
+  "engine": "UE 5.8 docs",
+  "license_note": "Images are Epic Games documentation content. This manifest (links only) is tracked; the downloaded images are gitignored and must never be committed (repo is public).",
+  "presets": {
+    "MetaHumanHMC.MonoHeadMount": "Mono video face, head-mounted camera",
+    "MetaHumanHMC.StereoHeadMount": "Stereo (depth) face, head-mounted pair, needs calibration takes",
+    "MetaHumanHMC.PhoneHeadMount": "Phone (TrueDepth / mono) face on a head mount",
+    "MetaHumanHMC.MonoTripod": "Mono / TrueDepth face on a fixed tripod",
+    "MarkerlessBody.Tripod": "Markerless body from a fixed mono camera (MetaHuman Animator Markerless Motion Capture plugin, offline solve)"
+  },
+  "sources": {
+    "video_capture_guidelines": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine",
+    "depth_capture_guidelines": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-depth-data-capture-guidelines-in-unreal-engine",
+    "calibration_takes": "https://dev.epicgames.com/documentation/metahuman/calibration-takes",
+    "capture_device_requirements": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-capture-device-requirements"
+  },
+  "images": [
+    {
+      "id": "face_framing_good",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/82c255fa-a962-4357-8c41-d8b452ae38dd?resizing_type=fit",
+      "caption": "Recommended framing, facial-only capture",
+      "verdict": "good",
+      "category": "framing",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_framing_out_a",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/8e24394b-3c5c-472b-9a8e-44f7ff25102d?resizing_type=fit",
+      "caption": "Performer out of frame",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_NoFace",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_framing_out_b",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/e979eab6-8165-425a-8329-e33c1e5722ed?resizing_type=fit",
+      "caption": "Performer out of frame",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_NoFace",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_framing_low",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/d2307024-3485-429a-9d3b-115941539a92?resizing_type=fit",
+      "caption": "Performer too low",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_FramingDrift",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_framing_high",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/51a87ec8-6740-4f0a-9cd5-3c9dc74ed99e?resizing_type=fit",
+      "caption": "Performer too high",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_FramingDrift",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_framing_offaxis",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/f4352fc8-4712-4060-958a-517b65ef6fc2?resizing_type=fit",
+      "caption": "Off-axis",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_FramingDrift",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_framing_close",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/56c3453a-fb07-4a64-ba27-5369dbca39ae?resizing_type=fit",
+      "caption": "Performer too close",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_TooClose",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_light_good",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/1c8727f7-6413-49a8-95a7-c81c6352b551?resizing_type=fit",
+      "caption": "Recommended lighting, facial capture",
+      "verdict": "good",
+      "category": "lighting",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_light_over",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/6bf931f4-3d70-43a6-aa11-051d62a8e26d?resizing_type=fit",
+      "caption": "Over exposed",
+      "verdict": "bad",
+      "category": "exposure",
+      "maps_to": "HMC_Issue_Overexposed",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_light_under",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/dc3e2ac4-6278-47bb-88ab-bf2dc8131ff7?resizing_type=fit",
+      "caption": "Under exposed",
+      "verdict": "bad",
+      "category": "exposure",
+      "maps_to": "HMC_Issue_Underexposed",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_light_below",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/df147608-1f16-418c-88ce-de65b959241a?resizing_type=fit",
+      "caption": "Lit from below",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_light_side",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/34c03789-3a9b-4ed2-94d5-295d0fb5644f?resizing_type=fit",
+      "caption": "Lit from side",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_light_back",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/a184509d-0d78-4dd4-850c-00094ca9bc1f?resizing_type=fit",
+      "caption": "Back lit",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_light_shadows",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/0560dad1-37be-4461-a1bd-5d227fbe067d?resizing_type=fit",
+      "caption": "Shadows",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "face_motionblur",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/0eac7129-d5a9-4069-91a9-fba4e159e65c?resizing_type=fit",
+      "caption": "Motion blur",
+      "verdict": "bad",
+      "category": "focus",
+      "maps_to": "HMC_Issue_OutOfFocus",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "env_good",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/6e6a175e-c334-49e7-a458-a16202a53d16?resizing_type=fit",
+      "caption": "Environment, recommended",
+      "verdict": "good",
+      "category": "environment",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoTripod",
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "env_bad",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/b4918d33-f478-4b20-a6d5-2a00ff734375?resizing_type=fit",
+      "caption": "Environment, not recommended",
+      "verdict": "bad",
+      "category": "environment",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoTripod",
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "occlusion_good",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/9d7187f9-2b82-436b-9876-5c3268486c30?resizing_type=fit",
+      "caption": "Occlusion, recommended",
+      "verdict": "good",
+      "category": "occlusion",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod",
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "occlusion_bad_a",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/ef894bad-6931-4bcf-9950-847924956698?resizing_type=fit",
+      "caption": "Occlusion, not recommended",
+      "verdict": "bad",
+      "category": "occlusion",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod",
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "occlusion_bad_b",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/b1462963-dc6f-4569-af72-3a3ecae781e0?resizing_type=fit",
+      "caption": "Occlusion, not recommended",
+      "verdict": "bad",
+      "category": "occlusion",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount",
+        "MetaHumanHMC.MonoTripod",
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "hmc_focus_good",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/59aa4940-c02e-4813-b09d-bf178a7ed904?resizing_type=fit",
+      "caption": "HMC optimal focus (nasolabial)",
+      "verdict": "good",
+      "category": "focus",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "hmc_focus_bad",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/37c1aaa9-1305-472d-ba17-cbb8d91b74e9?resizing_type=fit",
+      "caption": "HMC out of focus",
+      "verdict": "bad",
+      "category": "focus",
+      "maps_to": "HMC_Issue_OutOfFocus",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "hmc_light_good",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/c4c94666-d676-488a-9d56-5fbff4037141?resizing_type=fit",
+      "caption": "HMC optimal lighting",
+      "verdict": "good",
+      "category": "lighting",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "hmc_light_over",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/eb352335-8bc3-4e01-8393-78882908cfd1?resizing_type=fit",
+      "caption": "HMC over exposed",
+      "verdict": "bad",
+      "category": "exposure",
+      "maps_to": "HMC_Issue_Overexposed",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "hmc_light_under",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/21d52e9a-07e3-428d-a32d-ebcbf846bd7a?resizing_type=fit",
+      "caption": "HMC under exposed",
+      "verdict": "bad",
+      "category": "exposure",
+      "maps_to": "HMC_Issue_Underexposed",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "hmc_light_side",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/e463f1c2-f223-4122-85ee-3106edb09399?resizing_type=fit",
+      "caption": "HMC side lit",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "hmc_light_roomlights",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/aaecfd98-3282-422c-9a7d-9f30f63c4c5c?resizing_type=fit",
+      "caption": "HMC room lights visible",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "hmc_light_shadows",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/8cb5f293-4085-4777-b5e4-75b41d8db59e?resizing_type=fit",
+      "caption": "HMC shadows",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "stereo_framing_good_lower",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/86b1218d-798b-4094-a152-56604ef0ed7f?resizing_type=fit",
+      "caption": "Stereo optimal framing, lower camera (centre on upper philtrum)",
+      "verdict": "good",
+      "category": "framing",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-depth-data-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "stereo_framing_good_upper",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/6d9f4777-1106-4ea8-a116-7e3fb4a9d3ff?resizing_type=fit",
+      "caption": "Stereo optimal framing, upper camera (centre on upper philtrum)",
+      "verdict": "good",
+      "category": "framing",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-depth-data-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "stereo_framing_low_a",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/df082d1d-415a-4d17-8f7d-5e997f00d5d7?resizing_type=fit",
+      "caption": "Stereo too low",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_FramingDrift",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-depth-data-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "stereo_framing_low_b",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/11af670e-31c6-407d-b92c-bd00443d9390?resizing_type=fit",
+      "caption": "Stereo too low",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_FramingDrift",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-depth-data-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "stereo_framing_high_a",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/0c7eca19-cf26-498b-b196-654cccda8e27?resizing_type=fit",
+      "caption": "Stereo too high",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_FramingDrift",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-depth-data-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "stereo_framing_high_b",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/84b76919-fa0e-4bba-a592-3a853d12c928?resizing_type=fit",
+      "caption": "Stereo too high",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_FramingDrift",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-depth-data-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "stereo_framing_offaxis",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/223c787f-29e5-4b84-86ed-1ce8f5e69005?resizing_type=fit",
+      "caption": "Stereo off axis",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "HMC_Issue_FramingDrift",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-depth-data-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "tripod_depth_good",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/ae78a465-84d9-4ec9-8508-c8b5038dad78?resizing_type=fit",
+      "caption": "TrueDepth gray depth preview, correct distance",
+      "verdict": "good",
+      "category": "distance",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-depth-data-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "calib_board",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/af647ba6-0329-4333-ab6c-cbc8d42688c5?resizing_type=fit",
+      "caption": "Calibration board (reference)",
+      "verdict": "good",
+      "category": "calibration",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/calibration-takes"
+    },
+    {
+      "id": "calib_close",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/f0e71bb5-d21f-46c1-a129-ef096f57f963?resizing_type=fit",
+      "caption": "Board too close",
+      "verdict": "bad",
+      "category": "calibration",
+      "maps_to": "EHMCBoardState::TooClose",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/calibration-takes"
+    },
+    {
+      "id": "calib_far",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/4950a59a-49fa-4271-8c14-13b82229b083?resizing_type=fit",
+      "caption": "Board too far",
+      "verdict": "bad",
+      "category": "calibration",
+      "maps_to": "EHMCBoardState::TooFar",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/calibration-takes"
+    },
+    {
+      "id": "calib_out",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/0d1c16dd-ad58-4f16-a6d5-6f310ab62f47?resizing_type=fit",
+      "caption": "Board out of frame",
+      "verdict": "bad",
+      "category": "calibration",
+      "maps_to": "EHMCBoardState::OffCenter",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/calibration-takes"
+    },
+    {
+      "id": "calib_occluded",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/fa749645-c5d6-44a0-82c2-7f8f71bda888?resizing_type=fit",
+      "caption": "Board occluded by hand",
+      "verdict": "bad",
+      "category": "calibration",
+      "maps_to": "EHMCBoardState::NotDetected",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/calibration-takes"
+    },
+    {
+      "id": "calib_hand",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/ad53f28f-8274-48a1-93c0-5b0d12201874?resizing_type=fit",
+      "caption": "Hand visible",
+      "verdict": "bad",
+      "category": "calibration",
+      "maps_to": "operator",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/calibration-takes"
+    },
+    {
+      "id": "calib_inverted",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/475b9f87-930f-477a-bd43-5868dec4978a?resizing_type=fit",
+      "caption": "Board inverted",
+      "verdict": "bad",
+      "category": "calibration",
+      "maps_to": "operator",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/calibration-takes"
+    },
+    {
+      "id": "calib_horizontal",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/64bcc1d0-ca88-4057-9bf9-7c18204ba33e?resizing_type=fit",
+      "caption": "Board horizontal",
+      "verdict": "bad",
+      "category": "calibration",
+      "maps_to": "operator",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/calibration-takes"
+    },
+    {
+      "id": "calib_overrotated",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/2dc1edbb-bbbb-40dd-b528-3f03bbdfae68?resizing_type=fit",
+      "caption": "Board over-rotated",
+      "verdict": "bad",
+      "category": "calibration",
+      "maps_to": "operator",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/calibration-takes"
+    },
+    {
+      "id": "calib_with_actor",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/a7920fe1-ab66-4fb8-a7d0-42a9dc7ed01f?resizing_type=fit",
+      "caption": "Calibration with actor in frame",
+      "verdict": "bad",
+      "category": "calibration",
+      "maps_to": "operator",
+      "presets": [
+        "MetaHumanHMC.StereoHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/calibration-takes"
+    },
+    {
+      "id": "body_framing_good",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/893e687e-0dbe-40e9-bf48-20c6dff64808?resizing_type=fit",
+      "caption": "Recommended camera position, body (full body, margin, straight on, neutral height)",
+      "verdict": "good",
+      "category": "framing",
+      "maps_to": "",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_framing_out_a",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/2edf0d56-bb82-43a6-884e-b23dd41ec430?resizing_type=fit",
+      "caption": "Body out of frame",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "BODY_OutOfFrame",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_framing_out_b",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/a520d14d-f575-4832-a1a4-e08279b6c534?resizing_type=fit",
+      "caption": "Body out of frame",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "BODY_OutOfFrame",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_angle_low",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/f5d6c0b5-84bf-4bb1-b239-ef928ed71963?resizing_type=fit",
+      "caption": "Camera angle too low",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "operator",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_angle_high",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/4140b02b-4b23-4ad5-9c96-2a6d48649d46?resizing_type=fit",
+      "caption": "Camera angle too high",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "operator",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_offaxis",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/55054dc8-55ce-4ed2-a8ce-7a5dde2d39a0?resizing_type=fit",
+      "caption": "Body off-axis",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "operator",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_close",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/344daa2d-bd5f-4fbb-bebf-2787df49b627?resizing_type=fit",
+      "caption": "Body too close",
+      "verdict": "bad",
+      "category": "framing",
+      "maps_to": "BODY_TooClose",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_light_good",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/4667356c-4b36-44d3-8306-1e0a1534db7a?resizing_type=fit",
+      "caption": "Lighting for full-body capture",
+      "verdict": "good",
+      "category": "lighting",
+      "maps_to": "",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_light_over",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/f23190c7-fd19-426f-baa4-92ba59aebeff?resizing_type=fit",
+      "caption": "Body over exposed",
+      "verdict": "bad",
+      "category": "exposure",
+      "maps_to": "HMC_Issue_Overexposed",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_light_under",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/73f02afe-1fe3-4c6f-8710-3f5cc954babc?resizing_type=fit",
+      "caption": "Body under exposed",
+      "verdict": "bad",
+      "category": "exposure",
+      "maps_to": "HMC_Issue_Underexposed",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_light_below",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/fbc3ad2d-66e7-4374-9d24-bd50cd3fc2eb?resizing_type=fit",
+      "caption": "Body lit from below",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_light_side",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/0a01aa2d-9405-4c7f-ab82-4de99adaf775?resizing_type=fit",
+      "caption": "Body lit from side",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_light_back",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/96086831-4587-42c0-84be-16f64c3f9180?resizing_type=fit",
+      "caption": "Body back lit",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_light_shadows",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/25e54a21-b7ab-40a2-8b19-cff0511f1013?resizing_type=fit",
+      "caption": "Body shadows",
+      "verdict": "bad",
+      "category": "lighting",
+      "maps_to": "HMC_Issue_UnevenLight",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "body_motionblur",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/fa1bb006-8f0c-498a-8ace-daa43e1c588a?resizing_type=fit",
+      "caption": "Body motion blur",
+      "verdict": "bad",
+      "category": "focus",
+      "maps_to": "HMC_Issue_OutOfFocus",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "clothing_good",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/6f33bab8-838e-463b-bb8c-fa5cfe44b323?resizing_type=fit",
+      "caption": "Clothing, recommended",
+      "verdict": "good",
+      "category": "clothing",
+      "maps_to": "",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "clothing_bad_a",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/ee368bc4-c9ed-42fe-a0e5-4f646da39e00?resizing_type=fit",
+      "caption": "Clothing, not recommended",
+      "verdict": "bad",
+      "category": "clothing",
+      "maps_to": "operator",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "clothing_bad_b",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/379190cb-55bc-4a61-b8e0-e43fca9792dc?resizing_type=fit",
+      "caption": "Clothing, not recommended",
+      "verdict": "bad",
+      "category": "clothing",
+      "maps_to": "operator",
+      "presets": [
+        "MarkerlessBody.Tripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-video-capture-guidelines-in-unreal-engine"
+    },
+    {
+      "id": "device_tripod",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/7d2810ba-f17c-4728-bcee-edbb962d82be?resizing_type=fit",
+      "caption": "Tripod mounted device (reference)",
+      "verdict": "good",
+      "category": "device",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoTripod"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-capture-device-requirements"
+    },
+    {
+      "id": "device_headmount",
+      "url": "https://dev.epicgames.com/community/api/documentation/image/08d1e33c-b45e-4d13-875b-8c76849206a9?resizing_type=fit",
+      "caption": "Head mounted device (reference)",
+      "verdict": "good",
+      "category": "device",
+      "maps_to": "",
+      "presets": [
+        "MetaHumanHMC.MonoHeadMount",
+        "MetaHumanHMC.StereoHeadMount",
+        "MetaHumanHMC.PhoneHeadMount"
+      ],
+      "source": "https://dev.epicgames.com/documentation/metahuman/metahuman-animator-capture-device-requirements"
+    }
+  ]
+}
