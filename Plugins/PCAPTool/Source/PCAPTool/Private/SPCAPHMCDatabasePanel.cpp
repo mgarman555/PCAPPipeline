@@ -264,6 +264,8 @@ TSharedRef<SWidget> SPCAPHMCDatabasePanel::MakeEnumRow(const FString& Label, UEn
                     for (int32 i = 0; i < EnumPtr->NumEnums() - 1; ++i)   // skip the implicit _MAX
                     {
                         const int32 Val = (int32)EnumPtr->GetValueByIndex(i);
+                        // A fixed body camera is not an HMC rig type.
+                        if (EnumPtr == StaticEnum<ECaptureConfiguration>() && Val == (int32)ECaptureConfiguration::FixedBodyCamera) continue;
                         MB.AddMenuEntry(EnumPtr->GetDisplayNameTextByIndex(i), FText::GetEmpty(), FSlateIcon(),
                             FUIAction(FExecuteAction::CreateLambda([this, Set, Val]()
                             {

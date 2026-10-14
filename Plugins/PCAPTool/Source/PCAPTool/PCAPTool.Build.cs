@@ -31,6 +31,7 @@ public class PCAPTool : ModuleRules
         PrivateDependencyModuleNames.AddRange(new string[]
         {
             "UnrealEd",             // FEditorFileUtils, tab manager
+            "EditorSubsystem",      // UEditorSubsystem — UPCAPDeviceRegistry
             "IKRig",                // Forward-declared in PCAPToolTypes.h
             "TakeRecorder",         // UTakeRecorderBlueprintLibrary, FTakeRecorderParameters, UTakeRecorderSubsystem
             "TakesCore",            // UTakeRecorderSources, UTakeMetaData

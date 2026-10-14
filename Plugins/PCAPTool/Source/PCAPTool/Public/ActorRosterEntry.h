@@ -5,6 +5,8 @@
 #include "PCAPToolTypes.h"   // FBodyStreamEntry / FFaceStreamEntry / FAudioStreamEntry
 #include "ActorRosterEntry.generated.h"
 
+class UPCAPFacialProcessingPreset;
+
 // Permanent per-performer record. Saved to Content/Mocap/_Roster/Actors/[actorID].uasset.
 // Created once per performer; never recreated per-production or per-session.
 // FirstName/LastName are metadata only — ActorID is the displayed name everywhere.
@@ -31,6 +33,24 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Defaults")
     TArray<FAudioStreamEntry> DefaultAudioStreams;
+
+    // ── Capture Setup defaults (a returning actor's row pre-fills from these) ──
+    // Vendor ids are the UPCAPDeviceRegistry ids ("OneHMC", "Technoprops", ...).
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    FName DefaultFacialVendor;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    ECaptureConfiguration DefaultFacialConfig = ECaptureConfiguration::StereoHeadMount;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    TSoftObjectPtr<UPCAPFacialProcessingPreset> DefaultFacialPreset;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    FName DefaultBodySource;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    FName DefaultAudioSource;
 
     // ── Digital double — the assets that turn this performer into a character ──
 

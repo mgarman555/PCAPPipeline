@@ -1,8 +1,6 @@
 #include "PCAPToolSubsystem.h"
 #include "PCAPToolStatics.h"
-#include "HttpModule.h"
-#include "Interfaces/IHttpRequest.h"
-#include "Interfaces/IHttpResponse.h"
+#include "Devices/TechnopropsFacialDevice.h"
 #include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 #include "Dom/JsonObject.h"
@@ -38,6 +36,11 @@ void UPCAPToolSubsystem::Deinitialize()
 void UPCAPToolSubsystem::RegisterDevice(const FHMCDeviceConfig& Config)
 {
     RegisteredConfigs.Add(Config.DeviceName, Config);
+
+    // The transport addresses the device by the config's IP (re-registering updates it).
+    TSharedPtr<FTechnopropsFacialDevice>& Transport = Transports.FindOrAdd(Config.DeviceName);
+    if (!Transport.IsValid()) Transport = MakeShared<FTechnopropsFacialDevice>();
+    Transport->Connect(FPCAPDeviceAddress(Config.IPAddress));
 
     FHMCDeviceStatus& Status = DeviceStatuses.FindOrAdd(Config.DeviceName);
     Status.DeviceName      = Config.DeviceName;
@@ -76,6 +79,7 @@ void UPCAPToolSubsystem::UnregisterDevice(const FString& DeviceName)
     DisconnectDevice(DeviceName);
     RegisteredConfigs.Remove(DeviceName);
     DeviceStatuses.Remove(DeviceName);
+    Transports.Remove(DeviceName);
 
     for (auto& Pair : CameraFeeds)
     {
@@ -268,27 +272,19 @@ void UPCAPToolSubsystem::PollDevice(FString DeviceName)
 {
     const FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
     if (!Config) return;
+    FTechnopropsFacialDevice* Transport = FindTransport(DeviceName);
+    if (!Transport) return;
 
-    // Exact endpoint the Technoprops MugShot web UI uses
-    const FString URL = FString::Printf(
-        TEXT("http://%s/control?cmd=no&param="), *Config->IPAddress);
-
-    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-    Request->SetURL(URL);
-    Request->SetVerb(TEXT("GET"));
-    Request->SetTimeout(2.5f);   // generous — status competes with the video pulls
-    Request->OnProcessRequestComplete().BindUObject(
-        this, &UPCAPToolSubsystem::OnPollResponse, DeviceName);
-    Request->ProcessRequest();
+    Transport->PollStatus(FTechnopropsFacialDevice::FOnStatusPolled::CreateUObject(
+        this, &UPCAPToolSubsystem::OnPollResponse, DeviceName));
 }
 
-void UPCAPToolSubsystem::OnPollResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
-                                        bool bWasSuccessful, FString DeviceName)
+void UPCAPToolSubsystem::OnPollResponse(bool bOk, const FString& Body, FString DeviceName)
 {
     FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName);
     if (!Status) return;
 
-    if (!bWasSuccessful || !Response.IsValid() || Response->GetResponseCode() != 200)
+    if (!bOk)
     {
         // Debounce: under heavy video load the status poll can occasionally time out.
         // A single miss must NOT blank the feed — only declare Offline after several
@@ -309,55 +305,8 @@ void UPCAPToolSubsystem::OnPollResponse(FHttpRequestPtr Request, FHttpResponsePt
     if (Status->ConnectionState == EHMCConnectionState::Offline)
         SetConnectionState(DeviceName, EHMCConnectionState::Connected);
 
-    TSharedPtr<FJsonObject> JsonObj;
-    TSharedRef<TJsonReader<>> Reader =
-        TJsonReaderFactory<>::Create(Response->GetContentAsString());
-    if (!FJsonSerializer::Deserialize(Reader, JsonObj) || !JsonObj.IsValid()) return;
-
-    double Val = 0.0;
-
-    JsonObj->TryGetNumberField(TEXT("nRecording"),            Val);
-    Status->bIsRecording = Val != 0.0;
-
-    Val = 0.0;
-    JsonObj->TryGetNumberField(TEXT("batteryVoltage"),        Val);
-    Status->BatteryVoltage = static_cast<float>(Val);
-
-    Val = 0.0;
-    JsonObj->TryGetNumberField(TEXT("availableStorageInMB"),  Val);
-    Status->AvailableStorageMB = static_cast<float>(Val);
-
-    Val = 0.0;
-    JsonObj->TryGetNumberField(TEXT("cpuUsage"),              Val);
-    Status->CPUUsagePercent = static_cast<float>(Val);
-
-    Val = 0.0;
-    JsonObj->TryGetNumberField(TEXT("cpuTemp"),               Val);
-    Status->TemperatureCelsius = static_cast<float>(Val);
-
-    Val = 0.0;
-    JsonObj->TryGetNumberField(TEXT("frameRate"),             Val);
-    Status->FPS = static_cast<float>(Val);
-
-    // Per-camera telemetry
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("skippedFrames0"), Val); Status->DroppedFrames0 = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("skippedFrames1"), Val); Status->DroppedFrames1 = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("exposure0"),      Val); Status->Exposure0      = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("exposure1"),      Val); Status->Exposure1      = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("gain0"),          Val); Status->Gain0          = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("gain1"),          Val); Status->Gain1          = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("topLights"),      Val); Status->TopLights      = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("bottomLights"),   Val); Status->BottomLights   = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("streaming0"),     Val); Status->bStreaming0    = Val != 0.0;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("streaming1"),     Val); Status->bStreaming1    = Val != 0.0;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("width"),          Val); Status->FrameWidth     = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("height"),         Val); Status->FrameHeight    = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("rotation0"),      Val); Status->Rotation0      = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("rotation1"),      Val); Status->Rotation1      = (int32)Val;
-    Val = 0.0; JsonObj->TryGetNumberField(TEXT("boomPos"),        Val); Status->BoomPos        = (int32)Val;
-
-    JsonObj->TryGetStringField(TEXT("takename"),                 Status->CurrentTakeName);
-    JsonObj->TryGetStringField(TEXT("lastMovieIntegrityStatus"), Status->LastClipStatus);
+    // control.json -> telemetry fields (vendor parse lives in the adapter).
+    if (!FTechnopropsFacialDevice::ParseControlJson(Body, *Status)) return;
 
     Status->LastUpdateTime = FDateTime::UtcNow();
     Status->StatusMessage  = GenerateStatusQuip(*Status);
@@ -369,6 +318,7 @@ void UPCAPToolSubsystem::OnPollResponse(FHttpRequestPtr Request, FHttpResponsePt
     }
     Status->IssueFlags0    = UPCAPToolStatics::EvaluateCameraIssues(*Status, 0, TargetFPS);
     Status->IssueFlags1    = UPCAPToolStatics::EvaluateCameraIssues(*Status, 1, TargetFPS);
+    UpdateDeviceHealth(DeviceName);
 
     // HTTP completes on the game thread in UE5 — no AsyncTask needed
     OnStatusUpdated.Broadcast(DeviceName, *Status);
@@ -392,6 +342,25 @@ TArray<FHMCDeviceStatus> UPCAPToolSubsystem::GetAllDeviceStatuses() const
     TArray<FHMCDeviceStatus> Out;
     DeviceStatuses.GenerateValueArray(Out);
     return Out;
+}
+
+TSharedPtr<IPCAPFacialDevice> UPCAPToolSubsystem::GetFacialDevice(const FString& DeviceName) const
+{
+    const TSharedPtr<FTechnopropsFacialDevice>* Found = Transports.Find(DeviceName);
+    return Found ? TSharedPtr<IPCAPFacialDevice>(*Found) : nullptr;
+}
+
+FTechnopropsFacialDevice* UPCAPToolSubsystem::FindTransport(const FString& DeviceName) const
+{
+    const TSharedPtr<FTechnopropsFacialDevice>* Found = Transports.Find(DeviceName);
+    return Found ? Found->Get() : nullptr;
+}
+
+void UPCAPToolSubsystem::UpdateDeviceHealth(const FString& DeviceName)
+{
+    FTechnopropsFacialDevice* Transport = FindTransport(DeviceName);
+    const FHMCDeviceStatus* Status = DeviceStatuses.Find(DeviceName);
+    if (Transport && Status) Transport->UpdateHealth(*Status);
 }
 
 // ─── Camera Feeds ─────────────────────────────────────────────────────────────
@@ -460,14 +429,8 @@ void UPCAPToolSubsystem::SendCommand(const FString& DeviceName, const FString& C
     if (!Config) return;
 
     // Technoprops MugShot control endpoint. TEST ONLY — fire and forget.
-    const FString URL = FString::Printf(
-        TEXT("http://%s/control?cmd=%s&param="), *Config->IPAddress, *Command);
-
-    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-    Request->SetURL(URL);
-    Request->SetVerb(TEXT("GET"));
-    Request->SetTimeout(1.5f);
-    Request->ProcessRequest();
+    if (FTechnopropsFacialDevice* Transport = FindTransport(DeviceName))
+        Transport->SendCommand(Command);
 }
 
 void UPCAPToolSubsystem::SendDeviceCommand(const FString& DeviceName, const FString& Cmd,
@@ -477,22 +440,9 @@ void UPCAPToolSubsystem::SendDeviceCommand(const FString& DeviceName, const FStr
     const FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
     if (!Config) return;
 
-    // Mirrors the proven poll endpoint (GET query on /control). The MugShot web UI
-    // uses the same pattern; if firmware rejects GET, switch SetVerb to POST and
-    // move the query into the body.
-    FString URL = FString::Printf(TEXT("http://%s/control?cmd=%s&param=%s"),
-        *Config->IPAddress, *Cmd, *Param);
-    if (!ExtraKey.IsEmpty())
-        URL += FString::Printf(TEXT("&%s=%s"), *ExtraKey, *ExtraVal);
-    // Cache-buster (as the device's own web client appends) so repeated/identical
-    // commands aren't served from cache and actually re-fire on the device.
-    URL += FString::Printf(TEXT("&_=%lld"), (long long)FDateTime::UtcNow().GetTicks());
-
-    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-    Request->SetURL(URL);
-    Request->SetVerb(TEXT("GET"));
-    Request->SetTimeout(1.5f);
-    Request->ProcessRequest();   // fire and forget — value confirms on next poll
+    // GET /control?cmd=..&param=..[&k=v]&_=<ticks> — fire and forget, confirms on next poll.
+    if (FTechnopropsFacialDevice* Transport = FindTransport(DeviceName))
+        Transport->SendDeviceCommand(Cmd, Param, ExtraKey, ExtraVal);
 }
 
 // ─── Issue flags ───────────────────────────────────────────────────────────────
@@ -544,18 +494,13 @@ void UPCAPToolSubsystem::RequestVideoFrame(const FString& DeviceName, int32 Came
 {
     const FHMCDeviceConfig* Config = RegisteredConfigs.Find(DeviceName);
     if (!Config) return;
+    FTechnopropsFacialDevice* Transport = FindTransport(DeviceName);
+    if (!Transport) return;
 
-    // Device cameras are 0-based: cam=0 (Top), cam=1 (Bot). cam=2 returns HTTP 400.
-    const FString URL = FString::Printf(TEXT("http://%s/video?cam=%d"),
-        *Config->IPAddress, CameraIndex);
-
-    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-    Request->SetURL(URL);
-    Request->SetVerb(TEXT("GET"));
-    Request->SetTimeout(3.0f);
-    Request->OnProcessRequestComplete().BindUObject(
-        this, &UPCAPToolSubsystem::OnVideoFrameResponse, DeviceName, CameraIndex);
-    Request->ProcessRequest();
+    // Device cameras are 0-based: cam=0 (Top), cam=1 (Bot).
+    static_cast<IPCAPFacialDevice*>(Transport)->RequestPreviewFrame(CameraIndex,
+        FOnPCAPPreviewFrame::CreateUObject(this, &UPCAPToolSubsystem::OnVideoFrameResponse,
+                                           DeviceName, CameraIndex));
 }
 
 UTexture2D* UPCAPToolSubsystem::GetLastFrame(const FString& DeviceName, int32 CameraIndex) const
@@ -565,8 +510,8 @@ UTexture2D* UPCAPToolSubsystem::GetLastFrame(const FString& DeviceName, int32 Ca
     return Found ? Found->Get() : nullptr;
 }
 
-void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
-                                               bool bWasSuccessful, FString DeviceName, int32 CameraIndex)
+void UPCAPToolSubsystem::OnVideoFrameResponse(bool bOk, int32 StatusCode, const TArray<uint8>& RawBytes,
+                                               FString DeviceName, int32 CameraIndex)
 {
     const FString CamKey = FString::Printf(TEXT("%s_%d"), *DeviceName, CameraIndex);
     FrameInFlight.Remove(CamKey);
@@ -577,10 +522,9 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
 
     UTexture2D* Texture = nullptr;
     bool bSubject = false;
-    if (bWasSuccessful && Response.IsValid() && Response->GetResponseCode() == 200)
+    if (bOk)
     {
         const double DecodeT0 = FPlatformTime::Seconds();
-        const TArray<uint8>& RawBytes = Response->GetContent();
         IImageWrapperModule& IWM = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
         TSharedPtr<IImageWrapper> IW = IWM.CreateImageWrapper(EImageFormat::JPEG);
 
@@ -632,7 +576,7 @@ void UPCAPToolSubsystem::OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResp
     else
     {
         UE_LOG(LogTemp, Warning, TEXT("[PCAPTool] HMC %s cam%d frame request failed (HTTP %d)"),
-            *DeviceName, CameraIndex, Response.IsValid() ? Response->GetResponseCode() : -1);
+            *DeviceName, CameraIndex, StatusCode);
     }
 
     // No subject in frame (or no signal at all) → mark so the feed border goes red.
@@ -739,6 +683,7 @@ void UPCAPToolSubsystem::SetConnectionState(const FString& DeviceName, EHMCConne
     FHMCDeviceStatus* S = DeviceStatuses.Find(DeviceName);
     const bool bChanged = !S || S->ConnectionState != NewState;
     if (S) S->ConnectionState = NewState;
+    UpdateDeviceHealth(DeviceName);
     if (bChanged)
     {
         const TCHAR* StateStr =

@@ -2,14 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/EngineSubsystem.h"
-#include "Interfaces/IHttpRequest.h"
-#include "Interfaces/IHttpResponse.h"
 #include "Engine/TimerHandle.h"
 #include "PCAPToolTypes.h"
 #include "HMCCameraAgent.h"
 #include "PCAPToolSubsystem.generated.h"
 
-// Same delegate signatures as UHMCMonitorComponent — widget bindings are identical.
+class IPCAPFacialDevice;
+class FTechnopropsFacialDevice;
+
+// HMC status / frame / connection delegates (bound by the Slate panels).
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPCAPHMCStatusUpdated,
     FString, DeviceName, FHMCDeviceStatus, Status);
 
@@ -22,6 +23,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPCAPHMCConnectionChanged,
 /**
  * Editor-lifetime subsystem owning all HMC state.
  * Lives from editor open to editor close — no actor, no PIE required.
+ *
+ * Owns the polling cadence, fail debounce, frame pump, texture reuse and per-camera
+ * agents. The wire protocol lives in the device adapter (FTechnopropsFacialDevice, one per
+ * registered device) behind IPCAPFacialDevice — see PCAPDeviceInterfaces.h.
  *
  * Blueprint access:
  *   Get Engine Subsystem → PCAPToolSubsystem → call any function below.
@@ -78,6 +83,10 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "PCAP|HMC")
     TArray<FHMCDeviceStatus> GetAllDeviceStatuses() const;
+
+    // The adapter behind a registered device (null if unknown). UPCAPDeviceRegistry reads
+    // vendor-neutral health through this.
+    TSharedPtr<IPCAPFacialDevice> GetFacialDevice(const FString& DeviceName) const;
 
     // ─── Camera Feeds ─────────────────────────────────────────────────────────
 
@@ -251,6 +260,12 @@ public:
     FOnPCAPHMCConnectionChanged OnConnectionChanged;
 
 private:
+    // One transport per registered device (created in RegisterDevice, dropped in
+    // UnregisterDevice). Every registered HMC is a Technoprops ORION today.
+    TMap<FString, TSharedPtr<FTechnopropsFacialDevice>> Transports;
+    FTechnopropsFacialDevice* FindTransport(const FString& DeviceName) const;
+    void UpdateDeviceHealth(const FString& DeviceName);
+
     TMap<FString, FHMCDeviceConfig>       RegisteredConfigs;
     TMap<FString, FHMCDeviceStatus>       DeviceStatuses;
     TMap<FString, TArray<FHMCCameraFeed>> CameraFeeds;   // keyed by ActorID
@@ -301,8 +316,7 @@ private:
     TMap<FString, TObjectPtr<UTexture2D>> FrameTextureCache;  // key = "DeviceName_CamIndex"
 
     void PollDevice(FString DeviceName);
-    void OnPollResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
-                        bool bWasSuccessful, FString DeviceName);
+    void OnPollResponse(bool bOk, const FString& Body, FString DeviceName);
 
     // Requests one frame for the given camera if the device is streaming, connected,
     // and has no request already in flight. The chain re-arms itself from
@@ -310,8 +324,8 @@ private:
     // per device (on connect) and re-kicking after a stall (each successful poll).
     void PumpFrameCam(const FString& DeviceName, int32 CameraIndex);
 
-    void OnVideoFrameResponse(FHttpRequestPtr Request, FHttpResponsePtr Response,
-                              bool bWasSuccessful, FString DeviceName, int32 CameraIndex);
+    void OnVideoFrameResponse(bool bOk, int32 StatusCode, const TArray<uint8>& RawBytes,
+                              FString DeviceName, int32 CameraIndex);
 
     // Reuses one persistent texture per "DeviceName_Cam", updating its pixels in
     // place via UpdateTextureRegions — no per-frame allocation or UpdateResource.

@@ -13,21 +13,26 @@
 class UIKRigDefinition;
 class UIKRetargeter;
 class UStageConfigAsset;   // soft-ref'd by FProduction / FShootDay (see StageConfigAsset.h)
+class UPCAPRigSet;         // soft-ref'd by FProduction (see PCAPRigSet.h)
 
 #include "PCAPToolTypes.generated.h"
 
 // ---------------------------------------------------------------------------
 // Enums
+//
+// APPEND-ONLY: saved assets store these as their underlying index. New values go at
+// the end of the enum; never reorder or remove (PCAP.DataModel.EnumAppendOnly guards it).
 // ---------------------------------------------------------------------------
 
 UENUM(BlueprintType)
 enum class EBodySystem : uint8
 {
-    None    UMETA(DisplayName = "None"),
-    Xsens   UMETA(DisplayName = "Xsens"),
-    Shogun  UMETA(DisplayName = "Shogun"),
-    Motive  UMETA(DisplayName = "Motive"),
-    Giant   UMETA(DisplayName = "Giant")
+    None            UMETA(DisplayName = "None"),
+    Xsens           UMETA(DisplayName = "Xsens"),
+    Shogun          UMETA(DisplayName = "Shogun"),
+    Motive          UMETA(DisplayName = "Motive"),
+    Giant           UMETA(DisplayName = "Giant"),
+    MarkerlessVideo UMETA(DisplayName = "Markerless (video, in Unreal)")
 };
 
 UENUM(BlueprintType)
@@ -35,7 +40,9 @@ enum class EFaceSystem : uint8
 {
     None         UMETA(DisplayName = "None"),
     Technoprops  UMETA(DisplayName = "Technoprops HMC"),
-    ARKit        UMETA(DisplayName = "ARKit")
+    ARKit        UMETA(DisplayName = "ARKit"),
+    OneHMC       UMETA(DisplayName = "OneHMC"),
+    Faceware     UMETA(DisplayName = "Faceware")
 };
 
 UENUM(BlueprintType)
@@ -44,7 +51,18 @@ enum class EAudioSystem : uint8
     None            UMETA(DisplayName = "None"),
     RodeWirelessGo2 UMETA(DisplayName = "Rode Wireless Go 2"),
     DAW             UMETA(DisplayName = "DAW"),
-    Timecode        UMETA(DisplayName = "Timecode")
+    Timecode        UMETA(DisplayName = "Timecode"),
+    UsbAudioInput   UMETA(DisplayName = "USB Audio Input")   // any USB receiver (e.g. any Rode wireless kit)
+};
+
+// How a take's streams are aligned. RecordStart = each device's acknowledged start
+// time is logged and streams are offset by it (no sync hardware yet). Timecode = a sync
+// box is the source (Phase 6).
+UENUM(BlueprintType)
+enum class ESyncMethod : uint8
+{
+    RecordStart UMETA(DisplayName = "Record start"),
+    Timecode    UMETA(DisplayName = "Timecode")
 };
 
 UENUM(BlueprintType)
@@ -222,9 +240,10 @@ enum class EHMCFeedState : uint8
 UENUM(BlueprintType)
 enum class ECapturePipeline : uint8
 {
-    MetaHumanHMC UMETA(DisplayName = "MetaHuman HMC"),
-    FaceWareHMC  UMETA(DisplayName = "Faceware HMC")   // checks TBD — its own pipeline (not MetaHuman); runs no checks until its docs land
-    // Future: ViconBody, OptiTrackBody, ... -- each a new check bundle.
+    MetaHumanHMC   UMETA(DisplayName = "MetaHuman HMC"),
+    FaceWareHMC    UMETA(DisplayName = "Faceware HMC"),   // checks TBD — its own pipeline (not MetaHuman); runs no checks until its docs land
+    MarkerlessBody UMETA(DisplayName = "Markerless Body")  // fixed body camera -> MetaHuman Animator markerless solve; checks land in Phase 3
+    // Future: ViconBody, OptiTrackBody, ... -- each a new check bundle. Append only.
 };
 
 // Camera setup for a device. The watcher resolves its definition by
@@ -237,7 +256,8 @@ enum class ECaptureConfiguration : uint8
     MonoTripod      UMETA(DisplayName = "Tripod"),
     MonoHeadMount   UMETA(DisplayName = "Mono - Head Mount"),
     StereoHeadMount UMETA(DisplayName = "Stereo - Head Mount"),
-    PhoneHeadMount  UMETA(DisplayName = "Phone - Head Mount")
+    PhoneHeadMount  UMETA(DisplayName = "Phone - Head Mount"),
+    FixedBodyCamera UMETA(DisplayName = "Fixed Body Camera")   // one fixed full-body camera (markerless); not an HMC rig type
 };
 
 // Per-camera framing reference captured at setup: where the actor's face should
@@ -449,6 +469,47 @@ enum class EHMCIssueSeverity : uint8
     Red   UMETA(DisplayName = "Red")      // red border (hard issue)
 };
 
+// ---------------------------------------------------------------------------
+// Device layer — vendor-neutral health reported by every adapter
+// (IPCAPFacialDevice / IPCAPBodySource / IPCAPAudioSource, see PCAPDeviceInterfaces.h).
+// Vendor telemetry (e.g. ORION exposure/gain/lights) stays in the vendor's own state.
+// Unknown numeric values are < 0 so the UI can show "n/a" instead of a false zero.
+// ---------------------------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FPCAPDeviceHealth
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadOnly) FName   VendorId;               // "Technoprops", "OneHMC", ...
+    UPROPERTY(BlueprintReadOnly) FString DeviceName;             // operator label
+    UPROPERTY(BlueprintReadOnly) bool    bConnected = false;
+    UPROPERTY(BlueprintReadOnly) bool    bRecording = false;
+    UPROPERTY(BlueprintReadOnly) float   BatteryPercent = -1.f;  // < 0 = device does not report it
+    UPROPERTY(BlueprintReadOnly) float   StorageFreeMB  = -1.f;  // < 0 = device does not report it
+    UPROPERTY(BlueprintReadOnly) float   FPS = 0.f;
+    UPROPERTY(BlueprintReadOnly) int32   DroppedFrames = 0;      // summed across the device's cameras
+    UPROPERTY(BlueprintReadOnly) float   TemperatureC = -1.f;    // < 0 = device does not report it
+    UPROPERTY(BlueprintReadOnly) FString LastError;              // empty when healthy
+    UPROPERTY(BlueprintReadOnly) int32   IssueFlags = 0;         // EHMCIssueFlag bits where they apply
+    UPROPERTY(BlueprintReadOnly) FDateTime LastUpdate = FDateTime(0);
+};
+
+// One alarm raised against a take (or while idle) by an agent, a device-health check,
+// the audio level or offload. Appended to FTake.Alarms while recording.
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FPCAPAlarmEvent
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FDateTime When = FDateTime(0);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) double    TakeOffsetSec = 0.0;   // seconds since record start
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FName     Source;                // device or agent id
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) int32     Flags = 0;             // EHMCIssueFlag bits
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) EHMCIssueSeverity Severity = EHMCIssueSeverity::None;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FString   Reason;
+};
+
 // Operator-reported issues, BP-friendly. Enumerator order MUST match the
 // HMC_Manual_* bit order in EHMCIssueFlag (bit = 1 << (16 + index)).
 UENUM(BlueprintType)
@@ -578,7 +639,7 @@ struct PCAPTOOL_API FHMCCameraFeed
     EHMCFeedState FeedState = EHMCFeedState::Disconnected;
 
     // Null until a frame arrives. Widget shows "No Feed" placeholder when null.
-    // Texture lifetime managed by UHMCMonitorComponent::FrameTextureCache.
+    // Texture lifetime managed by UPCAPToolSubsystem::FrameTextureCache.
     UPROPERTY(BlueprintReadOnly)
     TObjectPtr<UTexture2D> FrameTexture = nullptr;
 
@@ -586,7 +647,7 @@ struct PCAPTOOL_API FHMCCameraFeed
     FString Timecode;
 
     // Camera index on device (0 = first cam, 1 = second cam).
-    // Used internally to build HTTP frame requests (/video?cam=CameraIndex+1).
+    // Passed to the device adapter's RequestPreviewFrame (ORION: /video?cam=CameraIndex, 0-based).
     UPROPERTY(BlueprintReadOnly)
     int32 CameraIndex = 0;
 };
@@ -836,6 +897,26 @@ struct PCAPTOOL_API FTake
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Notes")
     FString CommentatorNotes;   // added June 2026
+
+    // ── Floor alarm + device layer (added Oct 2026, HOME_REBUILD_HANDOFF §7) ──
+
+    // Set when a red alarm fired during this take; Alarms holds every event.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Alarms")
+    bool bAutoFlagged = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Alarms")
+    TArray<FPCAPAlarmEvent> Alarms;
+
+    // <CaptureRoot>/<Production>/<Day>/<Shot>/<TakeID>/ on disk (raw files, outside Content/).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
+    FString CaptureFolder;
+
+    // Per-device acknowledged start, seconds relative to the take's record start.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
+    TMap<FName, double> DeviceStartOffsets;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
+    ESyncMethod Sync = ESyncMethod::RecordStart;
 };
 
 USTRUCT(BlueprintType)
@@ -977,4 +1058,8 @@ struct PCAPTOOL_API FProduction
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Days")
     TArray<FShootDay> Days;
+
+    // Characters a take's performance is reviewed on (Phase 5b). Null = performer's MetaHuman only.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Review")
+    TSoftObjectPtr<UPCAPRigSet> RigSet;
 };
