@@ -69,7 +69,7 @@
 		},
 		{
 			"Name": "LiveLinkViconDataStream",
-			"Enabled": true
+			"Enabled": false
 		}
 	]
 }
