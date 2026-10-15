@@ -30,6 +30,10 @@ public:
     UPROPERTY(Config, EditAnywhere, Category="Capture Systems")
     TArray<FPCAPSystemOption> AudioSystems;
 
+    // Where offloaded takes are written: <CaptureRoot>/<Production>/<Day>/... (see PCAPTakeOffload.h).
+    UPROPERTY(Config, EditAnywhere, Category="Capture")
+    FDirectoryPath CaptureRoot;
+
     static UPCAPToolSettings* Get();
     UMocapDatabase* GetDatabase() const;
 

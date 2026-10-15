@@ -1023,7 +1023,8 @@ struct PCAPTOOL_API FTake
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Alarms")
     TArray<FPCAPAlarmEvent> Alarms;
 
-    // <CaptureRoot>/<Production>/<Day>/<Shot>/<TakeID>/ on disk (raw files, outside Content/).
+    // <CaptureRoot>/<Production>/Day_<Day>/ on disk (raw files, outside Content/). Face and body
+    // split by kind so Capture Manager can import them; see PCAPTakeOffload.h.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
     FString CaptureFolder;
 

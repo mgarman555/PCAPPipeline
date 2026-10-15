@@ -31,7 +31,7 @@ struct FPCAPTakeIdentity
     FString DayID;
     FString ShotID;
     FString TakeID;
-    FString CaptureFolder;   // <CaptureRoot>/<Production>/<Day>/<Shot>/<TakeID>/
+    FString CaptureFolder;   // <CaptureRoot>/<Production>/Day_<Day>/ (layout: PCAPTakeOffload.h)
 };
 
 // A file the device holds for a take.

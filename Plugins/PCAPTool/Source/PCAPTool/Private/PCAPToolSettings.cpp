@@ -12,6 +12,9 @@
 
 UPCAPToolSettings::UPCAPToolSettings()
 {
+    // Raw capture files live here, outside Content/ (HOME_REBUILD_HANDOFF §5 step 5).
+    CaptureRoot.Path = TEXT("D:/PCAPCapture");
+
     // Defaults (Madi, 2026-10-15). DefaultGame.ini overrides these once edited in Project Settings.
     MocapSystems = {
         FPCAPSystemOption(TEXT("Markerless UE")),
