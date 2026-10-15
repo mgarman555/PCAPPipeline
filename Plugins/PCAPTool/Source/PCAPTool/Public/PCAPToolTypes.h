@@ -632,7 +632,16 @@ struct FPipelineCheckProfile
     float InstabilityStdMax = 0.03f;       // centroid std-dev over the window -> unstable mount
     float BumpHoldSeconds   = 1.2f;        // how long a detected bump stays latched red
 
-    float     TargetFPS         = 30.f;    // below this -> LowFPS (MetaHuman: 60 ideal, 30 for now)
+    // Epic, "Capture Device Requirements": stereo HMC min 60 fps; "Video Capture Guidelines":
+    // mono video at 60 fps. Below this -> LowFPS.
+    float     TargetFPS         = 60.f;
+
+    // "Is a face in the frame" (interim, until a real face detector replaces it). NOT from
+    // Epic docs: a heuristic. A subject needs some light AND some texture, so a dark frame
+    // and a flat lit wall both read as empty. Kept below MeanLumaMin so a dim-but-present
+    // face is reported as underexposed rather than missing.
+    float     SubjectLumaMin    = 15.f / 255.f;
+    float     SubjectEdgeMin    = 0.02f;
     bool      bClassifyLightDir = true;    // run lighting-direction classification (vs plain spread)
     FVector2D FocusRegionCenter = FVector2D(0.5, 0.55);  // nasolabial band centre (normalized)
     float     FocusRegionExtent = 0.28f;   // half-extent of the focus window; >= 0.5 = whole frame
@@ -643,6 +652,10 @@ struct FPipelineCheckProfile
     float BoardSizeMin   = 0.35f;          // bright-region extent below this -> board too far
     float BoardSizeMax   = 0.92f;          // above this -> board too close
     float BoardCenterTol = 0.28f;          // centroid this far from frame centre -> off-centre
+    // A printed checkerboard flips dark<->bright between neighbouring pixels all over; a face
+    // only at its outline. Share of neighbour pairs that flip. Heuristic (not an Epic number);
+    // tune on real calibration takes.
+    float BoardTransitionMin = 0.04f;
 };
 
 // Output of one frame's image analysis (per camera). Stored per "Device_Cam" in
@@ -670,6 +683,7 @@ struct PCAPTOOL_API FHMCImageMetrics
     UPROPERTY(BlueprintReadOnly) float RightMean  = 0.f;
     UPROPERTY(BlueprintReadOnly) float CenterMean = 0.f;     // central region (for back-lit)
     UPROPERTY(BlueprintReadOnly) float EdgeEnergy = 0.f;     // whole-frame var-of-Laplacian (checkerboard reads high, smooth/occluded low)
+    UPROPERTY(BlueprintReadOnly) float TransitionFrac = 0.f; // share of neighbour pairs flipping dark<->bright (checkerboard high, face low)
 };
 
 // ---------------------------------------------------------------------------

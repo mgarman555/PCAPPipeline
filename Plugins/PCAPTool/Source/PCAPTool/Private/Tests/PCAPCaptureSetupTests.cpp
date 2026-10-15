@@ -44,9 +44,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCalibrationShotsTest,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPCalibrationShotsTest::RunTest(const FString&)
 {
-    for (const TCHAR* S : { TEXT("901"), TEXT("911"), TEXT("921"), TEXT("922"), TEXT("931") })
+    for (const TCHAR* S : { TEXT("901"), TEXT("911"), TEXT("921"), TEXT("922"), TEXT("931"), TEXT("941"), TEXT("949") })
         TestTrue(FString::Printf(TEXT("%s is calibration"), S), UPCAPToolStatics::IsCalibrationSlot(S));
-    for (const TCHAR* S : { TEXT("902"), TEXT("903"), TEXT("001"), TEXT("941"), TEXT("91"), TEXT("9a1") })
+    for (const TCHAR* S : { TEXT("902"), TEXT("903"), TEXT("001"), TEXT("951"), TEXT("91"), TEXT("9a1") })
         TestFalse(FString::Printf(TEXT("%s is not calibration"), S), UPCAPToolStatics::IsCalibrationSlot(S));
 
     auto Has = [](const FShootDay& D, const TCHAR* Slot)
@@ -72,8 +72,9 @@ bool FPCAPCalibrationShotsTest::RunTest(const FString&)
     TestTrue(TEXT("row: stereo"), FromRow.bStereo);
     TestFalse(TEXT("row: no mocap -> no body"), FromRow.bBody);
     TestFalse(TEXT("row: no audio"), FromRow.bAudio);
-    TestEqual(TEXT("adds only 922"), UPCAPToolStatics::AddCalibrationShots(Day, FromRow), 1);
+    TestEqual(TEXT("adds 922 + friend's neutral face"), UPCAPToolStatics::AddCalibrationShots(Day, FromRow), 2);
     TestTrue(TEXT("922 added"), Has(Day, TEXT("922")));
+    TestTrue(TEXT("941 neutral for friend"), Has(Day, TEXT("941")));
 
     // Rows for actors no longer called fall back to the stage.
     Day.CalledActorIDs.Reset();
@@ -84,6 +85,48 @@ bool FPCAPCalibrationShotsTest::RunTest(const FString&)
     TestTrue(TEXT("stage: body"), FromStage.bBody);
     TestFalse(TEXT("stage: both modes = no end take yet"), FromStage.bStereo);
     TestFalse(TEXT("stage: no audio"), FromStage.bAudio);
+    return true;
+}
+
+// One neutral-face take per facial actor per day, matched by actor (never renumbers others).
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPNeutralFaceTakeTest,
+    "PCAP.CaptureSetup.NeutralFacePerActor",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPNeutralFaceTakeTest::RunTest(const FString&)
+{
+    auto NeutralFor = [](const FShootDay& D, const FString& Actor) -> const FShot*
+    {
+        if (D.Sessions.Num() == 0) return nullptr;
+        return D.Sessions[0].Shots.FindByPredicate([&Actor](const FShot& S)
+        { return S.Subjects.ContainsByPredicate([&Actor](const FShotSubject& Sub){ return Sub.ActorID == Actor; }); });
+    };
+
+    FShootDay Day;
+    Day.CalledActorIDs = { TEXT("bea"), TEXT("ana") };
+    FPCAPPerformerCaptureSetup Facial; Facial.ActorID = TEXT("ana"); Facial.FacialSystem = TEXT("OneHMC");
+    FPCAPPerformerCaptureSetup BodyOnly; BodyOnly.ActorID = TEXT("bea"); BodyOnly.MocapSystem = TEXT("Markerless UE");
+    Day.CaptureSetups = { Facial, BodyOnly };
+
+    const FPCAPCalibrationNeeds N = UPCAPToolStatics::ResolveCalibrationNeeds(Day, nullptr);
+    TestEqual(TEXT("only the facial actor"), N.NeutralFaceActors.Num(), 1);
+    UPCAPToolStatics::AddCalibrationShots(Day, N);
+    const FShot* Ana = NeutralFor(Day, TEXT("ana"));
+    TestNotNull(TEXT("ana has a neutral take"), Ana);
+    TestNull(TEXT("body-only bea has none"), NeutralFor(Day, TEXT("bea")));
+    if (Ana)
+    {
+        TestEqual(TEXT("slot 941"), Ana->ShotID, FString(TEXT("941")));
+        TestEqual(TEXT("calibration type"), Ana->ShotType, EShotType::Calibration);
+        TestTrue(TEXT("description names the actor"), Ana->Description.Contains(TEXT("ana")));
+    }
+
+    // Second facial actor gets the next free slot; ana keeps 941.
+    Day.CaptureSetups[1].FacialSystem = TEXT("OneHMC");
+    UPCAPToolStatics::AddCalibrationShots(Day, UPCAPToolStatics::ResolveCalibrationNeeds(Day, nullptr));
+    const FShot* Bea = NeutralFor(Day, TEXT("bea"));
+    TestTrue(TEXT("bea gets 942"), Bea && Bea->ShotID == TEXT("942"));
+    TestTrue(TEXT("ana still 941"), NeutralFor(Day, TEXT("ana")) && NeutralFor(Day, TEXT("ana"))->ShotID == TEXT("941"));
+    TestEqual(TEXT("idempotent"), UPCAPToolStatics::AddCalibrationShots(Day, UPCAPToolStatics::ResolveCalibrationNeeds(Day, nullptr)), 0);
     return true;
 }
 

@@ -59,7 +59,7 @@ FString UPCAPToolStatics::ShotSlotForType(EShotType ShotType, int32 ShotIndex)
 bool UPCAPToolStatics::IsCalibrationSlot(const FString& Slot)
 {
     if (Slot == TEXT("901")) return true;
-    return Slot.Len() == 3 && Slot[0] == TEXT('9') && (Slot[1] == TEXT('1') || Slot[1] == TEXT('2') || Slot[1] == TEXT('3'))
+    return Slot.Len() == 3 && Slot[0] == TEXT('9') && Slot[1] >= TEXT('1') && Slot[1] <= TEXT('4')
         && FChar::IsDigit(Slot[2]);
 }
 
@@ -69,16 +69,25 @@ FPCAPCalibrationNeeds UPCAPToolStatics::ResolveCalibrationNeeds(const FShootDay&
     FPCAPCalibrationNeeds FromRows;
     FromRows.bAudio = FromRows.bFacial = FromRows.bStereo = FromRows.bBody = false;
     int32 Rows = 0;
+    TSet<FString> WithRow;
     for (const FPCAPPerformerCaptureSetup& S : Day.CaptureSetups)
     {
         if (!Day.CalledActorIDs.Contains(S.ActorID)) continue;   // rows for un-called actors don't count
         ++Rows;
+        WithRow.Add(S.ActorID);
         FromRows.bAudio  |= !S.AudioSystem.IsEmpty();
         FromRows.bFacial |= !S.FacialSystem.IsEmpty();
         FromRows.bStereo |= !S.FacialSystem.IsEmpty() && S.bStereo;
         FromRows.bBody   |= !S.MocapSystem.IsEmpty();
+        if (!S.FacialSystem.IsEmpty()) FromRows.NeutralFaceActors.AddUnique(S.ActorID);
     }
-    if (Rows > 0) return FromRows;
+    if (Rows > 0)
+    {
+        // Called actors without a row yet are assumed facial (the row appears once the Call Sheet draws).
+        for (const FString& A : Day.CalledActorIDs)
+            if (!WithRow.Contains(A)) FromRows.NeutralFaceActors.AddUnique(A);
+        return FromRows;
+    }
     if (Stage)
     {
         N.bAudio  = !Stage->AudioSystemName.IsEmpty();
@@ -86,6 +95,7 @@ FPCAPCalibrationNeeds UPCAPToolStatics::ResolveCalibrationNeeds(const FShootDay&
         N.bStereo = N.bFacial && Stage->bFacialStereo && !Stage->bFacialMono;   // both allowed = undecided until Capture Setup
         N.bBody   = !Stage->MocapSystem.IsEmpty();
     }
+    if (N.bFacial) N.NeutralFaceActors = Day.CalledActorIDs;
     return N;
 }
 
@@ -118,6 +128,44 @@ int32 UPCAPToolStatics::AddCalibrationShots(FShootDay& Day, const FPCAPCalibrati
         : TEXT("Facial calibration: start of session"));
     if (Needs.bFacial && Needs.bStereo) Add(FacialCalibrationEndSlot(), TEXT("Facial calibration: stereo board, end of session"));
     if (Needs.bBody)   Add(BodyCalibrationSlot(), TEXT("Body calibration"));
+
+    // One neutral-face take per facial actor per day (Madi's rule). Matched by the actor on
+    // the shot, not by slot, so calling or un-calling someone never renumbers anyone else.
+    TArray<FString> Actors = Needs.NeutralFaceActors;
+    Actors.Sort();
+    for (const FString& Actor : Actors)
+    {
+        if (Actor.IsEmpty()) continue;
+        const bool bHas = Sess.Shots.ContainsByPredicate([&Actor](const FShot& S)
+        {
+            return S.ShotType == EShotType::Calibration && S.Description.StartsWith(NeutralFaceDescPrefix())
+                && S.Subjects.ContainsByPredicate([&Actor](const FShotSubject& Sub){ return Sub.ActorID == Actor; });
+        });
+        if (bHas) continue;
+
+        FString Slot;
+        for (int32 i = 1; i <= 9 && Slot.IsEmpty(); ++i)
+        {
+            const FString Candidate = FString::Printf(TEXT("94%d"), i);
+            if (!Sess.Shots.ContainsByPredicate([&Candidate](const FShot& S){ return S.ShotID == Candidate; })) Slot = Candidate;
+        }
+        if (Slot.IsEmpty())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("[PCAPTool] No free neutral-face slot (941-949) for %s"), *Actor);
+            continue;
+        }
+        FShot Shot;
+        Shot.ShotID      = Slot;
+        Shot.ShotType    = EShotType::Calibration;
+        Shot.Description = FString(NeutralFaceDescPrefix()) + Actor;
+        FShotSubject Sub;
+        Sub.ActorID        = Actor;
+        Sub.bIsActive      = true;
+        Sub.bHasFaceStream = true;
+        Shot.Subjects.Add(Sub);
+        Sess.Shots.Add(Shot);
+        ++Added;
+    }
     return Added;
 }
 
@@ -290,29 +338,9 @@ FString UPCAPToolStatics::GetLightingHintText(EHMCLightDir Dir)
 
 bool UPCAPToolStatics::FrameHasSubject(const TArray<uint8>& BGRA, int32 Width, int32 Height)
 {
-    const int32 NumBytes = BGRA.Num();
-    if (NumBytes < 4 || Width <= 0 || Height <= 0) return false;
-
-    // Sample luminance across the frame (every ~64th pixel) — cheap at any res.
-    const int32 Step = 64 * 4;   // BGRA = 4 bytes/pixel
-    double Sum = 0.0;
-    int32 Count = 0;
-    for (int32 i = 0; i + 2 < NumBytes; i += Step)
-    {
-        const double B = BGRA[i];
-        const double G = BGRA[i + 1];
-        const double R = BGRA[i + 2];
-        Sum += 0.114 * B + 0.587 * G + 0.299 * R;   // Rec.601 luma
-        ++Count;
-    }
-    if (Count == 0) return false;
-
-    const double MeanLuma = Sum / Count;
-
-    // IR head-cams light the face brightly when it's in the box; an empty or
-    // averted frame is markedly darker. TUNE this on the real feed — start ~40/255.
-    const double MeanLumaThreshold = 40.0;
-    return MeanLuma > MeanLumaThreshold;
+    // Same rule as the metrics (light + texture), so the red "no face" border and the
+    // checks never disagree. The analysis grid is ~128 cells on the long side: cheap.
+    return AnalyzeFrameBGRA(BGRA, Width, Height).bHasSubject;
 }
 
 // ── Automatic image analysis (Capture Monitor) ──────────────────────────────
@@ -461,7 +489,31 @@ FHMCImageMetrics UPCAPToolStatics::AnalyzeFrameBGRA(const TArray<uint8>& BGRA, i
         M.EdgeEnergy = (float)(ELapVar / (Mean * Mean + 1.0));
     }
 
-    M.bHasSubject = (Mean > 40.0);   // matches FrameHasSubject's luma threshold
+    // Dark<->bright flips between grid neighbours (checkerboard signature).
+    {
+        float Lo = L[0], Hi = L[0];
+        for (const float v : L) { Lo = FMath::Min(Lo, v); Hi = FMath::Max(Hi, v); }
+        const float R = Hi - Lo;
+        if (R > 40.f)   // need real contrast before calling anything "dark" or "bright"
+        {
+            const float DarkMax = Lo + 0.3f * R, BrightMin = Hi - 0.3f * R;
+            auto Side = [&](float v) { return v <= DarkMax ? -1 : (v >= BrightMin ? 1 : 0); };
+            int32 Flips = 0, Pairs = 0;
+            for (int32 gy = 0; gy < GH; ++gy)
+                for (int32 gx = 0; gx < GW; ++gx)
+                {
+                    const int32 s = Side(L[gy * GW + gx]);
+                    if (gx + 1 < GW) { ++Pairs; if (s != 0 && s == -Side(L[gy * GW + gx + 1])) ++Flips; }
+                    if (gy + 1 < GH) { ++Pairs; if (s != 0 && s == -Side(L[(gy + 1) * GW + gx])) ++Flips; }
+                }
+            M.TransitionFrac = Pairs > 0 ? (float)Flips / Pairs : 0.f;
+        }
+    }
+
+    // Interim "face present": some light AND some texture (a flat lit wall is empty). Uses the
+    // shared profile defaults; replaced by a real face detector later.
+    static const FPipelineCheckProfile SubjectDefaults;
+    M.bHasSubject = (M.MeanLuma > SubjectDefaults.SubjectLumaMin) && (M.EdgeEnergy > SubjectDefaults.SubjectEdgeMin);
     M.bValid = true;
     return M;
 }
@@ -521,6 +573,7 @@ EHMCBoardState UPCAPToolStatics::ClassifyBoardFrame(const FHMCImageMetrics& M, c
 {
     if (!M.bValid || !M.bHasSubject)   return EHMCBoardState::NotDetected;
     if (M.EdgeEnergy < P.BoardEdgeMin) return EHMCBoardState::NotDetected;   // smooth -> no board / occluded
+    if (M.TransitionFrac < P.BoardTransitionMin) return EHMCBoardState::NotDetected;   // no checker pattern (e.g. a face)
     if (M.SubjectSize > P.BoardSizeMax) return EHMCBoardState::TooClose;
     if (M.SubjectSize < P.BoardSizeMin) return EHMCBoardState::TooFar;
     if (FVector2D::Distance(M.SubjectCenter, FVector2D(0.5, 0.5)) > P.BoardCenterTol)

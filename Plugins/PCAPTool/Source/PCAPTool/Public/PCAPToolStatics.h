@@ -17,6 +17,8 @@ struct FPCAPCalibrationNeeds
     bool bFacial = true;
     bool bStereo = false;   // stereo facial adds the end-of-session board take
     bool bBody   = true;
+    // Actors who get their own neutral-face take today (one per actor per day).
+    TArray<FString> NeutralFaceActors;
 };
 
 UCLASS()
@@ -44,14 +46,16 @@ public:
     static FShootDay SeedNewShootDay(const FString& DayID, const FDateTime& CalendarDate);
 
     // ── Calibration shots ─────────────────────────────────────────────────────
-    // Slots: 911 audio, 921 facial start, 922 facial end (stereo only), 931 body.
+    // Slots: 911 audio, 921 facial start, 922 facial end (stereo only), 931 body,
+    // 941-949 one neutral-face take per called facial actor (actor on the shot's Subjects).
     // The 9xx block is non-production; 902/903 stay Test/Retargeting.
+    static const TCHAR* NeutralFaceDescPrefix()      { return TEXT("Neutral face: "); }
     static const TCHAR* AudioCalibrationSlot()       { return TEXT("911"); }
     static const TCHAR* FacialCalibrationStartSlot() { return TEXT("921"); }
     static const TCHAR* FacialCalibrationEndSlot()   { return TEXT("922"); }
     static const TCHAR* BodyCalibrationSlot()        { return TEXT("931"); }
 
-    // True for 901 and the 91x/92x/93x calibration slots.
+    // True for 901 and the 91x/92x/93x/94x calibration slots.
     static bool IsCalibrationSlot(const FString& Slot);
 
     // What the day needs, from its Capture Setup rows (preferred) or else its stage.

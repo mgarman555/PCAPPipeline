@@ -288,7 +288,17 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
         [ BuildCallSection(LOCTEXT("CalledActors", "Called actors"), GatherActors(),
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsActorCalled(Id); },
-            [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetActorCalled(Id, b); D->MarkPackageDirty(); } }) ]
+            [this](const FString& Id, bool b)
+            {
+                UMocapDatabase* D = GetDB();
+                if (!D) return;
+                D->SetActorCalled(Id, b);
+                // A newly called actor gets their own neutral-face take for the day.
+                if (b)
+                    if (FShootDay* Dy = D->GetActiveDay())
+                        UPCAPToolStatics::AddCalibrationShots(*Dy, UPCAPToolStatics::ResolveCalibrationNeeds(*Dy, D->GetActiveStageConfig()));
+                D->MarkPackageDirty();
+            }) ]
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildCaptureSetupSection() ]   // per performer, per helmet
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
         [ BuildCallSection(LOCTEXT("CalledProps", "Called props"), GatherProps(),
@@ -928,7 +938,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShotsSection()
         [ SNew(SButton).Text(LOCTEXT("ExportCsv", "Export CSV")).ToolTipText(LOCTEXT("ExportCsvTip", "Write this day's shot list to a CSV")).OnClicked_Lambda([this](){ ExportShotsCsv(); return FReply::Handled(); }) ]
         + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
         [ SNew(SButton).Text(LOCTEXT("AddCal", "+ Calibration shots"))
-          .ToolTipText(LOCTEXT("AddCalTip", "Add any missing calibration shots for today's Capture Setup: 911 audio, 921 facial start, 922 facial end (stereo), 931 body. Never removes or duplicates a shot."))
+          .ToolTipText(LOCTEXT("AddCalTip", "Add any missing calibration shots for today's Capture Setup: 911 audio, 921 facial start, 922 facial end (stereo), 931 body, and 941+ one neutral-face take per facial actor. Never removes or duplicates a shot."))
           .OnClicked_Lambda([this]() { AddCalibrationShotsToActiveDay(); return FReply::Handled(); }) ]
         + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center).Padding(8.f, 0.f, 0.f, 0.f)
         [
