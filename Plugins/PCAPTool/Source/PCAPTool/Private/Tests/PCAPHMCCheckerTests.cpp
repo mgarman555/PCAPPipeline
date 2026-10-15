@@ -13,18 +13,18 @@
 
 namespace PCAPCheckerTest
 {
-    constexpr int32 W = 480, H = 640;   // portrait, like a head-mount camera
+    constexpr int32 FrameW = 480, FrameH = 640;   // portrait, like a head-mount camera
 
     // Luma (0..255) per pixel from a function of normalized (x, y) -> grey BGRA frame.
     TArray<uint8> MakeFrame(TFunctionRef<float(float, float)> Luma)
     {
         TArray<uint8> Px;
-        Px.SetNumUninitialized(W * H * 4);
-        for (int32 y = 0; y < H; ++y)
-            for (int32 x = 0; x < W; ++x)
+        Px.SetNumUninitialized(FrameW * FrameH * 4);
+        for (int32 y = 0; y < FrameH; ++y)
+            for (int32 x = 0; x < FrameW; ++x)
             {
-                const uint8 V = (uint8)FMath::Clamp(FMath::RoundToInt(Luma((x + 0.5f) / W, (y + 0.5f) / H)), 0, 255);
-                const int32 i = (y * W + x) * 4;
+                const uint8 V = (uint8)FMath::Clamp(FMath::RoundToInt(Luma((x + 0.5f) / FrameW, (y + 0.5f) / FrameH)), 0, 255);
+                const int32 i = (y * FrameW + x) * 4;
                 Px[i] = Px[i + 1] = Px[i + 2] = V; Px[i + 3] = 255;
             }
         return Px;
@@ -43,20 +43,20 @@ namespace PCAPCheckerTest
 
     FHMCImageMetrics Analyze(const TArray<uint8>& Px, const FPipelineCheckProfile& P)
     {
-        return UPCAPToolStatics::AnalyzeFrameBGRA(Px, W, H, P.FocusRegionCenter, P.FocusRegionExtent);
+        return UPCAPToolStatics::AnalyzeFrameBGRA(Px, FrameW, FrameH, P.FocusRegionCenter, P.FocusRegionExtent);
     }
 
     FPipelineCheckProfile Stereo() { return UPCAPToolStatics::GetDefinition(ECapturePipeline::MetaHumanHMC, ECaptureConfiguration::StereoHeadMount); }
 }
-using namespace PCAPCheckerTest;
+// (No using-directive: unity builds would leak these names into other test files.)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCheckerCenteredFaceTest,
     "PCAP.Checker.CenteredFaceIsClear",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPCheckerCenteredFaceTest::RunTest(const FString&)
 {
-    const FPipelineCheckProfile P = Stereo();
-    const FHMCImageMetrics M = Analyze(MakeFrame([](float x, float y){ return Face(x, y); }), P);
+    const FPipelineCheckProfile P = PCAPCheckerTest::Stereo();
+    const FHMCImageMetrics M = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y){ return PCAPCheckerTest::Face(x, y); }), P);
     TestTrue(TEXT("valid"), M.bValid);
     TestTrue(TEXT("subject found"), M.bHasSubject);
     TestTrue(TEXT("centred x"), FMath::Abs(M.SubjectCenter.X - 0.5) < 0.03);
@@ -73,14 +73,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCheckerEmptyFrameTest,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPCheckerEmptyFrameTest::RunTest(const FString&)
 {
-    const FPipelineCheckProfile P = Stereo();
-    const TArray<uint8> Dark = MakeFrame([](float, float){ return 10.f; });
-    TestFalse(TEXT("dark empty frame: no subject (FrameHasSubject)"), UPCAPToolStatics::FrameHasSubject(Dark, W, H));
-    TestFalse(TEXT("dark empty frame: no subject (metrics)"), Analyze(Dark, P).bHasSubject);
+    const FPipelineCheckProfile P = PCAPCheckerTest::Stereo();
+    const TArray<uint8> Dark = PCAPCheckerTest::MakeFrame([](float, float){ return 10.f; });
+    TestFalse(TEXT("dark empty frame: no subject (FrameHasSubject)"), UPCAPToolStatics::FrameHasSubject(Dark, PCAPCheckerTest::FrameW, PCAPCheckerTest::FrameH));
+    TestFalse(TEXT("dark empty frame: no subject (metrics)"), PCAPCheckerTest::Analyze(Dark, P).bHasSubject);
 
     // A lit, featureless wall is also "no face". The brightness heuristic can't tell.
-    const TArray<uint8> Wall = MakeFrame([](float, float){ return 140.f; });
-    TestFalse(TEXT("lit empty wall: no subject"), Analyze(Wall, P).bHasSubject);
+    const TArray<uint8> Wall = PCAPCheckerTest::MakeFrame([](float, float){ return 140.f; });
+    TestFalse(TEXT("lit empty wall: no subject"), PCAPCheckerTest::Analyze(Wall, P).bHasSubject);
     return true;
 }
 
@@ -89,8 +89,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCheckerBlownOutTest,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPCheckerBlownOutTest::RunTest(const FString&)
 {
-    const FPipelineCheckProfile P = Stereo();
-    const FHMCImageMetrics M = Analyze(MakeFrame([](float x, float y){ return Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 255.f, false); }), P);
+    const FPipelineCheckProfile P = PCAPCheckerTest::Stereo();
+    const FHMCImageMetrics M = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y){ return PCAPCheckerTest::Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 255.f, false); }), P);
     TestTrue(TEXT("blown fraction high"), M.BlownFrac > P.BlownFracMax);
     TestTrue(TEXT("overexposed flag"), (UPCAPToolStatics::MapMetricsToAutoFlags(M, P, FHMCFramingRef()) & HMC_Issue_Overexposed) != 0);
     return true;
@@ -102,8 +102,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCheckerUnderexposedTest,
 bool FPCAPCheckerUnderexposedTest::RunTest(const FString&)
 {
     // A face that is there but dim (mean luma under the 40/255 floor).
-    const FPipelineCheckProfile P = Stereo();
-    const FHMCImageMetrics M = Analyze(MakeFrame([](float x, float y){ return Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 70.f); }), P);
+    const FPipelineCheckProfile P = PCAPCheckerTest::Stereo();
+    const FHMCImageMetrics M = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y){ return PCAPCheckerTest::Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 70.f); }), P);
     AddInfo(FString::Printf(TEXT("dim face: mean luma %.3f (floor %.3f), subject=%d"), M.MeanLuma, P.MeanLumaMin, M.bHasSubject ? 1 : 0));
     TestTrue(TEXT("dim face still counts as a subject"), M.bHasSubject);
     TestTrue(TEXT("underexposed flag"), (UPCAPToolStatics::MapMetricsToAutoFlags(M, P, FHMCFramingRef()) & HMC_Issue_Underexposed) != 0);
@@ -115,11 +115,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCheckerLitFromBelowTest,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPCheckerLitFromBelowTest::RunTest(const FString&)
 {
-    const FPipelineCheckProfile P = Stereo();
+    const FPipelineCheckProfile P = PCAPCheckerTest::Stereo();
     // Same face, brightness rising strongly toward the chin.
-    const FHMCImageMetrics M = Analyze(MakeFrame([](float x, float y)
+    const FHMCImageMetrics M = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y)
     {
-        const float F = Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 60.f + 160.f * y);
+        const float F = PCAPCheckerTest::Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 60.f + 160.f * y);
         return F;
     }), P);
     TestEqual(TEXT("classified lit from below"), M.LightDir, EHMCLightDir::Below);
@@ -132,9 +132,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCheckerBlurTest,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPCheckerBlurTest::RunTest(const FString&)
 {
-    const FPipelineCheckProfile P = Stereo();
-    const FHMCImageMetrics Sharp = Analyze(MakeFrame([](float x, float y){ return Face(x, y); }), P);
-    const FHMCImageMetrics Soft  = Analyze(MakeFrame([](float x, float y){ return Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 170.f, false); }), P);
+    const FPipelineCheckProfile P = PCAPCheckerTest::Stereo();
+    const FHMCImageMetrics Sharp = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y){ return PCAPCheckerTest::Face(x, y); }), P);
+    const FHMCImageMetrics Soft  = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y){ return PCAPCheckerTest::Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 170.f, false); }), P);
     AddInfo(FString::Printf(TEXT("focus sharp %.5f vs blurred %.5f; FocusMin %.4f"), Sharp.FocusScore, Soft.FocusScore, P.FocusMin));
     TestTrue(TEXT("blurred scores lower than sharp"), Soft.FocusScore < Sharp.FocusScore * 0.5f);
     // The flag only fires once FocusMin is tuned (> 0) on real footage; Epic gives no number
@@ -149,11 +149,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCheckerBumpTest,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPCheckerBumpTest::RunTest(const FString&)
 {
-    const FPipelineCheckProfile P = Stereo();
+    const FPipelineCheckProfile P = PCAPCheckerTest::Stereo();
     FHMCCameraAgent Agent;
     Agent.Configure(ECapturePipeline::MetaHumanHMC, ECaptureConfiguration::StereoHeadMount);
-    const FHMCImageMetrics Still  = Analyze(MakeFrame([](float x, float y){ return Face(x, y); }), P);
-    const FHMCImageMetrics Jolted = Analyze(MakeFrame([](float x, float y){ return Face(x, y, 0.62f, 0.5f); }), P);
+    const FHMCImageMetrics Still  = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y){ return PCAPCheckerTest::Face(x, y); }), P);
+    const FHMCImageMetrics Jolted = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y){ return PCAPCheckerTest::Face(x, y, 0.62f, 0.5f); }), P);
 
     FHMCSkillContext C; C.Profile = P;
     double T = 100.0;
@@ -174,11 +174,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCheckerDebounceTest,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPCheckerDebounceTest::RunTest(const FString&)
 {
-    const FPipelineCheckProfile P = Stereo();
+    const FPipelineCheckProfile P = PCAPCheckerTest::Stereo();
     FHMCCameraAgent Agent;
     Agent.Configure(ECapturePipeline::MetaHumanHMC, ECaptureConfiguration::StereoHeadMount);
-    const FHMCImageMetrics Good  = Analyze(MakeFrame([](float x, float y){ return Face(x, y); }), P);
-    const FHMCImageMetrics Blown = Analyze(MakeFrame([](float x, float y){ return Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 255.f, false); }), P);
+    const FHMCImageMetrics Good  = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y){ return PCAPCheckerTest::Face(x, y); }), P);
+    const FHMCImageMetrics Blown = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y){ return PCAPCheckerTest::Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 255.f, false); }), P);
     FHMCSkillContext C; C.Profile = P;
     double T = 0.0;
     auto Tick = [&](const FHMCImageMetrics& M) { C.Metrics = M; C.NowSeconds = (T += 0.2); Agent.Tick(C); };
@@ -196,7 +196,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCheckerBoardTest,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FPCAPCheckerBoardTest::RunTest(const FString&)
 {
-    const FPipelineCheckProfile P = Stereo();
+    const FPipelineCheckProfile P = PCAPCheckerTest::Stereo();
     TestTrue(TEXT("stereo arms the board check"), P.bCheckBoard);
     // Centred checkerboard filling ~60% of the frame on a mid-grey background.
     auto Board = [](float Cx, float Half) { return [Cx, Half](float x, float y) -> float
@@ -204,10 +204,10 @@ bool FPCAPCheckerBoardTest::RunTest(const FString&)
         if (FMath::Abs(x - Cx) > Half || FMath::Abs(y - 0.5f) > Half) return 60.f;
         return ((((int32)(x * 24)) + ((int32)(y * 24))) & 1) ? 230.f : 30.f;
     }; };
-    const FHMCImageMetrics Good = Analyze(MakeFrame(Board(0.5f, 0.30f)), P);
+    const FHMCImageMetrics Good = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame(Board(0.5f, 0.30f)), P);
     AddInfo(FString::Printf(TEXT("board: edge %.4f (min %.4f) size %.3f (%.2f-%.2f)"), Good.EdgeEnergy, P.BoardEdgeMin, Good.SubjectSize, P.BoardSizeMin, P.BoardSizeMax));
     TestEqual(TEXT("centred board OK"), UPCAPToolStatics::ClassifyBoardFrame(Good, P), EHMCBoardState::Good);
-    const FHMCImageMetrics Smooth = Analyze(MakeFrame([](float x, float y){ return Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 170.f, false); }), P);
+    const FHMCImageMetrics Smooth = PCAPCheckerTest::Analyze(PCAPCheckerTest::MakeFrame([](float x, float y){ return PCAPCheckerTest::Face(x, y, 0.5f, 0.5f, 0.32f, 0.36f, 170.f, false); }), P);
     TestEqual(TEXT("smooth face = no board"), UPCAPToolStatics::ClassifyBoardFrame(Smooth, P), EHMCBoardState::NotDetected);
     return true;
 }
@@ -218,7 +218,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPCheckerEpicFpsTest,
 bool FPCAPCheckerEpicFpsTest::RunTest(const FString&)
 {
     // Epic, Capture Device Requirements: stereo HMC minimum 60 fps (handoff §2).
-    TestTrue(TEXT("stereo HMC target >= 60 fps"), Stereo().TargetFPS >= 60.f);
+    TestTrue(TEXT("stereo HMC target >= 60 fps"), PCAPCheckerTest::Stereo().TargetFPS >= 60.f);
     return true;
 }
 
