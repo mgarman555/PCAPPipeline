@@ -154,3 +154,21 @@ Same command with output 2 = `-f mpjpeg -listen 1 http://127.0.0.1:8090/preview.
 3. The dongle advertises 1080p at 60 fps but delivers 30 real frames per second (every other packet is a 4-byte empty JPEG). The handoff's warning that "webcams often advertise modes they can't sustain" applies here.
 4. Handoff §4.2(b) says "emits a low-rate MJPEG preview ... on localhost" without naming a transport. The obvious HTTP (`mpjpeg -listen 1`) transport breaks the one-owner design (blocks the recording until a client connects, and kills ffmpeg when the client leaves). UDP works.
 5. Handoff §4.2(b) asks for a clean stop "when the process is killed". A plain MP4 cannot survive a hard kill (no moov). Only fragmented MP4 or MKV with `-flush_packets 1` survives, and the last ~GOP is lost.
+
+---
+
+## 8. Owner update (Madi, 2026-10-15): the body camera is a Logitech C920S Pro HD
+
+- Not yet connected or probed. Run `Tools/probes/bodycam_probe.ps1` when it is.
+- **Logitech's published spec: 1080p at 30 fps and 720p at 30 fps.** No 60 fps mode. Sources: https://logitech.com/en-ae/products/webcams/c920s-pro-hd-webcam.html , https://service.alaska.edu/TDClient/36/Portal/KB/Article/795/Logitech-C920s-Pro-Full-HD-Webcam
+- **Consequence:** Epic's mono-video rule for markerless (handoff §2) is HD or 4K **at 60 fps**. The C920S cannot meet it. Capture Setup must show **amber** for this camera with the reason "C920S: 30 fps max; Epic target 60 fps". The probe will confirm the real delivered fps (it may also deliver less than 30 in low light, since RightLight auto-exposure lowers the frame rate).
+- This contradicts the earlier owner note ("4K USB webcam"). For a camera that meets the rule, it needs a real 1080p60 (or 4K60) UVC mode; verify any candidate with the probe before relying on it.
+
+## 9. Fallback: iPhone as the body camera (Madi, 2026-10-15). Not yet tested
+
+If the C920S can't meet the rule, Madi records body video on her iPhone instead. What changes:
+- **Meets the 60 fps rule:** iPhones record 1080p60 and 4K60. Set Settings > Camera > Record Video to 1080p 60 or 4K 60, and Formats > "Most Compatible" (H.264) so Live Link Hub's FFmpeg ingest gets a standard file. Lock focus and exposure (AE/AF lock) and mount it on a tripod, straight on at neutral height (Epic Video Capture Guidelines: camera fixed for the whole take).
+- **No live feed into Unreal:** the phone records internally, so there is no localhost preview for the body agents during the take. The body checks would run on the file after offload, and Record/Stop on the phone is manual (or triggered from the phone itself).
+- **Alignment:** with no shared start command, do a visible + audible clap at the start of every take to line the phone video up with the HMC and the Rode.
+- **Offload:** copy the clip into `<take>/body/` after each take (cable or AirDrop). The adapter becomes "import a file for this take", not "run FFmpeg on a webcam".
+- To verify before relying on it: frame rate is constant (iPhone video can be variable-frame-rate; check `ffprobe` avg vs r_frame_rate), and Mono Video Ingest accepts the file.

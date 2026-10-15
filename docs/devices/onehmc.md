@@ -136,3 +136,11 @@ This logs MB, seconds and MB/s, over Wi-Fi and again over Ethernet if the Soma h
 4. Does the kit include a GL.iNet travel router (see 1.4)?
 5. Is the unidentified Raspberry Pi-class device on the LAN one of yours?
 6. Has the 0.2.0 update been done yet?
+
+---
+
+## 7. Owner update (Madi, 2026-10-15)
+
+- **This weekend: 1 actor, stereo.**
+- **The Soma runs its own network.** The P620 will join it with a separate Ethernet card (the house network stays on the Marvell 10GbE). Give the Soma-side card a static address and **no default gateway** so internet traffic never routes to the Soma.
+- **Offload is offline**: files come off the unit after takes (handoff §4.5 "batch at breaks" or "media pull"), not streamed live. Live preview over the network is still to be checked; if absent, the HMC feeds show "no preview" and the agents run on the first downloaded file (handoff §4.2(a)).

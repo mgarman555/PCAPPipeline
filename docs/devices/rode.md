@@ -175,3 +175,12 @@ Receiver-missing detection: re-enumerate (`EnumerateAudioDevices(true)` or `FAud
 - Whether a transmitter link loss is visible to Windows (endpoint removed vs. silent stream).
 - Whether a second `FAudioCapture` stream for metering coexists with the Take Recorder stream on this device (expected, since both are WASAPI shared).
 - On-board recording: model-dependent (§3).
+
+---
+
+## 7. Owner update (Madi, 2026-10-15), not yet observed on the P620
+
+- **Model: Rode Wireless GO II** (lav). This matches the existing `EAudioSystem::RodeWirelessGo2` value. Still to confirm from the USB name / VID 19F7 with `Tools/probes/rode_probe.ps1`.
+- Madi: "the transmitter directly into the P620". Per retailer copies of Rode's spec, the GO II's **computer audio interface is the receiver** (USB-C, 24-bit / 48 kHz); the **transmitter's** USB-C is for charging and for exporting its on-board recordings in RØDE Central. To check when connected: which unit enumerates as an audio input.
+  Sources: https://www.bhphotovideo.com/c/product/1622642-REG/rode_wigoii_wireless_go_ii_compact.html , https://www.bhphotovideo.com/c/product/803494831-USE/rode_wigo_ii_single_wireless_go_ii_single.html
+- **On-board recording: yes** on GO II (24-bit / 48 kHz WAV, up to ~7 h uncompressed per transmitter, set up in RØDE Central). Exports carry markers where the TX/RX link dropped. Turn it on as the safety backup (handoff §4.2(c)); offload = export from RØDE Central into the take folder.
