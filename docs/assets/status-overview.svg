@@ -1,0 +1,237 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 744" width="1000" height="744" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+  <title id="t">PCAP Pipeline weekend status, 15 Oct 2026</title>
+  <desc id="d">Weekend checklist 27 percent: 2 of 15 items done, 4 partly done, 9 to do. Phases: 0 baseline done; 1 device layer awaiting sign-off; day setup UI in review; 2 device adapters blocked on hardware; 3 agents and alarm, 4 offload not started; goal Saturday 17 October. After the weekend: 4b live body preview, 5 solve and playback, 5b rig review, 6 multi-performer. 52 of 52 automation tests passing.</desc>
+  <style>
+    :root { color-scheme: light dark; }
+    .surface  { fill: #fcfcfb; stroke: rgba(11,11,11,0.10); }
+    .card     { fill: none; stroke: #e1e0d9; }
+    .ink      { fill: #0b0b0b; }
+    .ink2     { fill: #52514e; }
+    .muted    { fill: #898781; }
+    .todo     { fill: #c3c2b7; }
+    .dash     { fill: none; stroke: #c3c2b7; stroke-dasharray: 4 3; }
+    .arrow    { stroke: #898781; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .good     { fill: #0ca30c; }
+    .warn     { fill: #fab219; }
+    .crit     { fill: #d03b3b; }
+    .goal     { fill: #2a78d6; }
+    .glyph-l  { fill: #ffffff; }
+    .glyph-d  { fill: #0b0b0b; }
+    .h1 { font-size: 22px; font-weight: 700; }
+    .h2 { font-size: 15px; font-weight: 700; }
+    .h3 { font-size: 14px; font-weight: 700; }
+    .cap { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
+    .b13 { font-size: 13px; }
+    .b12 { font-size: 12.5px; }
+    .hero { font-size: 44px; font-weight: 700; }
+    @media (prefers-color-scheme: dark) {
+      .surface { fill: #1a1a19; stroke: rgba(255,255,255,0.10); }
+      .card    { stroke: #2c2c2a; }
+      .ink     { fill: #ffffff; }
+      .ink2    { fill: #c3c2b7; }
+      .todo    { fill: #383835; }
+      .dash    { stroke: #52514e; }
+      .goal    { fill: #3987e5; }
+      .glyph-t { fill: #c3c2b7; }
+    }
+  </style>
+
+  <rect class="surface" x="0.5" y="0.5" width="999" height="743" rx="14"/>
+
+  <!-- Header -->
+  <text class="ink h1" x="32" y="44">PCAP Pipeline · weekend goal</text>
+  <text class="ink2 b13" x="32" y="68">One performer · stereo HMC (OneHMC) · markerless body · Rode audio · recorded and offloaded inside Unreal</text>
+  <text class="ink h2" x="968" y="42" text-anchor="end">Goal: Sat 17 Oct 2026</text>
+  <text class="muted b12" x="968" y="64" text-anchor="end">Updated 15 Oct 2026</text>
+
+  <!-- Weekend checklist: hero number + 15 cells (one per checklist item) -->
+  <text class="ink hero" x="32" y="150">27%</text>
+  <text class="ink b13" x="140" y="128" font-weight="700">Weekend checklist</text>
+  <text class="ink2 b12" x="140" y="148">2 done · 4 partly done · 9 to do</text>
+  <text class="muted b12" x="140" y="166">15 items from the handoff; partly done counts half</text>
+
+  <g transform="translate(468,118)">
+    <rect class="good" x="0"   width="31" height="30" rx="4"/>
+    <rect class="good" x="33.5" width="31" height="30" rx="4"/>
+    <rect class="warn" x="67"  width="31" height="30" rx="4"/>
+    <rect class="warn" x="100.5" width="31" height="30" rx="4"/>
+    <rect class="warn" x="134" width="31" height="30" rx="4"/>
+    <rect class="warn" x="167.5" width="31" height="30" rx="4"/>
+    <rect class="todo" x="201" width="31" height="30" rx="4"/>
+    <rect class="todo" x="234.5" width="31" height="30" rx="4"/>
+    <rect class="todo" x="268" width="31" height="30" rx="4"/>
+    <rect class="todo" x="301.5" width="31" height="30" rx="4"/>
+    <rect class="todo" x="335" width="31" height="30" rx="4"/>
+    <rect class="todo" x="368.5" width="31" height="30" rx="4"/>
+    <rect class="todo" x="402" width="31" height="30" rx="4"/>
+    <rect class="todo" x="435.5" width="31" height="30" rx="4"/>
+    <rect class="todo" x="469" width="31" height="30" rx="4"/>
+    <!-- legend -->
+    <circle class="good" cx="6" cy="50" r="5"/><text class="ink2 b12" x="16" y="54">Done</text>
+    <circle class="warn" cx="76" cy="50" r="5"/><text class="ink2 b12" x="86" y="54">Partly done</text>
+    <circle class="todo" cx="186" cy="50" r="5"/><text class="ink2 b12" x="196" y="54">To do</text>
+  </g>
+
+  <!-- Phases -->
+  <text class="muted cap" x="32" y="214">PHASES TO THE GOAL</text>
+
+  <!-- NOW marker over Day setup + Phase 2 -->
+  <text class="ink cap" x="372" y="214" text-anchor="middle">NOW ▾</text>
+
+  <g transform="translate(32,226)">
+    <!-- 0 Baseline -->
+    <g>
+      <rect class="card" x="0.5" y="0.5" width="122" height="86" rx="8"/>
+      <rect class="good" x="0" y="0" width="123" height="5" rx="2.5"/>
+      <circle class="good" cx="20" cy="26" r="10"/><text class="glyph-l b12" x="20" y="30.5" text-anchor="middle" font-weight="700">✓</text>
+      <text class="muted cap" x="36" y="30">PHASE 0</text>
+      <text class="ink h3" x="14" y="56">Baseline</text>
+      <text class="ink2 b12" x="14" y="75">Done</text>
+    </g>
+    <path class="arrow" d="M127 43 l4 0 m-3 -3 l3 3 l-3 3"/>
+    <!-- 1 Device layer -->
+    <g transform="translate(135,0)">
+      <rect class="card" x="0.5" y="0.5" width="122" height="86" rx="8"/>
+      <rect class="warn" x="0" y="0" width="123" height="5" rx="2.5"/>
+      <circle class="warn" cx="20" cy="26" r="10"/><text class="glyph-d b12" x="20" y="30.5" text-anchor="middle" font-weight="700">◐</text>
+      <text class="muted cap" x="36" y="30">PHASE 1</text>
+      <text class="ink h3" x="14" y="56">Device layer</text>
+      <text class="ink2 b12" x="14" y="75">Needs sign-off</text>
+    </g>
+    <path class="arrow" d="M262 43 l4 0 m-3 -3 l3 3 l-3 3"/>
+    <!-- Day setup UI -->
+    <g transform="translate(270,0)">
+      <rect class="card" x="0.5" y="0.5" width="122" height="86" rx="8"/>
+      <rect class="warn" x="0" y="0" width="123" height="5" rx="2.5"/>
+      <circle class="warn" cx="20" cy="26" r="10"/><text class="glyph-d b12" x="20" y="30.5" text-anchor="middle" font-weight="700">◐</text>
+      <text class="muted cap" x="36" y="30">SETUP</text>
+      <text class="ink h3" x="14" y="56">Day setup UI</text>
+      <text class="ink2 b12" x="14" y="75">In review</text>
+    </g>
+    <path class="arrow" d="M397 43 l4 0 m-3 -3 l3 3 l-3 3"/>
+    <!-- 2 Device adapters -->
+    <g transform="translate(405,0)">
+      <rect class="card" x="0.5" y="0.5" width="122" height="86" rx="8"/>
+      <rect class="crit" x="0" y="0" width="123" height="5" rx="2.5"/>
+      <circle class="crit" cx="20" cy="26" r="10"/><text class="glyph-l b12" x="20" y="30.5" text-anchor="middle" font-weight="700">!</text>
+      <text class="muted cap" x="36" y="30">PHASE 2</text>
+      <text class="ink h3" x="14" y="56">Device adapters</text>
+      <text class="ink2 b12" x="14" y="75">Blocked: hardware</text>
+    </g>
+    <path class="arrow" d="M532 43 l4 0 m-3 -3 l3 3 l-3 3"/>
+    <!-- 3 Agents + alarm -->
+    <g transform="translate(540,0)">
+      <rect class="card" x="0.5" y="0.5" width="122" height="86" rx="8"/>
+      <rect class="todo" x="0" y="0" width="123" height="5" rx="2.5"/>
+      <circle class="todo" cx="20" cy="26" r="10"/><text class="glyph-d glyph-t b12" x="20" y="30.5" text-anchor="middle" font-weight="700">○</text>
+      <text class="muted cap" x="36" y="30">PHASE 3</text>
+      <text class="ink h3" x="14" y="56">Agents + alarm</text>
+      <text class="ink2 b12" x="14" y="75">Not started</text>
+    </g>
+    <path class="arrow" d="M667 43 l4 0 m-3 -3 l3 3 l-3 3"/>
+    <!-- 4 Offload -->
+    <g transform="translate(675,0)">
+      <rect class="card" x="0.5" y="0.5" width="122" height="86" rx="8"/>
+      <rect class="todo" x="0" y="0" width="123" height="5" rx="2.5"/>
+      <circle class="todo" cx="20" cy="26" r="10"/><text class="glyph-d glyph-t b12" x="20" y="30.5" text-anchor="middle" font-weight="700">○</text>
+      <text class="muted cap" x="36" y="30">PHASE 4</text>
+      <text class="ink h3" x="14" y="56">Offload</text>
+      <text class="ink2 b12" x="14" y="75">Not started</text>
+    </g>
+    <path class="arrow" d="M802 43 l4 0 m-3 -3 l3 3 l-3 3"/>
+    <!-- Goal -->
+    <g transform="translate(810,0)">
+      <rect class="card" x="0.5" y="0.5" width="125" height="86" rx="8"/>
+      <rect class="goal" x="0" y="0" width="126" height="5" rx="2.5"/>
+      <circle class="goal" cx="20" cy="26" r="10"/><text class="glyph-l b12" x="20" y="30.5" text-anchor="middle" font-weight="700">★</text>
+      <text class="muted cap" x="36" y="30">GOAL</text>
+      <text class="ink h3" x="14" y="56">One performer</text>
+      <text class="ink2 b12" x="14" y="75">Sat 17 Oct</text>
+    </g>
+  </g>
+
+  <!-- After the weekend -->
+  <text class="muted cap" x="32" y="346">AFTER THE WEEKEND</text>
+  <g transform="translate(190,330)">
+    <rect class="dash" x="0.5" y="0.5" width="190" height="26" rx="13"/><text class="ink2 b12" x="95" y="18" text-anchor="middle">4b · Live body preview</text>
+    <rect class="dash" x="200.5" y="0.5" width="180" height="26" rx="13"/><text class="ink2 b12" x="290" y="18" text-anchor="middle">5 · Solve + playback</text>
+    <rect class="dash" x="390.5" y="0.5" width="180" height="26" rx="13"/><text class="ink2 b12" x="480" y="18" text-anchor="middle">5b · Rig review (manual)</text>
+    <rect class="dash" x="580.5" y="0.5" width="197" height="26" rx="13"/><text class="ink2 b12" x="679" y="18" text-anchor="middle">6 · Multi-performer + sync</text>
+  </g>
+
+  <!-- Four columns -->
+  <g transform="translate(32,382)">
+    <!-- Done -->
+    <g>
+      <rect class="card" x="0.5" y="0.5" width="221" height="306" rx="10"/>
+      <circle class="good" cx="22" cy="26" r="10"/><text class="glyph-l b12" x="22" y="30.5" text-anchor="middle" font-weight="700">✓</text>
+      <text class="ink h3" x="40" y="31">Done</text><text class="muted b12" x="206" y="31" text-anchor="end">10 items</text>
+      <g class="ink2 b12">
+        <text x="16" y="62">Clean build on UE 5.8.1 (DX12)</text>
+        <text x="16" y="86">Device-layer seam + registry</text>
+        <text x="16" y="110">ORION code moved, unchanged</text>
+        <text x="16" y="134">Editable capture-system lists</text>
+        <text x="16" y="158">Stage + per-performer setup</text>
+        <text x="16" y="182">Calibration + neutral shots</text>
+        <text x="16" y="206">Scanning: MH1 / MH12 / MH50</text>
+        <text x="16" y="230">HMC checker: 10 tests, 4 fixes</text>
+        <text x="16" y="254">Probe scripts for 3 devices</text>
+        <text x="16" y="278">Live Link notes per mocap</text>
+      </g>
+    </g>
+    <!-- In review -->
+    <g transform="translate(238,0)">
+      <rect class="card" x="0.5" y="0.5" width="221" height="306" rx="10"/>
+      <circle class="warn" cx="22" cy="26" r="10"/><text class="glyph-d b12" x="22" y="30.5" text-anchor="middle" font-weight="700">◐</text>
+      <text class="ink h3" x="40" y="31">In review</text><text class="muted b12" x="206" y="31" text-anchor="end">needs Madi</text>
+      <g class="ink2 b12">
+        <text x="16" y="62">Phase 1 sign-off</text>
+        <text x="16" y="86">New setup screens in editor</text>
+        <text x="16" y="110">Per-person, per-helmet rows</text>
+        <text x="16" y="134">Checker cutoffs (estimates)</text>
+      </g>
+      <text class="muted cap" x="16" y="178">WORKING ON NOW</text>
+      <g class="ink b12">
+        <text x="16" y="202">Visual review of the setup UI</text>
+        <text x="16" y="226">Hardware bring-up when the</text>
+        <text x="16" y="244">devices are plugged in</text>
+      </g>
+    </g>
+    <!-- Blocked -->
+    <g transform="translate(476,0)">
+      <rect class="card" x="0.5" y="0.5" width="221" height="306" rx="10"/>
+      <circle class="crit" cx="22" cy="26" r="10"/><text class="glyph-l b12" x="22" y="30.5" text-anchor="middle" font-weight="700">!</text>
+      <text class="ink h3" x="40" y="31">Blocked</text><text class="muted b12" x="206" y="31" text-anchor="end">hardware / setup</text>
+      <g class="ink2 b12">
+        <text x="16" y="62">OneHMC: 2nd network card</text>
+        <text x="16" y="86">Rode Wireless GO II: plug in</text>
+        <text x="16" y="110">Body cam: C920S is 30 fps</text>
+        <text x="16" y="128" class="muted">(iPhone 60 fps fallback)</text>
+        <text x="16" y="152">Unlock capture drive D:</text>
+        <text x="16" y="176">Markerless plugin (Fab)</text>
+        <text x="16" y="200">Guideline images (bot check)</text>
+      </g>
+    </g>
+    <!-- Up next -->
+    <g transform="translate(714,0)">
+      <rect class="card" x="0.5" y="0.5" width="221" height="306" rx="10"/>
+      <circle class="todo" cx="22" cy="26" r="10"/><text class="glyph-d glyph-t b12" x="22" y="30.5" text-anchor="middle" font-weight="700">○</text>
+      <text class="ink h3" x="40" y="31">Up next</text><text class="muted b12" x="206" y="31" text-anchor="end">to the goal</text>
+      <g class="ink2 b12">
+        <text x="16" y="62">Probe + wire the 3 devices</text>
+        <text x="16" y="86">Record starts / stops all 3</text>
+        <text x="16" y="110">Pre-roll gate on Record</text>
+        <text x="16" y="134">Alarm: flash, chime, flag</text>
+        <text x="16" y="158">Offload into take folders</text>
+        <text x="16" y="182">Storage + backlog readout</text>
+        <text x="16" y="206">Audio into the take sequence</text>
+        <text x="16" y="230">Tune checker on real footage</text>
+        <text x="16" y="254">Real face detector</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <text class="muted b12" x="32" y="722">52 / 52 automation tests passing · main builds clean on UE 5.8.1</text>
+  <text class="muted b12" x="968" y="722" text-anchor="end">Spec: docs/handoffs/HOME_REBUILD_HANDOFF.md</text>
+</svg>

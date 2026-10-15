@@ -1,50 +1,55 @@
 # PCAP Pipeline
 
-## Where we are (updated 2026-10-15)
+## Where we are
 
-**Goal:** one performer, stereo HMC, fully working, **Saturday 2026-10-17**: OneHMC facial, markerless body, Rode audio, recorded and offloaded from inside Unreal, with a floor alarm. Spec: [Home rebuild handoff](docs/handoffs/HOME_REBUILD_HANDOFF.md).
+<p align="center">
+  <img src="docs/assets/status-overview.svg" alt="Weekend status: 27% of the 15-item checklist (2 done, 4 partly done, 9 to do). Phase 0 done, Phase 1 and the day-setup UI in review, Phase 2 blocked on hardware, Phases 3 and 4 not started, goal Saturday 17 October." width="100%">
+</p>
 
-```mermaid
-flowchart LR
-  P0["Phase 0<br/>Baseline build<br/>DONE"]:::done --> P1["Phase 1<br/>Adapter seam<br/>CODE DONE<br/>awaiting sign-off"]:::review
-  P1 --> SU["Setup UI<br/>Capture Setup, Scanning,<br/>calibration shots<br/>DONE (untested in editor)"]:::review
-  SU --> P2["Phase 2<br/>Device adapters<br/>BLOCKED on hardware"]:::blocked
-  P2 --> P3["Phase 3<br/>Agents + alarm"]:::todo
-  P3 --> P4["Phase 4<br/>Offload"]:::todo
-  P4 --> GOAL(["Weekend goal<br/>Sat 17 Oct"]):::goal
-  P4 -.-> P4b["4b Live body preview<br/>(stretch)"]:::todo
-  GOAL -.-> P5["Phase 5 / 5b / 6<br/>Solve, playback, rigs,<br/>multi-performer<br/>after the weekend"]:::later
+**Goal:** one performer, stereo HMC, fully working by **Saturday 17 Oct 2026**: OneHMC facial, markerless body and Rode audio, recorded and offloaded from inside Unreal, with a floor alarm. Spec: [Home rebuild handoff](docs/handoffs/HOME_REBUILD_HANDOFF.md).
 
-  classDef done fill:#2e7d32,color:#fff,stroke:#1b5e20
-  classDef review fill:#f9a825,color:#000,stroke:#f57f17
-  classDef blocked fill:#c62828,color:#fff,stroke:#8e0000
-  classDef todo fill:#546e7a,color:#fff,stroke:#37474f
-  classDef goal fill:#1565c0,color:#fff,stroke:#0d47a1
-  classDef later fill:#9e9e9e,color:#fff,stroke:#616161
-```
+**Working on now:** reviewing the new setup screens in the editor, then bringing up the three devices as they are plugged in ([bring-up checklist](docs/devices/BRINGUP.md)).
 
-```mermaid
-pie showData title Weekend checklist (handoff section 10, 15 items)
-  "Done" : 2
-  "Partly done" : 4
-  "Not started" : 9
-```
+<details>
+<summary><b>Weekend checklist, item by item</b> (2 done · 4 partly · 9 to do)</summary>
 
-**Distance to goal:** the build, the device-layer seam, and the day-setup screens are done. What's left for Saturday is everything that touches the hardware: wiring the OneHMC, body camera and Rode (Phase 2, waiting on the devices being plugged in and probed), the alarms (Phase 3) and offload (Phase 4). Facial and body solves run after the weekend (Phase 5).
+| | Item (handoff §10) | Where it stands |
+|---|---|---|
+| ✅ | Clean build on UE 5.8, DX12 | Builds clean on 5.8.1; DX12 confirmed at boot |
+| ✅ | Technoprops/ORION behavior unchanged | Code moved behind the device interface, URL strings pinned by tests |
+| 🟡 | Capture Setup row per performer | Facial, mono/stereo, helmet, mocap, audio; separate "save as default". Facial preset, camera and input picks still to add |
+| 🟡 | Fact sheet + PASS log per device | Fact sheets written; PASS logs need the hardware |
+| 🟡 | Agents judge feeds with Epic-sourced thresholds | HMC checker tested and 4 bugs fixed; thresholds still need tuning on real footage; no body checks yet |
+| 🟡 | Docs updated | This page, device sheets, handoff status |
+| ⬜ | Guideline images fetched locally | Epic's site blocks the fetch script; fetch in a browser |
+| ⬜ | Record starts and stops all three devices, offsets logged | Phase 2 |
+| ⬜ | Pre-roll gate blocks Record with a reason | Phase 3 |
+| ⬜ | Red alarm: flash, chime, take auto-flagged | Phase 3 |
+| ⬜ | OneHMC firmware / mono-stereo mismatch blocks Record | Phase 2, needs the unit on 0.2.0 |
+| ⬜ | Body camera mode from measured modes | C920S tops out at 30 fps (Epic wants 60); iPhone is the fallback |
+| ⬜ | Storage readout: free space, minutes left, backlog | Phase 4, after D: is unlocked |
+| ⬜ | Offload into take folders with `take.json` | Phase 4 |
+| ⬜ | Audio in the take's Level Sequence | Phase 2 (Rode Wireless GO II) |
 
-| Phase | Status | Done | Blocking / next |
-|---|---|---|---|
-| 0 · Baseline | Done | Clean build on UE 5.8.1 (fixed a compile error), DX12 confirmed, Capture Manager Editor on, FFmpeg encoder set | Guideline images (Epic's site blocks the script), Markerless plugin from Fab, unlock capture drive D:, Vicon plugin disabled (DLL missing) |
-| 1 · Adapter seam | Code done, awaiting sign-off | Device interfaces + registry, ORION transport moved unchanged, old HMC component retired, data model added | Madi's sign-off |
-| Setup UI | Done, not yet seen in the editor | Editable capture-system lists, Stage Database dropdowns, per-performer per-helmet Capture Setup, calibration shots (audio / facial start + end / body / neutral face per actor per day), Scanning with Epic's MH1/MH12/MH50 poses, actor call sheet, Live Link notes per mocap system | Visual review |
-| HMC checker | Tested on generated frames | 10 tests; fixed 4 real bugs (underexposed never fired, lit wall read as a face, any face passed the board check, fps target 30 instead of Epic's 60) | Focus threshold and the rest need tuning on real OneHMC footage; real face detector to come |
-| 2 · Device adapters | Blocked | Fact sheets + probe scripts ready ([devices](docs/devices/)) | Plug in and probe: OneHMC (own network), Rode Wireless GO II, body camera (Logitech C920S is 30 fps max, under Epic's 60; iPhone is the fallback) |
-| 3 · Agents + alarm | Not started | | Phase 2 |
-| 4 · Offload | Not started | | Phase 2 + OneHMC file sizes |
-| 5–6 | After the weekend | | |
+</details>
 
-Automation tests: **52 / 52 passing** (`UnrealEditor-Cmd ... -ExecCmds="Automation RunTests PCAP"`).
+<details>
+<summary><b>Phases</b></summary>
 
+| Phase | Status | Next step |
+|---|---|---|
+| 0 · Baseline | ✅ Done | Open: guideline images, Markerless plugin (Fab), unlock D:, Vicon plugin off (DLL missing) |
+| 1 · Device layer | 🟡 Built, awaiting sign-off | Madi's sign-off |
+| Setup UI | 🟡 In review | Capture systems, stage dropdowns, Capture Setup, Scanning (MH1/MH12/MH50), calibration + neutral-face shots, actor call sheet |
+| 2 · Device adapters | 🔴 Blocked on hardware | OneHMC (own network, second network card), Rode GO II, body camera |
+| 3 · Agents + alarm | ⬜ Not started | After Phase 2 |
+| 4 · Offload | ⬜ Not started | After Phase 2 and OneHMC file sizes |
+| 4b · Live body preview | ⬜ Stretch | Cut first if short on time |
+| 5 / 5b / 6 | After the weekend | Solve + playback, rig review (manual), multi-performer + sync |
+
+</details>
+
+Automation tests: **52 / 52 passing**. The image is [`docs/assets/status-overview.svg`](docs/assets/status-overview.svg); update it with this section.
 ---
 
 A performance-capture session-management pipeline for **Unreal Engine 5.8**, built for a solo operator (or small team) running a mocap volume end to end: **prep the day → run the takes → watch the floor.**
