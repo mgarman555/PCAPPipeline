@@ -48,9 +48,8 @@ input): both completed and reproduced the device agents' measurements.
 
 1. **[Madi]** Update to firmware 0.2.0, power on, and tell the agent:
    - the hostname (`soma-xxxx.local`) or IP,
-   - whether the Soma joins the house network or makes its own Wi-Fi
-     (**the P620 has no Wi-Fi adapter**: an own-network Soma is unreachable without a USB Wi-Fi
-     adapter or Ethernet),
+   - the Soma runs its own network (confirmed): connect the P620's second network card to it,
+     static address, no default gateway,
    - whether the Soma has an Ethernet port,
    - whether the storage is removable (card / drive).
 2. **[Madi]** Confirm `http://soma-xxxx.local` opens in a browser on the P620.

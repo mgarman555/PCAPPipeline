@@ -12,48 +12,24 @@
 
 ## 1. What was observed (2026-10-14)
 
-### 1.1 The P620's network position
+### 1.1 Not found from the P620 (2026-10-14)
 
 | Fact | Command | Result |
 |---|---|---|
-| P620 has one LAN interface, wired | `Get-NetAdapter \| ? Status -eq Up` | `Ethernet` = Marvell AQtion 10Gbit, linked at 1 Gbps. Plus `Tailscale` (tunnel, ignored). |
-| P620 address | `Get-NetIPAddress -AddressFamily IPv4` | A private /24 address on `Ethernet` (home LAN details redacted from this public doc) |
-| No Wi-Fi on the P620 | `netsh wlan show interfaces` | `There is no wireless interface on the system.` So the P620 cannot join a Soma-hosted Wi-Fi access point directly. |
-| Ethernet profile is **Public** | `Get-NetConnectionProfile` | `Ethernet  Public`. Matters for inbound discovery traffic (see 1.3). |
+| P620 network | `Get-NetAdapter -Physical` | One wired adapter (Marvell AQtion 10GbE). No Wi-Fi adapter (`netsh wlan show interfaces`: no wireless interface). |
+| Discovery sweep | `Tools\probes\onehmc_probe.ps1 -Mode Discover` | No host answered on the Soma's ports (:9000 record, :8080 firmware). |
+| Name lookup | `Resolve-DnsName soma.local / onehmc.local / synapse.local` | Not found. Windows mDNS itself works on this PC, so the exact `soma-xxxx.local` name will resolve once the P620 is on the Soma's network. |
 
-### 1.2 Subnet sweep: no Soma found
+This is expected: Madi confirmed on 2026-10-15 that **the Soma runs its own network** (§7). Discovery and every measurement below happen once the P620's second network card is connected to it.
 
-Command (from the probe script, Discover mode):
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File Tools\probes\onehmc_probe.ps1 -Mode Discover
-```
-
-It pings every address in the P620's /24, adds ARP neighbours, and TCP-probes ports 80, 8080, 9000 on each.
-
-Result: **no host on the LAN has TCP 9000 open**, and every host with 80 or 8080 open identified as ordinary home network equipment (router, mesh node, NAS), not a Soma. One unidentified Raspberry Pi-class device answered ping with all common ports closed; it does not serve the Soma GUI (:9000 / :8080). The full per-host log is kept locally in `Saved\DeviceProbes\onehmc\` (gitignored), not in this public doc.
-
-### 1.3 Name resolution: no Soma name
-
-| Attempt | Command | Result |
-|---|---|---|
-| Guessed names | `Resolve-DnsName soma.local / soma / onehmc.local / synapse.local` | All `DNS name does not exist` |
-| Windows mDNS works on this PC | `Resolve-DnsName <another Mac on the LAN>.local` | Resolves. **So if the Soma were on this LAN, `soma-xxxx.local` would resolve once the exact name is known.** |
-| Raw DNS-SD browse | Probe script `Invoke-MdnsBrowse`: legacy-unicast PTR queries for `_services._dns-sd._udp`, `_http._tcp`, `_workstation._tcp`, `_device-info._tcp`, `_soma._tcp` to `224.0.0.251:5353` | `mDNS: no replies`. **Inconclusive**: most likely the Windows firewall (Public profile) drops unicast replies to the script's ephemeral port. Firewall not changed. A wildcard `soma-*` lookup is not possible with Windows' resolver. |
-
-### 1.4 One unexplained neighbour
-
-`Get-NetNeighbor` listed a stale entry for `192.168.8.1` (a GL.iNet travel-router vendor address, GL.iNet's default router IP), outside the home subnet; it did not answer ping. Not claimed to be related to the OneHMC. Madi has since confirmed the Soma runs **its own network** (§7), which a small travel router would explain; to check when the unit is on.
-
----
-## 2. Still unknown (all of §4.2(a)'s list, plus discovery)
+---## 2. Still unknown (all of §4.2(a)'s list, plus discovery)
 
 Nothing below has been observed. None of it may be used by adapter code until it is observed.
 
 | # | Unknown | How it will be observed |
 |---|---|---|
-| U1 | Exact hostname (`soma-xxxx.local`) and IP | Read from the unit label/screen or the router's attached-device list (Madi logs in, not the agent). Then `Resolve-DnsName <name>`. |
-| U2 | Network model: does the Soma join the house Wi-Fi, host its own AP, or sit behind a router (see 1.4)? Does the P620 need Wi-Fi it lacks? | Ask Madi; observe |
+| U1 | Exact hostname (`soma-xxxx.local`) and IP | Read from the unit label/screen. Then `Resolve-DnsName <name>` on the Soma's network. |
+| U2 | Network model: Soma runs its own network (Madi). Wired or Wi-Fi AP? Addressing (DHCP or fixed)? | Observe on connection |
 | U3 | **Firmware version, and where it is reported** (needed for the `>= 0.2.0` Record gate) | Inspect mode on :9000 and :8080, grep JS for `version`/`firmware`, open the GUI in the browser pane and read the version request in network requests |
 | U4 | Mono/stereo: how it is switched, and how the active mode is reported | GUI + network requests while toggling (only toggle allowed besides record) |
 | U5 | Preview stream format and URL (MJPEG? WebRTC? WebSocket? RTSP?) | Network requests in the browser pane; GUI JS |
@@ -82,7 +58,7 @@ Nothing below has been observed. None of it may be used by adapter code until it
 
 None can be confirmed or ruled out, because the device was not observed. Two things to flag:
 
-1. **§4.5 assumes the P620 can be on the Soma's network path.** The P620 has **no Wi-Fi interface** (observed). If the Soma only serves its GUI on its own Wi-Fi access point, the P620 cannot reach it without (a) the Soma joining the house network, (b) an Ethernet path, or (c) a USB Wi-Fi adapter. That would also put the background-offload option at risk.
+1. **§4.5 assumes the P620 can be on the Soma's network path.** The P620 has **no Wi-Fi interface** (observed) and the Soma runs its own network (Madi). The P620 reaches it through a second wired network card; if the Soma's network is Wi-Fi only, that card needs a wired path to it. Offload is after takes, not background (§7).
 2. **§4.2(a) names `soma-xxxx.local`.** No such name answered on 2026-10-14. Windows mDNS is confirmed working, so once the real name is known, a failed lookup will mean "unit off or on a different network", not "this PC can't do mDNS".
 
 ---
@@ -130,17 +106,13 @@ This logs MB, seconds and MB/s, over Wi-Fi and again over Ethernet if the Soma h
 
 ## 5. Questions for Madi
 
-1. What is the exact hostname or IP of the Soma (label, screen, or the router's attached-device list)? Was it powered on at about 16:00 on 2026-10-14?
-2. Does the Soma join your house Wi-Fi, or does it make its own Wi-Fi network? The P620 has no Wi-Fi.
-3. Does the Soma or the Synapse have an Ethernet port?
-4. Does the kit include a GL.iNet travel router (see 1.4)?
-5. Is the unidentified Raspberry Pi-class device on the LAN one of yours?
-6. Has the 0.2.0 update been done yet?
+1. What is the exact hostname or IP of the Soma (label or screen)?
+2. Is the Soma's own network wired (Ethernet port on the Soma or Synapse) or a Wi-Fi access point? The P620 has no Wi-Fi.
+3. Has the 0.2.0 update been done yet?
 
 ---
-
 ## 7. Owner update (Madi, 2026-10-15)
 
 - **This weekend: 1 actor, stereo.**
-- **The Soma runs its own network.** The P620 will join it with a separate Ethernet card (the house network stays on the Marvell 10GbE). Give the Soma-side card a static address and **no default gateway** so internet traffic never routes to the Soma.
+- **The Soma runs its own network.** The P620 will join it with a separate Ethernet card (the P620's main connection stays on the Marvell 10GbE). Give the Soma-side card a static address and **no default gateway** so internet traffic never routes to the Soma.
 - **Offload is offline**: files come off the unit after takes (handoff §4.5 "batch at breaks" or "media pull"), not streamed live. Live preview over the network is still to be checked; if absent, the HMC feeds show "no preview" and the agents run on the first downloaded file (handoff §4.2(a)).

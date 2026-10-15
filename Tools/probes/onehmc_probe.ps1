@@ -87,7 +87,7 @@ function Invoke-MdnsBrowse([int]$listenMs = 3000) {
 
 switch ($Mode) {
   'Discover' {
-    $ip = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254*' -and $_.InterfaceAlias -notlike '*Tailscale*' -and $_.PrefixLength -eq 24 }
+    $ip = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254*' -and $_.PrefixLength -eq 24 -and $_.InterfaceAlias -in @(Get-NetAdapter -Physical | ForEach-Object Name) }
     if ($InterfaceAlias) { $ip = $ip | Where-Object InterfaceAlias -eq $InterfaceAlias }
     foreach ($a in $ip) {
       $prefix = ($a.IPAddress -split '\.')[0..2] -join '.'
