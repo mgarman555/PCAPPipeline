@@ -1,5 +1,7 @@
 # PCAP Tool: Home Rebuild Handoff (Device Layer + Alarms)
 
+> **Status, 2026-10-15:** Phase 0 done; Phase 1 code done and awaiting Madi's sign-off; setup UI added on request (Capture Setup, Scanning, calibration and neutral-face shots, editable capture-system lists). Phase 2 blocked until the OneHMC, Rode Wireless GO II and body camera are connected and probed. Owner answers since rev 2: 1 actor, stereo; Soma on its own network with offload after takes; body camera is a Logitech C920S (30 fps max, below the 60 fps rule; iPhone is the fallback). See the [root README](../../README.md) for the progress view and [devices/](../devices/) for the fact sheets.
+
 **Date:** 2026-10-14 · **Author:** Claude (chat session with Madi) · **For:** Claude Code on the P620 (`mgarman-threadripper`, RTX 3080 Ti, UE 5.8)
 **Deadline:** one performer, fully working, this weekend (Sat 2026-10-17).
 **Status:** Spec, rev 2 (hardware answers folded in). Madi signs off between phases. Nothing here is implemented yet.

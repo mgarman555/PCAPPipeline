@@ -1,5 +1,52 @@
 # PCAP Pipeline
 
+## Where we are (updated 2026-10-15)
+
+**Goal:** one performer, stereo HMC, fully working, **Saturday 2026-10-17**: OneHMC facial, markerless body, Rode audio, recorded and offloaded from inside Unreal, with a floor alarm. Spec: [Home rebuild handoff](docs/handoffs/HOME_REBUILD_HANDOFF.md).
+
+```mermaid
+flowchart LR
+  P0["Phase 0<br/>Baseline build<br/>DONE"]:::done --> P1["Phase 1<br/>Adapter seam<br/>CODE DONE<br/>awaiting sign-off"]:::review
+  P1 --> SU["Setup UI<br/>Capture Setup, Scanning,<br/>calibration shots<br/>DONE (untested in editor)"]:::review
+  SU --> P2["Phase 2<br/>Device adapters<br/>BLOCKED on hardware"]:::blocked
+  P2 --> P3["Phase 3<br/>Agents + alarm"]:::todo
+  P3 --> P4["Phase 4<br/>Offload"]:::todo
+  P4 --> GOAL(["Weekend goal<br/>Sat 17 Oct"]):::goal
+  P4 -.-> P4b["4b Live body preview<br/>(stretch)"]:::todo
+  GOAL -.-> P5["Phase 5 / 5b / 6<br/>Solve, playback, rigs,<br/>multi-performer<br/>after the weekend"]:::later
+
+  classDef done fill:#2e7d32,color:#fff,stroke:#1b5e20
+  classDef review fill:#f9a825,color:#000,stroke:#f57f17
+  classDef blocked fill:#c62828,color:#fff,stroke:#8e0000
+  classDef todo fill:#546e7a,color:#fff,stroke:#37474f
+  classDef goal fill:#1565c0,color:#fff,stroke:#0d47a1
+  classDef later fill:#9e9e9e,color:#fff,stroke:#616161
+```
+
+```mermaid
+pie showData title Weekend checklist (handoff section 10, 15 items)
+  "Done" : 2
+  "Partly done" : 4
+  "Not started" : 9
+```
+
+**Distance to goal:** the build, the device-layer seam, and the day-setup screens are done. What's left for Saturday is everything that touches the hardware: wiring the OneHMC, body camera and Rode (Phase 2, waiting on the devices being plugged in and probed), the alarms (Phase 3) and offload (Phase 4). Facial and body solves run after the weekend (Phase 5).
+
+| Phase | Status | Done | Blocking / next |
+|---|---|---|---|
+| 0 · Baseline | Done | Clean build on UE 5.8.1 (fixed a compile error), DX12 confirmed, Capture Manager Editor on, FFmpeg encoder set | Guideline images (Epic's site blocks the script), Markerless plugin from Fab, unlock capture drive D:, Vicon plugin disabled (DLL missing) |
+| 1 · Adapter seam | Code done, awaiting sign-off | Device interfaces + registry, ORION transport moved unchanged, old HMC component retired, data model added | Madi's sign-off |
+| Setup UI | Done, not yet seen in the editor | Editable capture-system lists, Stage Database dropdowns, per-performer per-helmet Capture Setup, calibration shots (audio / facial start + end / body / neutral face per actor per day), Scanning with Epic's MH1/MH12/MH50 poses, actor call sheet, Live Link notes per mocap system | Visual review |
+| HMC checker | Tested on generated frames | 10 tests; fixed 4 real bugs (underexposed never fired, lit wall read as a face, any face passed the board check, fps target 30 instead of Epic's 60) | Focus threshold and the rest need tuning on real OneHMC footage; real face detector to come |
+| 2 · Device adapters | Blocked | Fact sheets + probe scripts ready ([devices](docs/devices/)) | Plug in and probe: OneHMC (own network), Rode Wireless GO II, body camera (Logitech C920S is 30 fps max, under Epic's 60; iPhone is the fallback) |
+| 3 · Agents + alarm | Not started | | Phase 2 |
+| 4 · Offload | Not started | | Phase 2 + OneHMC file sizes |
+| 5–6 | After the weekend | | |
+
+Automation tests: **52 / 52 passing** (`UnrealEditor-Cmd ... -ExecCmds="Automation RunTests PCAP"`).
+
+---
+
 A performance-capture session-management pipeline for **Unreal Engine 5.8**, built for a solo operator (or small team) running a mocap volume end to end: **prep the day → run the takes → watch the floor.**
 
 The heart of the project is the **PCAPTool** editor plugin — a workflow-organized toolset on top of one shared data model — plus **LiveLinkViconDataStream** for getting Vicon data into the engine. On 5.8, PCAPTool's data model drives Epic's official **Performance Capture** plugins (the **Mocap Manager**): the databases are the source of truth and a bridge spawns/configures the engine's `ACapturePerformer` actors (Performance Capture **Core**) and `UPCapPropComponent` props (Performance Capture **Workflow**) from the called shot.

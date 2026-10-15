@@ -42,9 +42,18 @@ Short usage pages, one per tool (also linked from the [plugin README](../Plugins
 **VCam**
 - [2026-06-12 VCam panel design](specs/2026-06-12-vcam-panel-design.md) ([core plan](specs/2026-06-12-vcam-panel-c++-core.md)) + [input-layer design](specs/2026-06-12-vcam-input-layer-design.md) — WVCAM replacement; controller input over UDP.
 
+## Devices — [`devices/`](devices/)
+
+Fact sheets for the home hardware: observed behavior only, written before any adapter code depends on it (handoff §0 rule 2).
+
+- [Bring-up checklist](devices/BRINGUP.md): what to run when each device is plugged in.
+- [OneHMC](devices/onehmc.md) · [Body camera](devices/body-camera.md) ([verification log](devices/body-camera-verification.md)) · [Rode](devices/rode.md)
+- [Mocap systems in Live Link](devices/mocap-livelink.md): Shogun Live, Cortex, Giant, Markerless UE.
+- Probe scripts: [`Tools/probes/`](../Tools/probes/).
+
 ## UMG build guides — [`build-guides/`](build-guides/)
 
-Step-by-step guides for hand-building the HMC UMG widget blueprints: [Monitor](build-guides/WBP_HMCMonitorPanel_BuildGuide.md) · [Operator](build-guides/WBP_HMCOperatorPanel_BuildGuide.md) · [Preview](build-guides/WBP_HMCPreview_BuildGuide.md) · [Setup](build-guides/WBP_HMCSetup_BuildGuide.md).
+**Retired from the home build** (handoff §3: Slate is the UI). Kept for reference. Step-by-step guides for hand-building the HMC UMG widget blueprints: [Monitor](build-guides/WBP_HMCMonitorPanel_BuildGuide.md) · [Operator](build-guides/WBP_HMCOperatorPanel_BuildGuide.md) · [Preview](build-guides/WBP_HMCPreview_BuildGuide.md) · [Setup](build-guides/WBP_HMCSetup_BuildGuide.md).
 
 ## Handoffs — [`handoffs/`](handoffs/)
 
