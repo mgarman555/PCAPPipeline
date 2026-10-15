@@ -2,7 +2,12 @@
 #include "StageConfigAsset.h"
 #include "PCAPToolTypes.h"
 #include "PCAPToolPaths.h"
+#include "PCAPToolSettings.h"
+#include "MocapDatabase.h"
+#include "PCAPStringPick.h"
 
+#include "Widgets/Input/SCheckBox.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
@@ -34,16 +39,56 @@
 
 namespace
 {
+
     // Short "what's recording" summary — non-None systems joined with · .
     FString StageSummary(UStageConfigAsset* S)
     {
         if (!S) return FString();
         TArray<FString> Parts;
-        if (S->BodySystem  != EBodySystem::None)  Parts.Add(StaticEnum<EBodySystem>()->GetDisplayNameTextByValue((int64)S->BodySystem).ToString());
-        if (S->FaceSystem  != EFaceSystem::None)  Parts.Add(StaticEnum<EFaceSystem>()->GetDisplayNameTextByValue((int64)S->FaceSystem).ToString());
-        if (S->AudioSystem != EAudioSystem::None) Parts.Add(StaticEnum<EAudioSystem>()->GetDisplayNameTextByValue((int64)S->AudioSystem).ToString());
+        if (!S->MocapSystem.IsEmpty())  Parts.Add(S->MocapSystem);
+        if (!S->FacialSystem.IsEmpty()) Parts.Add(PCAPStringPick::FacialModeLabel(S->FacialSystem, S->bFacialMono, S->bFacialStereo));
+        if (!S->AudioSystemName.IsEmpty()) Parts.Add(S->AudioSystemName);
         if (S->VCamSystem  != EVCamSystem::None)  Parts.Add(StaticEnum<EVCamSystem>()->GetDisplayNameTextByValue((int64)S->VCamSystem).ToString());
         return Parts.Num() > 0 ? FString::Join(Parts, TEXT(" · ")) : FString(TEXT("no systems set"));
+    }
+
+    UMocapDatabase* StagePanelDB()
+    {
+        UPCAPToolSettings* S = UPCAPToolSettings::Get();
+        return S ? S->GetDatabase() : nullptr;
+    }
+
+    TArray<FString> StagePanelProjectCodes()
+    {
+        TArray<FString> Out;
+        if (UMocapDatabase* DB = StagePanelDB())
+            for (const FProduction& P : DB->Productions)
+                if (!P.ProjectCode.IsEmpty()) Out.AddUnique(P.ProjectCode);
+        Out.Sort();
+        return Out;
+    }
+
+    // Adds a production named Name (code = Name without spaces) unless one exists; saves the DB.
+    FString StagePanelCreateProject(const FString& Name)
+    {
+        const FString Clean = Name.TrimStartAndEnd();
+        UMocapDatabase* DB = StagePanelDB();
+        if (Clean.IsEmpty() || !DB) return FString();
+        const FString Code = Clean.Replace(TEXT(" "), TEXT(""));
+        if (!DB->GetProductionByCode(Code))
+        {
+            FProduction P;
+            P.ProjectCode    = Code;
+            P.ProductionName = Clean;
+            P.CreatedDate    = FDateTime::Now();
+            DB->Productions.Add(P);
+            if (UPackage* Pkg = DB->GetPackage())
+            {
+                Pkg->MarkPackageDirty();
+                FEditorFileUtils::PromptForCheckoutAndSave({ Pkg }, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
+            }
+        }
+        return Code;
     }
 }
 
@@ -279,6 +324,64 @@ TSharedRef<SWidget> SPCAPStageDatabasePanel::MakeEnumRow(const FString& Label, U
         ];
 }
 
+TSharedRef<SWidget> SPCAPStageDatabasePanel::MakeLabelRow(const FString& Label, TSharedRef<SWidget> Value)
+{
+    return SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().FillWidth(0.4f).VAlign(VAlign_Center)
+        [ SNew(STextBlock).Text(FText::FromString(Label)).ColorAndOpacity(FSlateColor(ColLabel)) ]
+        + SHorizontalBox::Slot().FillWidth(0.6f).VAlign(VAlign_Center)
+        [ Value ];
+}
+
+TSharedRef<SWidget> SPCAPStageDatabasePanel::BuildProjectPicker(UStageConfigAsset* Entry)
+{
+    TWeakObjectPtr<UStageConfigAsset> Weak(Entry);
+    return SNew(SComboButton)
+        .ButtonContent()
+        [
+            SNew(STextBlock).Text_Lambda([Weak]()
+            {
+                if (!Weak.IsValid() || Weak->ProjectCode.IsEmpty()) return LOCTEXT("AnyProject", "(any project)");
+                if (UMocapDatabase* DB = StagePanelDB())
+                    if (FProduction* P = DB->GetProductionByCode(Weak->ProjectCode))
+                        if (!P->ProductionName.IsEmpty() && P->ProductionName != P->ProjectCode)
+                            return FText::FromString(FString::Printf(TEXT("%s (%s)"), *P->ProductionName, *P->ProjectCode));
+                return FText::FromString(Weak->ProjectCode);
+            })
+        ]
+        .OnGetMenuContent_Lambda([this, Weak]() -> TSharedRef<SWidget>
+        {
+            auto Pick = [this, Weak](const FString& Code)
+            {
+                if (!Weak.IsValid()) return;
+                Weak->ProjectCode = Code;
+                Weak->MarkPackageDirty();
+                if (TileView.IsValid()) TileView->RequestListRefresh();
+            };
+            FMenuBuilder MB(/*bCloseAfterSelection*/ true, nullptr);
+            MB.AddMenuEntry(LOCTEXT("AnyProject2", "(any project)"), FText::GetEmpty(), FSlateIcon(),
+                FUIAction(FExecuteAction::CreateLambda([Pick]() { Pick(FString()); })));
+            for (const FString& Code : StagePanelProjectCodes())
+                MB.AddMenuEntry(FText::FromString(Code), FText::GetEmpty(), FSlateIcon(),
+                    FUIAction(FExecuteAction::CreateLambda([Pick, Code]() { Pick(Code); })));
+            MB.AddSeparator();
+            MB.AddWidget(
+                SNew(SBox).MinDesiredWidth(200.f).Padding(4.f)
+                [
+                    SNew(SEditableTextBox)
+                    .HintText(LOCTEXT("NewProjectHint", "+ New project name  ↵"))
+                    .OnTextCommitted_Lambda([Pick](const FText& T, ETextCommit::Type C)
+                    {
+                        if (C != ETextCommit::OnEnter) return;
+                        const FString Code = StagePanelCreateProject(T.ToString());
+                        if (!Code.IsEmpty()) { Pick(Code); FSlateApplication::Get().DismissAllMenus(); }
+                    })
+                ],
+                FText::GetEmpty(), /*bNoIndent*/ true);
+            return MB.MakeWidget();
+        });
+}
+
 TSharedRef<SWidget> SPCAPStageDatabasePanel::BuildDetailFor(UStageConfigAsset* Entry)
 {
     if (!Entry) return SNew(SBox);
@@ -338,11 +441,54 @@ TSharedRef<SWidget> SPCAPStageDatabasePanel::BuildDetailFor(UStageConfigAsset* E
             [ SNew(STextBlock).Text(LOCTEXT("Recording", "Looking to record")).ColorAndOpacity(FSlateColor(ColGreen)) ]
 
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f)
-            [ MakeEnumRow(TEXT("Body"),  StaticEnum<EBodySystem>(),  (int32)Entry->BodySystem,  [Weak](int32 V){ if (Weak.IsValid()) Weak->BodySystem  = (EBodySystem)V; }) ]
+            [ MakeLabelRow(TEXT("Project"), BuildProjectPicker(Entry)) ]
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f)
-            [ MakeEnumRow(TEXT("Face"),  StaticEnum<EFaceSystem>(),  (int32)Entry->FaceSystem,  [Weak](int32 V){ if (Weak.IsValid()) Weak->FaceSystem  = (EFaceSystem)V; }) ]
+            [ MakeLabelRow(TEXT("Mocap"), PCAPStringPick::Make(
+                [Weak]() { return Weak.IsValid() ? Weak->MocapSystem : FString(); },
+                []() { const UPCAPToolSettings* S = UPCAPToolSettings::Get(); return S ? S->GetMocapOptions() : TArray<FString>(); },
+                [this, Weak](const FString& V) { if (Weak.IsValid()) { Weak->MocapSystem = V; Weak->MarkPackageDirty(); if (TileView.IsValid()) TileView->RequestListRefresh(); } },
+                LOCTEXT("PickMocap", "(no mocap)"), LOCTEXT("NoMocap", "(none)"))) ]
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f)
-            [ MakeEnumRow(TEXT("Audio"), StaticEnum<EAudioSystem>(), (int32)Entry->AudioSystem, [Weak](int32 V){ if (Weak.IsValid()) Weak->AudioSystem = (EAudioSystem)V; }) ]
+            [ MakeLabelRow(TEXT("Facial"), PCAPStringPick::Make(
+                [Weak]() { return Weak.IsValid() ? Weak->FacialSystem : FString(); },
+                []() { const UPCAPToolSettings* S = UPCAPToolSettings::Get(); return S ? S->GetFacialOptions() : TArray<FString>(); },
+                [this, Weak](const FString& V)
+                {
+                    if (!Weak.IsValid()) return;
+                    Weak->FacialSystem = V;
+                    // Drop an audio choice that only exists with the previous facial system (iPhone audio).
+                    const UPCAPToolSettings* S = UPCAPToolSettings::Get();
+                    if (S && !Weak->AudioSystemName.IsEmpty() && !S->GetAudioOptions(V).Contains(Weak->AudioSystemName))
+                        Weak->AudioSystemName.Empty();
+                    Weak->MarkPackageDirty();
+                    if (TileView.IsValid()) TileView->RequestListRefresh();
+                },
+                LOCTEXT("PickFacial", "(no facial)"), LOCTEXT("NoFacial", "(none)"))) ]
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f)
+            [ MakeLabelRow(TEXT(""),
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 14.f, 0.f)
+                [ SNew(SCheckBox)
+                  .ToolTipText(LOCTEXT("MonoTip", "This stage can shoot mono facial. Each performer picks mono or stereo in the Call Sheet's Capture Setup."))
+                  .IsChecked_Lambda([Weak]() { return (Weak.IsValid() && Weak->bFacialMono) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
+                  .OnCheckStateChanged_Lambda([this, Weak](ECheckBoxState S) { if (Weak.IsValid()) { Weak->bFacialMono = (S == ECheckBoxState::Checked); Weak->MarkPackageDirty(); if (TileView.IsValid()) TileView->RequestListRefresh(); } })
+                  [ SNew(STextBlock).Text(LOCTEXT("Mono", "Mono")) ] ]
+                + SHorizontalBox::Slot().AutoWidth()
+                [ SNew(SCheckBox)
+                  .ToolTipText(LOCTEXT("StereoTip", "This stage can shoot stereo facial (adds start and end-of-session calibration board takes)."))
+                  .IsChecked_Lambda([Weak]() { return (Weak.IsValid() && Weak->bFacialStereo) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
+                  .OnCheckStateChanged_Lambda([this, Weak](ECheckBoxState S) { if (Weak.IsValid()) { Weak->bFacialStereo = (S == ECheckBoxState::Checked); Weak->MarkPackageDirty(); if (TileView.IsValid()) TileView->RequestListRefresh(); } })
+                  [ SNew(STextBlock).Text(LOCTEXT("Stereo", "Stereo")) ] ]) ]
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f)
+            [ MakeLabelRow(TEXT("Audio"), PCAPStringPick::Make(
+                [Weak]() { return Weak.IsValid() ? Weak->AudioSystemName : FString(); },
+                [Weak]() { const UPCAPToolSettings* S = UPCAPToolSettings::Get(); return (S && Weak.IsValid()) ? S->GetAudioOptions(Weak->FacialSystem) : TArray<FString>(); },
+                [this, Weak](const FString& V) { if (Weak.IsValid()) { Weak->AudioSystemName = V; Weak->MarkPackageDirty(); if (TileView.IsValid()) TileView->RequestListRefresh(); } },
+                LOCTEXT("PickAudio", "(no audio)"), LOCTEXT("NoAudio", "(none)"))) ]
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f)
+            [ SNew(STextBlock).AutoWrapText(true)
+              .Text(LOCTEXT("ListsHint", "Lists are edited in Project Settings > PCAP > PCAP Tool > Capture Systems. Per-performer, per-helmet setup is in the Call Sheet."))
+              .ColorAndOpacity(FSlateColor(ColText2)) ]
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f)
             [ MakeEnumRow(TEXT("VCam"),  StaticEnum<EVCamSystem>(),  (int32)Entry->VCamSystem,  [Weak](int32 V){ if (Weak.IsValid()) Weak->VCamSystem  = (EVCamSystem)V; }) ]
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f, 0.f, 2.f)

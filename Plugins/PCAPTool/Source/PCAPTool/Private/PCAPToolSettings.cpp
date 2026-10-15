@@ -10,9 +10,59 @@
 #include "FileHelpers.h"
 #endif
 
+UPCAPToolSettings::UPCAPToolSettings()
+{
+    // Defaults (Madi, 2026-10-15). DefaultGame.ini overrides these once edited in Project Settings.
+    MocapSystems = {
+        FPCAPSystemOption(TEXT("Markerless UE")),
+        FPCAPSystemOption(TEXT("Cortex")),
+        FPCAPSystemOption(TEXT("Shogun Live"), { TEXT("1.13"), TEXT("1.19") }),
+        FPCAPSystemOption(TEXT("Giant")),
+    };
+    FacialSystems = {
+        FPCAPSystemOption(TEXT("OneHMC")),
+        FPCAPSystemOption(TEXT("Faceware")),
+        FPCAPSystemOption(TEXT("Rokoko iPhone")),
+        FPCAPSystemOption(TEXT("Technoprops")),
+    };
+    AudioSystems = {
+        FPCAPSystemOption(TEXT("Internal")),
+        FPCAPSystemOption(TEXT("Lavs")),
+        FPCAPSystemOption(TEXT("iPhone"), {}, TEXT("Rokoko iPhone")),
+    };
+}
+
 UPCAPToolSettings* UPCAPToolSettings::Get()
 {
     return GetMutableDefault<UPCAPToolSettings>();
+}
+
+TArray<FString> UPCAPToolSettings::FlattenOptions(const TArray<FPCAPSystemOption>& Options)
+{
+    TArray<FString> Out;
+    for (const FPCAPSystemOption& O : Options)
+    {
+        const FString Name = O.Name.TrimStartAndEnd();
+        if (Name.IsEmpty()) continue;
+        if (O.Versions.Num() == 0) { Out.AddUnique(Name); continue; }
+        for (const FString& V : O.Versions)
+        {
+            const FString Ver = V.TrimStartAndEnd();
+            Out.AddUnique(Ver.IsEmpty() ? Name : FString::Printf(TEXT("%s %s"), *Name, *Ver));
+        }
+    }
+    return Out;
+}
+
+TArray<FString> UPCAPToolSettings::AudioOptionsFor(const TArray<FPCAPSystemOption>& Audio, const FString& FacialSelection)
+{
+    TArray<FPCAPSystemOption> Allowed;
+    for (const FPCAPSystemOption& O : Audio)
+    {
+        if (O.OnlyWithFacial.IsEmpty() || O.OnlyWithFacial.Equals(FacialSelection, ESearchCase::IgnoreCase))
+            Allowed.Add(O);
+    }
+    return FlattenOptions(Allowed);
 }
 
 UMocapDatabase* UPCAPToolSettings::GetDatabase() const

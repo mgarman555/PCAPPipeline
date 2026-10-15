@@ -6,6 +6,7 @@
 #include "PCAPPerformerExtension.generated.h"
 
 class UHMCRigEntry;
+class UPCAPFacialProcessingPreset;
 
 // ---------------------------------------------------------------------------
 // PCAPTool extension for an Epic Performance Capture performer.
@@ -51,6 +52,24 @@ public:
     // ── Audio ──
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Audio")
     TArray<FAudioStreamEntry> AudioStreams;
+
+    // ── Capture Setup defaults: a returning performer's Call Sheet row pre-fills from
+    //    these. Names come from Project Settings > PCAP Tool > Capture Systems. The
+    //    default helmet is HMCRig above. Empty = use the day's stage. ──
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    FString DefaultMocapSystem;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    FString DefaultFacialSystem;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    bool bDefaultStereo = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    FString DefaultAudioSystem;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    TSoftObjectPtr<UPCAPFacialProcessingPreset> DefaultFacialPreset;
 
     // ── Misc PCAPTool metadata ──
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Identity")

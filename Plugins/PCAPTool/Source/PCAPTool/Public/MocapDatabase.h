@@ -8,6 +8,16 @@
 #include "StageConfigAsset.h"
 #include "MocapDatabase.generated.h"
 
+// One day an actor is called on, for the actor's own "call sheet" (Actor Database).
+struct FPCAPActorDayRef
+{
+    FString   ProjectCode;
+    FString   ProductionName;
+    FString   DayID;
+    FDateTime CalendarDate = FDateTime(0);
+    FString   StageName;     // the day's stage (or the production's), empty if none
+};
+
 UCLASS(BlueprintType)
 class PCAPTOOL_API UMocapDatabase : public UDataAsset
 {
@@ -64,6 +74,14 @@ public:
     void SetPropCalled(const FString& PropID, bool bCalled);
     bool IsVCamCalled(const FString& VCamID) const;
     void SetVCamCalled(const FString& VCamID, bool bCalled);
+
+    // Every day (across all productions) that calls this actor, sorted by date then day id.
+    TArray<FPCAPActorDayRef> GetDaysForActor(const FString& ActorID) const;
+
+    // Capture Setup rows on the active day (one per called performer).
+    FPCAPPerformerCaptureSetup* GetCaptureSetup(const FString& ActorID);
+    // Returns the existing row, or adds Defaults (ActorID forced) and returns that. Null without an active day.
+    FPCAPPerformerCaptureSetup* FindOrAddCaptureSetup(const FString& ActorID, const FPCAPPerformerCaptureSetup& Defaults);
 
     // Day-level "HMCs used today?" flag (head-mounted facial capture), on the active day.
     bool IsHMCDay() const;

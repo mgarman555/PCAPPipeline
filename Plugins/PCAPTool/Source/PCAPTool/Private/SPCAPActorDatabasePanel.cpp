@@ -351,6 +351,53 @@ TSharedRef<SWidget> SPCAPActorDatabasePanel::BuildDetailFor(FPerformerPtr Info)
       })
       [ SNew(STextBlock).Text(LOCTEXT("Call", "Called to today's shoot")) ] ];
 
+    // ── This actor's call sheet: every project / day they're called on ──
+    Body->AddSlot().AutoHeight().Padding(0.f, 14.f, 0.f, 4.f)
+    [ SNew(STextBlock).Text(LOCTEXT("CallSheetHdr", "Call sheet")).ColorAndOpacity(FSlateColor(ColGreen)) ];
+    {
+        UPCAPToolSettings* S = UPCAPToolSettings::Get();
+        UMocapDatabase* DB = S ? S->GetDatabase() : nullptr;
+        const TArray<FPCAPActorDayRef> Days = DB ? DB->GetDaysForActor(PerfId) : TArray<FPCAPActorDayRef>();
+        if (Days.Num() == 0)
+        {
+            Body->AddSlot().AutoHeight()
+            [ SNew(STextBlock).AutoWrapText(true)
+              .Text(LOCTEXT("NoDays", "Not called on any day yet. Call them from a day in the Call Sheet."))
+              .ColorAndOpacity(FSlateColor(ColText2)) ];
+        }
+        for (const FPCAPActorDayRef& D : Days)
+        {
+            const FString Date = D.CalendarDate == FDateTime(0) ? FString(TEXT("no date")) : D.CalendarDate.ToString(TEXT("%Y-%m-%d"));
+            const FString Prod = D.ProductionName.IsEmpty() ? D.ProjectCode : D.ProductionName;
+            const FString Line = D.StageName.IsEmpty()
+                ? FString::Printf(TEXT("%s  ·  Day %s  ·  %s"), *Prod, *D.DayID, *Date)
+                : FString::Printf(TEXT("%s  ·  Day %s  ·  %s  ·  %s"), *Prod, *D.DayID, *Date, *D.StageName);
+            const FString Code = D.ProjectCode, DayId = D.DayID;
+            Body->AddSlot().AutoHeight().Padding(0.f, 1.f)
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+                [ SNew(STextBlock).Text(FText::FromString(Line)) ]
+                + SHorizontalBox::Slot().AutoWidth()
+                [ SNew(SButton).Text(LOCTEXT("OpenDay", "Open day"))
+                  .ToolTipText(LOCTEXT("OpenDayTip", "Make this the active day (the Call Sheet and Operator Console follow it)."))
+                  .OnClicked_Lambda([this, Code, DayId]()
+                  {
+                      UPCAPToolSettings* S2 = UPCAPToolSettings::Get();
+                      if (UMocapDatabase* DB2 = S2 ? S2->GetDatabase() : nullptr)
+                      {
+                          DB2->ActiveProductionCode = Code;
+                          DB2->ActiveDayID = DayId;
+                          DB2->ActiveSessionID.Empty();
+                          DB2->MarkPackageDirty();
+                      }
+                      if (SelectedPerformer.IsValid() && DetailBox.IsValid()) DetailBox->SetContent(BuildDetailFor(SelectedPerformer));
+                      return FReply::Handled();
+                  }) ]
+            ];
+        }
+    }
+
     return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(14.f)
     .OnMouseButtonDown_Lambda([](const FGeometry&, const FPointerEvent&) { return FReply::Handled(); })   // consume — don't close when clicking the card
     [

@@ -11,9 +11,24 @@ class PCAPTOOL_API UPCAPToolSettings : public UDeveloperSettings
     GENERATED_BODY()
 
 public:
+    UPCAPToolSettings();
 
     UPROPERTY(Config, EditAnywhere, Category="PCAP Tool")
     TSoftObjectPtr<UMocapDatabase> DatabaseAsset;
+
+    // ── Capture systems (the Stage Database / Capture Setup dropdowns) ──
+    // Edit these lists to add, rename or retire systems; no rebuild needed. Saved to
+    // Config/DefaultGame.ini. Each version becomes its own entry ("Shogun Live 1.19").
+
+    UPROPERTY(Config, EditAnywhere, Category="Capture Systems")
+    TArray<FPCAPSystemOption> MocapSystems;
+
+    UPROPERTY(Config, EditAnywhere, Category="Capture Systems")
+    TArray<FPCAPSystemOption> FacialSystems;
+
+    // "Only With Facial" limits an entry to one facial system (iPhone audio -> Rokoko iPhone).
+    UPROPERTY(Config, EditAnywhere, Category="Capture Systems")
+    TArray<FPCAPSystemOption> AudioSystems;
 
     static UPCAPToolSettings* Get();
     UMocapDatabase* GetDatabase() const;
@@ -21,6 +36,15 @@ public:
     // Returns the assigned database, or creates one in the PCAP tool area
     // (PCAPPaths::MasterDatabase) and self-assigns it if none is set. Editor only.
     UMocapDatabase* GetOrCreateDatabase();
+
+    // Dropdown entries: names, expanded by version ("Shogun Live 1.13", "Shogun Live 1.19").
+    static TArray<FString> FlattenOptions(const TArray<FPCAPSystemOption>& Options);
+    // Audio entries valid for a facial selection (drops OnlyWithFacial entries that don't match).
+    static TArray<FString> AudioOptionsFor(const TArray<FPCAPSystemOption>& Audio, const FString& FacialSelection);
+
+    TArray<FString> GetMocapOptions() const  { return FlattenOptions(MocapSystems); }
+    TArray<FString> GetFacialOptions() const { return FlattenOptions(FacialSystems); }
+    TArray<FString> GetAudioOptions(const FString& FacialSelection) const { return AudioOptionsFor(AudioSystems, FacialSelection); }
 
     virtual FName GetCategoryName() const override { return FName("PCAP"); }
     virtual FName GetSectionName()  const override { return FName("PCAP Tool"); }

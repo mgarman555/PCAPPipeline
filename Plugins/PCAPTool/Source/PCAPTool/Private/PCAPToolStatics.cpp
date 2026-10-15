@@ -1,5 +1,8 @@
 #include "PCAPToolStatics.h"
 #include "ActorRosterEntry.h"
+#include "StageConfigAsset.h"
+#include "PCAPPerformerExtension.h"
+#include "HMCRigEntry.h"
 
 FString UPCAPToolStatics::GenerateTakeID(const FString& DayNumber, const FString& ShotSlot, const FString& TakeNumber)
 {
@@ -51,6 +54,93 @@ FString UPCAPToolStatics::ShotSlotForType(EShotType ShotType, int32 ShotIndex)
         case EShotType::Retargeting: return TEXT("903");
         default:                     return FString::Printf(TEXT("%03d"), FMath::Max(1, ShotIndex));
     }
+}
+
+bool UPCAPToolStatics::IsCalibrationSlot(const FString& Slot)
+{
+    if (Slot == TEXT("901")) return true;
+    return Slot.Len() == 3 && Slot[0] == TEXT('9') && (Slot[1] == TEXT('1') || Slot[1] == TEXT('2') || Slot[1] == TEXT('3'))
+        && FChar::IsDigit(Slot[2]);
+}
+
+FPCAPCalibrationNeeds UPCAPToolStatics::ResolveCalibrationNeeds(const FShootDay& Day, const UStageConfigAsset* Stage)
+{
+    FPCAPCalibrationNeeds N;
+    FPCAPCalibrationNeeds FromRows;
+    FromRows.bAudio = FromRows.bFacial = FromRows.bStereo = FromRows.bBody = false;
+    int32 Rows = 0;
+    for (const FPCAPPerformerCaptureSetup& S : Day.CaptureSetups)
+    {
+        if (!Day.CalledActorIDs.Contains(S.ActorID)) continue;   // rows for un-called actors don't count
+        ++Rows;
+        FromRows.bAudio  |= !S.AudioSystem.IsEmpty();
+        FromRows.bFacial |= !S.FacialSystem.IsEmpty();
+        FromRows.bStereo |= !S.FacialSystem.IsEmpty() && S.bStereo;
+        FromRows.bBody   |= !S.MocapSystem.IsEmpty();
+    }
+    if (Rows > 0) return FromRows;
+    if (Stage)
+    {
+        N.bAudio  = !Stage->AudioSystemName.IsEmpty();
+        N.bFacial = !Stage->FacialSystem.IsEmpty();
+        N.bStereo = N.bFacial && Stage->bFacialStereo && !Stage->bFacialMono;   // both allowed = undecided until Capture Setup
+        N.bBody   = !Stage->MocapSystem.IsEmpty();
+    }
+    return N;
+}
+
+int32 UPCAPToolStatics::AddCalibrationShots(FShootDay& Day, const FPCAPCalibrationNeeds& Needs)
+{
+    if (Day.Sessions.Num() == 0)
+    {
+        FSession S; S.SessionID = TEXT("S01"); S.Label = TEXT("Main");
+        Day.Sessions.Add(S);
+    }
+    FSession& Sess = Day.Sessions[0];
+
+    int32 Added = 0;
+    auto Add = [&](const TCHAR* Slot, const TCHAR* Desc)
+    {
+        if (Sess.Shots.ContainsByPredicate([Slot](const FShot& S){ return S.ShotID == Slot; })) return;
+        FShot Shot;
+        Shot.ShotID      = Slot;
+        Shot.ShotType    = EShotType::Calibration;
+        Shot.Description = Desc;
+        Sess.Shots.Add(Shot);
+        ++Added;
+    };
+
+    if (Needs.bAudio)  Add(AudioCalibrationSlot(), TEXT("Audio calibration: level check per mic"));
+    // Stereo: Epic's Calibration Takes page asks for a board take at the start and the end of
+    // every session (and after a significant helmet adjustment).
+    if (Needs.bFacial) Add(FacialCalibrationStartSlot(), Needs.bStereo
+        ? TEXT("Facial calibration: stereo board, start of session")
+        : TEXT("Facial calibration: start of session"));
+    if (Needs.bFacial && Needs.bStereo) Add(FacialCalibrationEndSlot(), TEXT("Facial calibration: stereo board, end of session"));
+    if (Needs.bBody)   Add(BodyCalibrationSlot(), TEXT("Body calibration"));
+    return Added;
+}
+
+FPCAPPerformerCaptureSetup UPCAPToolStatics::MakeDefaultCaptureSetup(const FString& ActorID,
+    const UStageConfigAsset* Stage, const UPCAPPerformerExtension* Performer)
+{
+    FPCAPPerformerCaptureSetup R;
+    R.ActorID = ActorID;
+    if (Stage)
+    {
+        R.MocapSystem  = Stage->MocapSystem;
+        R.FacialSystem = Stage->FacialSystem;
+        R.AudioSystem  = Stage->AudioSystemName;
+        R.bStereo      = Stage->bFacialStereo || !Stage->bFacialMono;   // mono only when the stage is mono-only
+    }
+    if (Performer)
+    {
+        if (!Performer->DefaultMocapSystem.IsEmpty())  R.MocapSystem  = Performer->DefaultMocapSystem;
+        if (!Performer->DefaultFacialSystem.IsEmpty()) { R.FacialSystem = Performer->DefaultFacialSystem; R.bStereo = Performer->bDefaultStereo; }
+        if (!Performer->DefaultAudioSystem.IsEmpty())  R.AudioSystem  = Performer->DefaultAudioSystem;
+        if (!Performer->HMCRig.IsNull())               R.Helmet       = Performer->HMCRig;
+    }
+    return R;
 }
 
 FShootDay UPCAPToolStatics::SeedNewShootDay(const FString& DayID, const FDateTime& CalendarDate)

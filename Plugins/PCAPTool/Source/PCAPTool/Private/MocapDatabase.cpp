@@ -182,6 +182,51 @@ void UMocapDatabase::SetActorCalled(const FString& ActorID, bool bCalled)
     }
 }
 
+TArray<FPCAPActorDayRef> UMocapDatabase::GetDaysForActor(const FString& ActorID) const
+{
+    TArray<FPCAPActorDayRef> Out;
+    if (ActorID.IsEmpty()) return Out;
+    for (const FProduction& P : Productions)
+    {
+        for (const FShootDay& D : P.Days)
+        {
+            if (!D.CalledActorIDs.Contains(ActorID)) continue;
+            FPCAPActorDayRef R;
+            R.ProjectCode    = P.ProjectCode;
+            R.ProductionName = P.ProductionName;
+            R.DayID          = D.DayID;
+            R.CalendarDate   = D.CalendarDate;
+            // Stage name from the soft path only: no loads while listing.
+            const TSoftObjectPtr<UStageConfigAsset>& Stage = !D.ActiveStageConfig.IsNull() ? D.ActiveStageConfig : P.ActiveStageConfig;
+            if (!Stage.IsNull()) R.StageName = Stage.GetAssetName();
+            Out.Add(R);
+        }
+    }
+    Out.Sort([](const FPCAPActorDayRef& A, const FPCAPActorDayRef& B)
+    {
+        if (A.CalendarDate != B.CalendarDate) return A.CalendarDate < B.CalendarDate;
+        if (A.ProjectCode  != B.ProjectCode)  return A.ProjectCode < B.ProjectCode;
+        return A.DayID < B.DayID;
+    });
+    return Out;
+}
+
+FPCAPPerformerCaptureSetup* UMocapDatabase::GetCaptureSetup(const FString& ActorID)
+{
+    FShootDay* Day = GetActiveDay();
+    return Day ? Day->CaptureSetups.FindByPredicate([&](const FPCAPPerformerCaptureSetup& S){ return S.ActorID == ActorID; }) : nullptr;
+}
+
+FPCAPPerformerCaptureSetup* UMocapDatabase::FindOrAddCaptureSetup(const FString& ActorID, const FPCAPPerformerCaptureSetup& Defaults)
+{
+    if (FPCAPPerformerCaptureSetup* Existing = GetCaptureSetup(ActorID)) return Existing;
+    FShootDay* Day = GetActiveDay();
+    if (!Day) return nullptr;
+    FPCAPPerformerCaptureSetup Row = Defaults;
+    Row.ActorID = ActorID;
+    return &Day->CaptureSetups[Day->CaptureSetups.Add(Row)];
+}
+
 bool UMocapDatabase::IsPropCalled(const FString& PropID) const
 {
     const FShootDay* Day = const_cast<UMocapDatabase*>(this)->GetDay(ActiveProductionCode, ActiveDayID);

@@ -58,6 +58,13 @@ private:
     TArray<TPair<FString, FString>> GatherProps() const;
     TArray<TPair<FString, FString>> GatherVCams() const;
 
+    // ── Capture Setup — one row per called performer: mocap / facial (mono|stereo) / helmet / audio ──
+    TSharedRef<SWidget> BuildCaptureSetupSection();
+    TSharedRef<SWidget> BuildCaptureSetupRow(const FString& ActorID);
+    void SaveRowAsPerformerDefault(const FString& ActorID);
+    // Adds the calibration shots today's setup needs that the day doesn't have yet.
+    void AddCalibrationShotsToActiveDay();
+
     // Drop an APCAPVolumeVisualizer into the level for the active stage (header-only include).
     void SpawnVolumeVisualizer();
 

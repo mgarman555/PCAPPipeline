@@ -42,6 +42,11 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
+#include "PCAPMocapData.h"
+#include "PCAPPerformerExtension.h"
+#include "HMCRigEntry.h"
+#include "PCAPStringPick.h"
+
 #include "PCAPVolumeVisualizer.h"   // spawn target — header only, never edited here
 #include "Editor.h"                 // GEditor
 #include "Engine/World.h"           // UWorld::SpawnActor
@@ -96,6 +101,41 @@ namespace
         const FDateTime L = PCAPDayLastShot(Day);
         return (L == FDateTime(0)) ? FString(TEXT("not shot yet"))
                                    : FString::Printf(TEXT("last shot %s"), *L.ToString(TEXT("%Y-%m-%d")));
+    }
+
+    // The Epic performer asset (Actor Database) named Id, if any.
+    TOptional<FPCAPPerformerInfo> CallSheetFindPerformer(const FString& Id)
+    {
+        for (const FPCAPPerformerInfo& P : UPCAPMocapData::GetAllPerformers())
+            if (P.PerformerName.ToString() == Id) return P;
+        return {};
+    }
+
+    UPCAPPerformerExtension* CallSheetFindExtension(const FString& Id)
+    {
+        const TOptional<FPCAPPerformerInfo> P = CallSheetFindPerformer(Id);
+        return P.IsSet() ? UPCAPMocapData::FindPerformerExtension(P->AssetUID) : nullptr;
+    }
+
+    // HMC rigs (helmets) from the HMC Database, by display name.
+    TMap<FString, FSoftObjectPath> CallSheetHelmets()
+    {
+        TMap<FString, FSoftObjectPath> Out;
+        FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+        TArray<FAssetData> F;
+        ARM.Get().GetAssetsByClass(UHMCRigEntry::StaticClass()->GetClassPathName(), F, false);
+        for (const FAssetData& AD : F)
+            if (const UHMCRigEntry* R = Cast<UHMCRigEntry>(AD.GetAsset()))
+                Out.Add(R->RigName.IsEmpty() ? AD.AssetName.ToString() : R->RigName, AD.GetSoftObjectPath());
+        return Out;
+    }
+
+    FString CallSheetHelmetName(const TSoftObjectPtr<UHMCRigEntry>& Helmet)
+    {
+        if (Helmet.IsNull()) return FString();
+        if (const UHMCRigEntry* R = Helmet.LoadSynchronous())
+            if (!R->RigName.IsEmpty()) return R->RigName;
+        return Helmet.GetAssetName();
     }
 }
 
@@ -249,6 +289,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
         [ BuildCallSection(LOCTEXT("CalledActors", "Called actors"), GatherActors(),
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsActorCalled(Id); },
             [this](const FString& Id, bool b){ if (UMocapDatabase* D = GetDB()) { D->SetActorCalled(Id, b); D->MarkPackageDirty(); } }) ]
+        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildCaptureSetupSection() ]   // per performer, per helmet
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
         [ BuildCallSection(LOCTEXT("CalledProps", "Called props"), GatherProps(),
             [this](const FString& Id){ UMocapDatabase* D = GetDB(); return D && D->IsPropCalled(Id); },
@@ -363,7 +404,16 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildHeader()
                       if (UMocapDatabase* D = GetDB())
                           if (FProduction* P = D->GetProductionByCode(D->ActiveProductionCode))
                           {
-                              if (!D->GetDay(D->ActiveProductionCode, Id)) { FShootDay Dy; Dy.DayID = Id; P->Days.Add(Dy); D->MarkPackageDirty(); }
+                              if (!D->GetDay(D->ActiveProductionCode, Id))
+                              {
+                                  FShootDay Dy; Dy.DayID = Id; Dy.CalendarDate = FDateTime::Today();
+                                  // New days start with the calibration shots (audio / facial / body),
+                                  // from the production's stage when it has one.
+                                  const UStageConfigAsset* Stage = P->ActiveStageConfig.LoadSynchronous();
+                                  UPCAPToolStatics::AddCalibrationShots(Dy, UPCAPToolStatics::ResolveCalibrationNeeds(Dy, Stage));
+                                  P->Days.Add(Dy);
+                                  D->MarkPackageDirty();
+                              }
                               D->ActiveDayID = Id;
                           }
                   RebuildSheet();
@@ -388,9 +438,9 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildStageArea()
     TArray<FString> Systems;
     if (Stage)
     {
-        if (Stage->BodySystem  != EBodySystem::None)  Systems.Add(StaticEnum<EBodySystem>()->GetDisplayNameTextByValue((int64)Stage->BodySystem).ToString());
-        if (Stage->FaceSystem  != EFaceSystem::None)  Systems.Add(StaticEnum<EFaceSystem>()->GetDisplayNameTextByValue((int64)Stage->FaceSystem).ToString());
-        if (Stage->AudioSystem != EAudioSystem::None) Systems.Add(StaticEnum<EAudioSystem>()->GetDisplayNameTextByValue((int64)Stage->AudioSystem).ToString());
+        if (!Stage->MocapSystem.IsEmpty())     Systems.Add(Stage->MocapSystem);
+        if (!Stage->FacialSystem.IsEmpty())    Systems.Add(PCAPStringPick::FacialModeLabel(Stage->FacialSystem, Stage->bFacialMono, Stage->bFacialStereo));
+        if (!Stage->AudioSystemName.IsEmpty()) Systems.Add(Stage->AudioSystemName);
         if (Stage->VCamSystem  != EVCamSystem::None)  Systems.Add(StaticEnum<EVCamSystem>()->GetDisplayNameTextByValue((int64)Stage->VCamSystem).ToString());
     }
     const FString SystemsText = Systems.Num() > 0 ? FString::Join(Systems, TEXT("  ·  ")) : FString(TEXT("no systems set"));
@@ -622,10 +672,17 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCallSection(const FText& Title,
 TArray<TPair<FString, FString>> SPCAPCallSheetPanel::GatherActors() const
 {
     TArray<TPair<FString, FString>> Out;
+    // Performers from the Actor Database (Epic performer assets, called by performer name),
+    // then any legacy roster actors not already listed.
+    for (const FPCAPPerformerInfo& P : UPCAPMocapData::GetAllPerformers())
+        if (!P.PerformerName.IsNone()) Out.Add({ P.PerformerName.ToString(), P.LiveLinkSubject.ToString() });
     FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
     TArray<FAssetData> F;
     ARM.Get().GetAssetsByClass(UActorRosterEntry::StaticClass()->GetClassPathName(), F, false);
-    for (const FAssetData& AD : F) if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset())) Out.Add({ E->ActorID, (E->FirstName + TEXT(" ") + E->LastName).TrimStartAndEnd() });
+    for (const FAssetData& AD : F)
+        if (UActorRosterEntry* E = Cast<UActorRosterEntry>(AD.GetAsset()))
+            if (!Out.ContainsByPredicate([E](const TPair<FString, FString>& X){ return X.Key == E->ActorID; }))
+                Out.Add({ E->ActorID, (E->FirstName + TEXT(" ") + E->LastName).TrimStartAndEnd() });
     Out.Sort([](const TPair<FString, FString>& A, const TPair<FString, FString>& B){ return A.Key < B.Key; });
     return Out;
 }
@@ -671,7 +728,7 @@ EShotType SPCAPCallSheetPanel::ShotTypeFor(const FString& TypeText, const FStrin
     if (T.Contains(TEXT("test")))     return EShotType::TestShot;
     if (T.Contains(TEXT("retarget"))) return EShotType::Retargeting;
     if (!T.IsEmpty())                 return EShotType::Production;
-    if (Slot == TEXT("901")) return EShotType::Calibration;
+    if (UPCAPToolStatics::IsCalibrationSlot(Slot)) return EShotType::Calibration;
     if (Slot == TEXT("902")) return EShotType::TestShot;
     if (Slot == TEXT("903")) return EShotType::Retargeting;
     return EShotType::Production;
@@ -869,6 +926,10 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShotsSection()
         [ SNew(SButton).Text(LOCTEXT("ImportCsv", "Import CSV")).ToolTipText(LOCTEXT("ImportCsvTip", "Bulk-create the day's shots from a CSV (slot,type,description,actors,props,notes)")).OnClicked_Lambda([this](){ ImportShotsCsv(); return FReply::Handled(); }) ]
         + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
         [ SNew(SButton).Text(LOCTEXT("ExportCsv", "Export CSV")).ToolTipText(LOCTEXT("ExportCsvTip", "Write this day's shot list to a CSV")).OnClicked_Lambda([this](){ ExportShotsCsv(); return FReply::Handled(); }) ]
+        + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
+        [ SNew(SButton).Text(LOCTEXT("AddCal", "+ Calibration shots"))
+          .ToolTipText(LOCTEXT("AddCalTip", "Add any missing calibration shots for today's Capture Setup: 911 audio, 921 facial start, 922 facial end (stereo), 931 body. Never removes or duplicates a shot."))
+          .OnClicked_Lambda([this]() { AddCalibrationShotsToActiveDay(); return FReply::Handled(); }) ]
         + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center).Padding(8.f, 0.f, 0.f, 0.f)
         [
             SNew(SEditableTextBox)
@@ -925,6 +986,210 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShotsSection()
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 10.f)[ Toolbar ]
         + SVerticalBox::Slot().AutoHeight()[ List ]
     ];
+}
+
+// ── Capture Setup — per performer, per helmet ───────────────────────────────────────
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCaptureSetupSection()
+{
+    UMocapDatabase* DB = GetDB();
+    FShootDay* Day = DB ? DB->GetActiveDay() : nullptr;
+    const UStageConfigAsset* Stage = DB ? DB->GetActiveStageConfig() : nullptr;
+
+    TSharedRef<SVerticalBox> Rows = SNew(SVerticalBox);
+    if (Day)
+    {
+        TArray<FString> Called = Day->CalledActorIDs;
+        Called.Sort();
+        bool bAdded = false;
+        for (const FString& Id : Called)
+        {
+            if (!DB->GetCaptureSetup(Id))
+            {
+                DB->FindOrAddCaptureSetup(Id, UPCAPToolStatics::MakeDefaultCaptureSetup(Id, Stage, CallSheetFindExtension(Id)));
+                bAdded = true;
+            }
+            Rows->AddSlot().AutoHeight().Padding(0.f, 2.f)[ BuildCaptureSetupRow(Id) ];
+        }
+        if (bAdded) DB->MarkPackageDirty();
+        if (Called.Num() == 0)
+            Rows->AddSlot().AutoHeight().Padding(4.f)
+            [ SNew(STextBlock).Text(LOCTEXT("NoSetupRows", "Call actors above: each gets a row here for mocap, facial (mono or stereo), helmet and audio."))
+              .ColorAndOpacity(FSlateColor(ColText2)) ];
+    }
+
+    auto Header = [this](const FText& T, float W) -> TSharedRef<SWidget>
+    {
+        return SNew(SBox).WidthOverride(W)[ SNew(STextBlock).Text(T).ColorAndOpacity(FSlateColor(ColText2)) ];
+    };
+
+    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
+    [
+        SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
+        [ SNew(STextBlock).Text(LOCTEXT("SecSetup", "Capture Setup · per performer, per helmet")).ColorAndOpacity(FSlateColor(ColGreen)) ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot().AutoWidth()[ Header(LOCTEXT("HActor", "Actor"), 120.f) ]
+            + SHorizontalBox::Slot().AutoWidth()[ Header(LOCTEXT("HMocap", "Mocap"), 150.f) ]
+            + SHorizontalBox::Slot().AutoWidth()[ Header(LOCTEXT("HFacial", "Facial"), 140.f) ]
+            + SHorizontalBox::Slot().AutoWidth()[ Header(LOCTEXT("HMode", "Mode"), 130.f) ]
+            + SHorizontalBox::Slot().AutoWidth()[ Header(LOCTEXT("HHelmet", "Helmet"), 140.f) ]
+            + SHorizontalBox::Slot().AutoWidth()[ Header(LOCTEXT("HAudio", "Audio"), 120.f) ]
+        ]
+        + SVerticalBox::Slot().AutoHeight()[ Rows ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)
+        [ SNew(STextBlock).AutoWrapText(true)
+          .Text(LOCTEXT("SetupHint", "Rows start from the actor's saved default, else the day's stage. Changes here apply to this day only; \"Save as default\" writes the row back to the actor. Lists: Project Settings > PCAP > PCAP Tool > Capture Systems."))
+          .ColorAndOpacity(FSlateColor(ColText2)) ]
+    ];
+}
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildCaptureSetupRow(const FString& ActorID)
+{
+    // Look the row up by id on every read/write: the day's array can reallocate.
+    auto Row = [this, ActorID]() -> FPCAPPerformerCaptureSetup* { UMocapDatabase* D = GetDB(); return D ? D->GetCaptureSetup(ActorID) : nullptr; };
+    auto Dirty = [this]() { if (UMocapDatabase* D = GetDB()) D->MarkPackageDirty(); };
+    const UPCAPToolSettings* Settings = UPCAPToolSettings::Get();
+    UMocapDatabase* DB = GetDB();
+    const UStageConfigAsset* Stage = DB ? DB->GetActiveStageConfig() : nullptr;
+    TWeakObjectPtr<const UStageConfigAsset> WeakStage(Stage);
+    const bool bIsPerformer = CallSheetFindPerformer(ActorID).IsSet();
+
+    auto ModeToggle = [this, Row, Dirty](bool bStereoButton) -> TSharedRef<SWidget>
+    {
+        return SNew(SCheckBox)
+            .Style(FAppStyle::Get(), "RadioButton")
+            .IsChecked_Lambda([Row, bStereoButton]()
+            {
+                const FPCAPPerformerCaptureSetup* R = Row();
+                return (R && R->bStereo == bStereoButton) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+            })
+            .OnCheckStateChanged_Lambda([Row, Dirty, bStereoButton](ECheckBoxState)
+            {
+                if (FPCAPPerformerCaptureSetup* R = Row()) { R->bStereo = bStereoButton; Dirty(); }
+            })
+            [ SNew(STextBlock).Text(bStereoButton ? LOCTEXT("Stereo", "Stereo") : LOCTEXT("Mono", "Mono")) ];
+    };
+
+    return SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(SBox).WidthOverride(120.f)[ SNew(STextBlock).Text(FText::FromString(ActorID)) ] ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(SBox).WidthOverride(150.f).Padding(FMargin(0.f, 0.f, 4.f, 0.f))
+          [ PCAPStringPick::Make(
+              [Row]() { const FPCAPPerformerCaptureSetup* R = Row(); return R ? R->MocapSystem : FString(); },
+              [Settings]() { return Settings ? Settings->GetMocapOptions() : TArray<FString>(); },
+              [Row, Dirty](const FString& V) { if (FPCAPPerformerCaptureSetup* R = Row()) { R->MocapSystem = V; Dirty(); } },
+              LOCTEXT("NoMocapRow", "(no mocap)"), LOCTEXT("NoneRow", "(none)")) ] ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(SBox).WidthOverride(140.f).Padding(FMargin(0.f, 0.f, 4.f, 0.f))
+          [ PCAPStringPick::Make(
+              [Row]() { const FPCAPPerformerCaptureSetup* R = Row(); return R ? R->FacialSystem : FString(); },
+              [Settings]() { return Settings ? Settings->GetFacialOptions() : TArray<FString>(); },
+              [Row, Dirty, Settings](const FString& V)
+              {
+                  FPCAPPerformerCaptureSetup* R = Row();
+                  if (!R) return;
+                  R->FacialSystem = V;
+                  if (Settings && !R->AudioSystem.IsEmpty() && !Settings->GetAudioOptions(V).Contains(R->AudioSystem))
+                      R->AudioSystem.Empty();   // e.g. iPhone audio without the iPhone
+                  Dirty();
+              },
+              LOCTEXT("NoFacialRow", "(no facial)"), LOCTEXT("NoneRow2", "(none)")) ] ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(SBox).WidthOverride(130.f)
+          [
+              SNew(SHorizontalBox)
+              + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 8.f, 0.f)[ ModeToggle(false) ]
+              + SHorizontalBox::Slot().AutoWidth()[ ModeToggle(true) ]
+              // Amber "!" when the row's mode isn't one the stage supports.
+              + SHorizontalBox::Slot().AutoWidth().Padding(4.f, 0.f, 0.f, 0.f)
+              [ SNew(STextBlock).Text(FText::FromString(TEXT("!"))).ColorAndOpacity(FSlateColor(FLinearColor(0.878f, 0.627f, 0.188f)))
+                .ToolTipText(LOCTEXT("ModeMismatch", "The day's stage doesn't list this facial mode (Stage Database > Mono / Stereo)."))
+                .Visibility_Lambda([Row, WeakStage]()
+                {
+                    const FPCAPPerformerCaptureSetup* R = Row();
+                    const UStageConfigAsset* S = WeakStage.Get();
+                    if (!R || !S || R->FacialSystem.IsEmpty() || (!S->bFacialMono && !S->bFacialStereo)) return EVisibility::Collapsed;
+                    const bool bOk = R->bStereo ? S->bFacialStereo : S->bFacialMono;
+                    return bOk ? EVisibility::Collapsed : EVisibility::Visible;
+                }) ]
+          ] ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(SBox).WidthOverride(140.f).Padding(FMargin(0.f, 0.f, 4.f, 0.f))
+          [ PCAPStringPick::Make(
+              [Row]() { const FPCAPPerformerCaptureSetup* R = Row(); return R ? CallSheetHelmetName(R->Helmet) : FString(); },
+              []() { TArray<FString> Names; CallSheetHelmets().GetKeys(Names); Names.Sort(); return Names; },
+              [Row, Dirty](const FString& V)
+              {
+                  FPCAPPerformerCaptureSetup* R = Row();
+                  if (!R) return;
+                  const FSoftObjectPath* P = CallSheetHelmets().Find(V);
+                  R->Helmet = P ? TSoftObjectPtr<UHMCRigEntry>(*P) : TSoftObjectPtr<UHMCRigEntry>();
+                  Dirty();
+              },
+              LOCTEXT("NoHelmet", "(no helmet)"), LOCTEXT("NoneRow3", "(none)")) ] ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(SBox).WidthOverride(120.f).Padding(FMargin(0.f, 0.f, 4.f, 0.f))
+          [ PCAPStringPick::Make(
+              [Row]() { const FPCAPPerformerCaptureSetup* R = Row(); return R ? R->AudioSystem : FString(); },
+              [Row, Settings]() { const FPCAPPerformerCaptureSetup* R = Row(); return (Settings && R) ? Settings->GetAudioOptions(R->FacialSystem) : TArray<FString>(); },
+              [Row, Dirty](const FString& V) { if (FPCAPPerformerCaptureSetup* R = Row()) { R->AudioSystem = V; Dirty(); } },
+              LOCTEXT("NoAudioRow", "(no audio)"), LOCTEXT("NoneRow4", "(none)")) ] ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(SButton)
+          .Text(LOCTEXT("SaveDefault", "Save as default"))
+          .IsEnabled(bIsPerformer)
+          .ToolTipText(bIsPerformer
+              ? LOCTEXT("SaveDefaultTip", "Write this row back to the actor (Actor Database) so the next day pre-fills from it. Separate from today's override.")
+              : LOCTEXT("SaveDefaultLegacy", "Only actors from the Actor Database can store defaults (this one is a legacy roster entry)."))
+          .OnClicked_Lambda([this, ActorID]() { SaveRowAsPerformerDefault(ActorID); return FReply::Handled(); }) ];
+}
+
+void SPCAPCallSheetPanel::SaveRowAsPerformerDefault(const FString& ActorID)
+{
+    UMocapDatabase* DB = GetDB();
+    const FPCAPPerformerCaptureSetup* R = DB ? DB->GetCaptureSetup(ActorID) : nullptr;
+    const TOptional<FPCAPPerformerInfo> Perf = CallSheetFindPerformer(ActorID);
+    if (!R || !Perf.IsSet()) return;
+
+    UPCAPPerformerExtension* Ext = UPCAPMocapData::FindPerformerExtension(Perf->AssetUID);
+    if (!Ext) Ext = UPCAPMocapData::EnsurePerformerExtension(Perf->Asset.LoadSynchronous());
+    if (!Ext) return;
+
+    Ext->DefaultMocapSystem  = R->MocapSystem;
+    Ext->DefaultFacialSystem = R->FacialSystem;
+    Ext->bDefaultStereo      = R->bStereo;
+    Ext->DefaultAudioSystem  = R->AudioSystem;
+    Ext->HMCRig              = R->Helmet;
+    if (UPackage* Pkg = Ext->GetPackage())
+    {
+        Pkg->MarkPackageDirty();
+        FEditorFileUtils::PromptForCheckoutAndSave({ Pkg }, /*bCheckDirty*/ false, /*bPromptToSave*/ false);
+    }
+
+    FNotificationInfo Info(FText::Format(LOCTEXT("SavedDefault", "Saved as {0}'s default setup."), FText::FromString(ActorID)));
+    Info.ExpireDuration = 3.0f;
+    FSlateNotificationManager::Get().AddNotification(Info);
+}
+
+void SPCAPCallSheetPanel::AddCalibrationShotsToActiveDay()
+{
+    UMocapDatabase* DB = GetDB();
+    FShootDay* Day = DB ? DB->GetActiveDay() : nullptr;
+    if (!Day) return;
+    const int32 Added = UPCAPToolStatics::AddCalibrationShots(*Day,
+        UPCAPToolStatics::ResolveCalibrationNeeds(*Day, DB->GetActiveStageConfig()));
+    if (Added > 0) DB->MarkPackageDirty();
+
+    FNotificationInfo Info(Added > 0
+        ? FText::Format(LOCTEXT("CalAdded", "Added {0} calibration shot(s)."), FText::AsNumber(Added))
+        : LOCTEXT("CalNone", "Calibration shots already in place."));
+    Info.ExpireDuration = 3.0f;
+    FSlateNotificationManager::Get().AddNotification(Info);
+    RebuildSheet();
 }
 
 // ── Stage gap-fill: one-click Volume Visualizer for the active stage ─────────────────

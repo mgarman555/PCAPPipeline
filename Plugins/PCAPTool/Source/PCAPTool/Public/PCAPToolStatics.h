@@ -5,8 +5,19 @@
 #include "PCAPToolTypes.h"
 
 class UActorRosterEntry;
+class UStageConfigAsset;
+class UPCAPPerformerExtension;
 
 #include "PCAPToolStatics.generated.h"
+
+// Which calibration shots a day needs (see UPCAPToolStatics::AddCalibrationShots).
+struct FPCAPCalibrationNeeds
+{
+    bool bAudio  = true;
+    bool bFacial = true;
+    bool bStereo = false;   // stereo facial adds the end-of-session board take
+    bool bBody   = true;
+};
 
 UCLASS()
 class PCAPTOOL_API UPCAPToolStatics : public UBlueprintFunctionLibrary
@@ -31,6 +42,30 @@ public:
     // Seeds a new shoot day with standard calibration/test/retarget/production shots.
     UFUNCTION(BlueprintCallable, Category="PCAP|Days")
     static FShootDay SeedNewShootDay(const FString& DayID, const FDateTime& CalendarDate);
+
+    // ── Calibration shots ─────────────────────────────────────────────────────
+    // Slots: 911 audio, 921 facial start, 922 facial end (stereo only), 931 body.
+    // The 9xx block is non-production; 902/903 stay Test/Retargeting.
+    static const TCHAR* AudioCalibrationSlot()       { return TEXT("911"); }
+    static const TCHAR* FacialCalibrationStartSlot() { return TEXT("921"); }
+    static const TCHAR* FacialCalibrationEndSlot()   { return TEXT("922"); }
+    static const TCHAR* BodyCalibrationSlot()        { return TEXT("931"); }
+
+    // True for 901 and the 91x/92x/93x calibration slots.
+    static bool IsCalibrationSlot(const FString& Slot);
+
+    // What the day needs, from its Capture Setup rows (preferred) or else its stage.
+    // With neither, everything but the stereo end take.
+    static FPCAPCalibrationNeeds ResolveCalibrationNeeds(const FShootDay& Day, const UStageConfigAsset* Stage);
+
+    // Adds the missing calibration shots to the day's first session (creating "S01" if the
+    // day has none). Never duplicates or removes a slot. Returns how many were added.
+    static int32 AddCalibrationShots(FShootDay& Day, const FPCAPCalibrationNeeds& Needs);
+
+    // A performer's Capture Setup row before any day edits: the performer's saved defaults
+    // where set, else the stage's systems. Either may be null.
+    static FPCAPPerformerCaptureSetup MakeDefaultCaptureSetup(const FString& ActorID,
+        const UStageConfigAsset* Stage, const UPCAPPerformerExtension* Performer);
 
     // ── Roster ────────────────────────────────────────────────────────────────
 

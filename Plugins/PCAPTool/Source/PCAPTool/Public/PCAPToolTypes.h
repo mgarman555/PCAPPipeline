@@ -260,6 +260,64 @@ enum class ECaptureConfiguration : uint8
     FixedBodyCamera UMETA(DisplayName = "Fixed Body Camera")   // one fixed full-body camera (markerless); not an HMC rig type
 };
 
+// ---------------------------------------------------------------------------
+// Capture systems — editable lists (Project Settings > PCAP Tool > Capture Systems)
+// These replace hard-coded enum dropdowns in the Stage Database / Capture Setup so the
+// choices can be changed without a rebuild. Selections are stored as display strings.
+// ---------------------------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FPCAPSystemOption
+{
+    GENERATED_BODY()
+
+    // "Shogun Live", "OneHMC", "Lavs" ...
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Systems")
+    FString Name;
+
+    // Optional versions; each becomes its own dropdown entry ("Shogun Live 1.13").
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Systems")
+    TArray<FString> Versions;
+
+    // Audio only: offer this entry only when the facial selection equals this
+    // (e.g. iPhone audio only with "Rokoko iPhone"). Empty = always offered.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Systems")
+    FString OnlyWithFacial;
+
+    FPCAPSystemOption() = default;
+    FPCAPSystemOption(const FString& InName, const TArray<FString>& InVersions = {}, const FString& InOnlyWith = FString())
+        : Name(InName), Versions(InVersions), OnlyWithFacial(InOnlyWith) {}
+};
+
+// Per-performer, per-helmet capture setup for one shoot day (Call Sheet > Capture Setup).
+// Defaults come from the stage, or the performer's saved defaults; edits here are day
+// overrides. Saving a row back to the performer is a separate, explicit action.
+class UHMCRigEntry;
+
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FPCAPPerformerCaptureSetup
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    FString ActorID;            // performer name / roster ActorID, as on the day's call list
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    FString MocapSystem;        // e.g. "Markerless UE", "Shogun Live 1.19"
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    FString FacialSystem;       // e.g. "OneHMC"
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    bool bStereo = true;        // false = mono
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    TSoftObjectPtr<UHMCRigEntry> Helmet;   // which HMC (HMC Database)
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Setup")
+    FString AudioSystem;        // e.g. "Lavs"
+};
+
 // Per-camera framing reference captured at setup: where the actor's face should
 // be. The monitor flags live drift from this. Normalized 0..1 frame coords.
 USTRUCT(BlueprintType)
@@ -1037,6 +1095,10 @@ struct PCAPTOOL_API FShootDay
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
     bool bAudioUsed = false;
+
+    // One row per called performer: mocap / facial (mono|stereo) / helmet / audio.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Call Sheet")
+    TArray<FPCAPPerformerCaptureSetup> CaptureSetups;
 };
 
 USTRUCT(BlueprintType)

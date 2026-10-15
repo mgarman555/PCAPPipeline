@@ -54,6 +54,9 @@ private:
     void CloseDetail();
     TSharedRef<SWidget> BuildDetailFor(UStageConfigAsset* Entry);
     TSharedRef<SWidget> MakeEnumRow(const FString& Label, UEnum* EnumPtr, int32 Current, TFunction<void(int32)> Set);
+    TSharedRef<SWidget> MakeLabelRow(const FString& Label, TSharedRef<SWidget> Value);
+    // Production dropdown ("(any project)", every production, and a "+ New project" field).
+    TSharedRef<SWidget> BuildProjectPicker(UStageConfigAsset* Entry);
 
     const FLinearColor ColGreen = FLinearColor(0.290f, 0.878f, 0.502f);
     const FLinearColor ColText2 = FLinearColor(0.478f, 0.541f, 0.502f);
