@@ -19,6 +19,38 @@ UPCAPToolSettings::UPCAPToolSettings()
         FPCAPSystemOption(TEXT("Shogun Live"), { TEXT("1.13"), TEXT("1.19") }),
         FPCAPSystemOption(TEXT("Giant")),
     };
+    // Live Link requirements per system (docs/devices/mocap-livelink.md). None verified here yet.
+    {
+        FPCAPLiveLinkRequirements& L = MocapSystems[0].LiveLink;
+        L.SourceType     = TEXT("Offline solve (no Live Link): recorded video -> MetaHuman Animator markerless solve");
+        L.RequiredPlugin = TEXT("MetaHuman Animator Markerless Motion Capture (Fab, experimental, Windows, UE 5.8+) + MetaHuman Animator + Capture Manager Editor + Live Link Hub");
+        L.Compatibility  = TEXT("No realtime body stream in 5.8; body animation arrives after the take");
+        L.SourceUrl      = TEXT("https://dev.epicgames.com/documentation/metahuman/metahuman-animation-from-mono-video-capture-in-unreal-engine");
+    }
+    {
+        FPCAPLiveLinkRequirements& L = MocapSystems[1].LiveLink;
+        L.SourceType     = TEXT("UNVERIFIED: no public Cortex Live Link plugin found. Likely routes: Cortex -> MotionBuilder -> MotionBuilder Live Link, or Cortex's VRPN server");
+        L.RequiredPlugin = TEXT("Ask Motion Analysis which Unreal plugin / SDK applies to your Cortex version");
+        L.SourceUrl      = TEXT("https://www.motionanalysis.com/software/cortex-software/");
+    }
+    {
+        FPCAPLiveLinkRequirements& L = MocapSystems[2].LiveLink;
+        L.SourceType     = TEXT("Vicon DataStream (Live Link source)");
+        L.RequiredPlugin = TEXT("Vicon Live Link plugin (LiveLinkViconDataStream; in this repo, its SDK DLL is missing)");
+        L.DefaultHost    = TEXT("localhost");   // Vicon Server Name: IP or computer name of the Shogun machine
+        L.DefaultPort    = 801;                 // 801 = Vicon default; 804 = Shogun "Always Live" / low-latency output
+        L.SourceSettings = { TEXT("SubjectFilter="), TEXT("bIsRetimed=false"), TEXT("bUsePreFetch=false"), TEXT("bIsScaled=true"),
+                             TEXT("bLogOutput=false"), TEXT("Offset=0.0"), TEXT("EnableLightweight"), TEXT("StreamMarkerData"),
+                             TEXT("StreamUnlabeledMarkerData") };
+        L.Compatibility  = TEXT("Vicon UE 5.8 plugin (1.13) is listed for Shogun Live 1.14+: Shogun Live 1.13 may not connect. Auto-discovery on UE 5.7+ uses Windows DNS-SD (Shogun Live 1.14+); manual IP always available");
+        L.SourceUrl      = TEXT("https://help.vicon.com/space/Unreal5Plugin111/337740484/Install+and+set+up+Live+Link");
+    }
+    {
+        FPCAPLiveLinkRequirements& L = MocapSystems[3].LiveLink;
+        L.SourceType     = TEXT("UNVERIFIED: no public Giant Unreal Live Link plugin found. Likely route: Giant solve -> MotionBuilder -> MotionBuilder Live Link");
+        L.RequiredPlugin = TEXT("MotionBuilder Live Link plugin (Epic) if routed through MotionBuilder; confirm with the Giant-licensed stage");
+        L.SourceUrl      = TEXT("https://dev.epicgames.com/documentation/unreal-engine/live-link-stream-motionbuilder-to-unreal-engine");
+    }
     FacialSystems = {
         FPCAPSystemOption(TEXT("OneHMC")),
         FPCAPSystemOption(TEXT("Faceware")),
@@ -52,6 +84,20 @@ TArray<FString> UPCAPToolSettings::FlattenOptions(const TArray<FPCAPSystemOption
         }
     }
     return Out;
+}
+
+const FPCAPSystemOption* UPCAPToolSettings::FindOption(const TArray<FPCAPSystemOption>& Options, const FString& Selection)
+{
+    const FString Sel = Selection.TrimStartAndEnd();
+    if (Sel.IsEmpty()) return nullptr;
+    for (const FPCAPSystemOption& O : Options)
+    {
+        const FString Name = O.Name.TrimStartAndEnd();
+        if (Name.Equals(Sel, ESearchCase::IgnoreCase)) return &O;
+        for (const FString& V : O.Versions)
+            if (FString::Printf(TEXT("%s %s"), *Name, *V.TrimStartAndEnd()).Equals(Sel, ESearchCase::IgnoreCase)) return &O;
+    }
+    return nullptr;
 }
 
 TArray<FString> UPCAPToolSettings::AudioOptionsFor(const TArray<FPCAPSystemOption>& Audio, const FString& FacialSelection)

@@ -42,6 +42,10 @@ public:
     // Audio entries valid for a facial selection (drops OnlyWithFacial entries that don't match).
     static TArray<FString> AudioOptionsFor(const TArray<FPCAPSystemOption>& Audio, const FString& FacialSelection);
 
+    // The option a dropdown entry came from ("Shogun Live 1.19" -> Shogun Live), or null.
+    static const FPCAPSystemOption* FindOption(const TArray<FPCAPSystemOption>& Options, const FString& Selection);
+    const FPCAPSystemOption* FindMocap(const FString& Selection) const { return FindOption(MocapSystems, Selection); }
+
     TArray<FString> GetMocapOptions() const  { return FlattenOptions(MocapSystems); }
     TArray<FString> GetFacialOptions() const { return FlattenOptions(FacialSystems); }
     TArray<FString> GetAudioOptions(const FString& FacialSelection) const { return AudioOptionsFor(AudioSystems, FacialSelection); }

@@ -83,6 +83,10 @@ public:
     // Returns the existing row, or adds Defaults (ActorID forced) and returns that. Null without an active day.
     FPCAPPerformerCaptureSetup* FindOrAddCaptureSetup(const FString& ActorID, const FPCAPPerformerCaptureSetup& Defaults);
 
+    // Identity scans on the active production (Scanning, before the shoot).
+    FPCAPActorScan* GetScan(const FString& ActorID);
+    FPCAPActorScan* FindOrAddScan(const FString& ActorID, const FPCAPActorScan& Defaults);
+
     // Day-level "HMCs used today?" flag (head-mounted facial capture), on the active day.
     bool IsHMCDay() const;
     void SetHMCDay(bool bUsed);

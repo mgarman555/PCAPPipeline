@@ -284,6 +284,7 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildSheet()
 
     return SNew(SScrollBox)
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildHeader() ]            // Production
+        + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildScanningSection() ]   // Scanning (before the shoot)
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)[ BuildStageArea() ]         // Stage Setup
         + SScrollBox::Slot().Padding(0.f, 0.f, 0.f, 12.f)
         [ BuildCallSection(LOCTEXT("CalledActors", "Called actors"), GatherActors(),
@@ -996,6 +997,150 @@ TSharedRef<SWidget> SPCAPCallSheetPanel::BuildShotsSection()
         + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 10.f)[ Toolbar ]
         + SVerticalBox::Slot().AutoHeight()[ List ]
     ];
+}
+
+// ── Scanning — identity scans, before the shoot ─────────────────────────────────────
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildScanningSection()
+{
+    UMocapDatabase* DB = GetDB();
+    FProduction* Prod = DB ? DB->GetActiveProduction() : nullptr;
+    FShootDay* Day = DB ? DB->GetActiveDay() : nullptr;
+
+    // Every actor called today gets a scan row (defaults from their Capture Setup row).
+    if (DB && Prod && Day)
+    {
+        bool bAdded = false;
+        for (const FString& Id : Day->CalledActorIDs)
+        {
+            if (DB->GetScan(Id)) continue;
+            FPCAPActorScan Defaults;
+            if (const FPCAPPerformerCaptureSetup* Row = DB->GetCaptureSetup(Id))
+            {
+                Defaults.FacialSystem = Row->FacialSystem;
+                Defaults.bStereo      = Row->bStereo;
+                Defaults.Helmet       = Row->Helmet;
+            }
+            DB->FindOrAddScan(Id, Defaults);
+            bAdded = true;
+        }
+        if (bAdded) DB->MarkPackageDirty();
+    }
+
+    TSharedRef<SVerticalBox> Rows = SNew(SVerticalBox);
+    if (Prod)
+    {
+        TArray<FString> Ids;
+        for (const FPCAPActorScan& S : Prod->Scans) Ids.AddUnique(S.ActorID);
+        Ids.Sort();
+        for (const FString& Id : Ids) Rows->AddSlot().AutoHeight().Padding(0.f, 2.f)[ BuildScanRow(Id) ];
+        if (Ids.Num() == 0)
+            Rows->AddSlot().AutoHeight().Padding(4.f)
+            [ SNew(STextBlock).Text(LOCTEXT("NoScans", "Call an actor on a day and their scan row appears here."))
+              .ColorAndOpacity(FSlateColor(ColText2)) ];
+    }
+
+    return SNew(SBorder).BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder")).Padding(FMargin(12.f, 10.f))
+    [
+        SNew(SVerticalBox)
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
+        [ SNew(STextBlock).Text(LOCTEXT("SecScanning", "Scanning · identity poses, before the shoot")).ColorAndOpacity(FSlateColor(ColGreen)) ]
+        + SVerticalBox::Slot().AutoHeight()[ Rows ]
+        + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)
+        [ SNew(STextBlock).AutoWrapText(true)
+          .Text(LOCTEXT("ScanHint", "Pose lists are Epic's MetaHuman likeness sets (MH1 / MH12 / MH50). A called facial actor without a finished scan makes the day \"Not ready\"."))
+          .ColorAndOpacity(FSlateColor(ColText2)) ]
+    ];
+}
+
+TSharedRef<SWidget> SPCAPCallSheetPanel::BuildScanRow(const FString& ActorID)
+{
+    auto Scan  = [this, ActorID]() -> FPCAPActorScan* { UMocapDatabase* D = GetDB(); return D ? D->GetScan(ActorID) : nullptr; };
+    auto Dirty = [this]() { if (UMocapDatabase* D = GetDB()) D->MarkPackageDirty(); };
+    const UEnum* SetEnum = StaticEnum<EPCAPIdentitySet>();
+
+    return SNew(SHorizontalBox)
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(SBox).WidthOverride(120.f)[ SNew(STextBlock).Text(FText::FromString(ActorID)) ] ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(SBox).WidthOverride(180.f).Padding(FMargin(0.f, 0.f, 6.f, 0.f))
+          [ PCAPStringPick::Make(
+              [Scan, SetEnum]() { const FPCAPActorScan* S = Scan(); return S ? SetEnum->GetDisplayNameTextByValue((int64)S->Set).ToString() : FString(); },
+              [SetEnum]() { TArray<FString> O; for (int32 i = 0; i < SetEnum->NumEnums() - 1; ++i) O.Add(SetEnum->GetDisplayNameTextByIndex(i).ToString()); return O; },
+              [Scan, Dirty, SetEnum](const FString& V)
+              {
+                  FPCAPActorScan* S = Scan();
+                  if (!S) return;
+                  for (int32 i = 0; i < SetEnum->NumEnums() - 1; ++i)
+                      if (SetEnum->GetDisplayNameTextByIndex(i).ToString() == V) { S->Set = (EPCAPIdentitySet)SetEnum->GetValueByIndex(i); break; }
+                  S->ScannedAt = FDateTime(0);   // a different set is a different scan
+                  Dirty();
+              }) ] ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(SBox).WidthOverride(70.f)
+          [ SNew(STextBlock).Text_Lambda([Scan]()
+            {
+                const FPCAPActorScan* S = Scan();
+                if (!S) return FText::GetEmpty();
+                const TArray<FString>& All = UPCAPToolStatics::GetIdentityExpressions(S->Set);
+                int32 Done = 0;
+                for (const FString& E : All) if (S->CapturedExpressions.Contains(E)) ++Done;
+                return FText::FromString(FString::Printf(TEXT("%d / %d"), Done, All.Num()));
+            }) ] ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 6.f, 0.f)
+        [
+            SNew(SComboButton)
+            .ButtonContent()[ SNew(STextBlock).Text(LOCTEXT("Poses", "Poses")) ]
+            .OnGetMenuContent_Lambda([Scan, Dirty]() -> TSharedRef<SWidget>
+            {
+                TSharedRef<SVerticalBox> List = SNew(SVerticalBox);
+                const FPCAPActorScan* S0 = Scan();
+                if (!S0) return List;
+                List->AddSlot().AutoHeight().Padding(6.f, 4.f)
+                [
+                    SNew(SHorizontalBox)
+                    + SHorizontalBox::Slot().AutoWidth().Padding(0.f, 0.f, 6.f, 0.f)
+                    [ SNew(SButton).Text(LOCTEXT("AllPoses", "All")).OnClicked_Lambda([Scan, Dirty]()
+                      { if (FPCAPActorScan* S = Scan()) { S->CapturedExpressions = UPCAPToolStatics::GetIdentityExpressions(S->Set); Dirty(); } return FReply::Handled(); }) ]
+                    + SHorizontalBox::Slot().AutoWidth()
+                    [ SNew(SButton).Text(LOCTEXT("NoPoses", "None")).OnClicked_Lambda([Scan, Dirty]()
+                      { if (FPCAPActorScan* S = Scan()) { S->CapturedExpressions.Reset(); S->ScannedAt = FDateTime(0); Dirty(); } return FReply::Handled(); }) ]
+                ];
+                for (const FString& E : UPCAPToolStatics::GetIdentityExpressions(S0->Set))
+                {
+                    List->AddSlot().AutoHeight().Padding(8.f, 1.f)
+                    [
+                        SNew(SCheckBox)
+                        .ToolTipText(FText::FromString(UPCAPToolStatics::GetIdentityExpressionNote(E)))
+                        .IsChecked_Lambda([Scan, E]() { const FPCAPActorScan* S = Scan(); return (S && S->CapturedExpressions.Contains(E)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
+                        .OnCheckStateChanged_Lambda([Scan, Dirty, E](ECheckBoxState St)
+                        {
+                            FPCAPActorScan* S = Scan();
+                            if (!S) return;
+                            if (St == ECheckBoxState::Checked) S->CapturedExpressions.AddUnique(E);
+                            else { S->CapturedExpressions.Remove(E); S->ScannedAt = FDateTime(0); }
+                            Dirty();
+                        })
+                        [ SNew(STextBlock).Text(FText::FromString(E)) ]
+                    ];
+                }
+                return SNew(SBox).MaxDesiredHeight(420.f)[ SNew(SScrollBox) + SScrollBox::Slot()[ List ] ];
+            })
+        ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 6.f, 0.f)
+        [ SNew(SButton)
+          .Text(LOCTEXT("MarkScanned", "Mark scanned"))
+          .ToolTipText(LOCTEXT("MarkScannedTip", "Every pose in the set must be ticked first."))
+          .IsEnabled_Lambda([Scan]() { const FPCAPActorScan* S = Scan(); return S && UPCAPToolStatics::IsScanComplete(*S); })
+          .OnClicked_Lambda([this, Scan, Dirty]() { if (FPCAPActorScan* S = Scan()) { S->ScannedAt = FDateTime::Now(); Dirty(); RebuildSheet(); } return FReply::Handled(); }) ]
+        + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+        [ SNew(STextBlock).Text_Lambda([Scan]()
+          {
+              const FPCAPActorScan* S = Scan();
+              if (!S) return FText::GetEmpty();
+              if (S->ScannedAt != FDateTime(0)) return FText::FromString(FString::Printf(TEXT("scanned %s"), *S->ScannedAt.ToString(TEXT("%Y-%m-%d"))));
+              return UPCAPToolStatics::IsScanComplete(*S) ? LOCTEXT("ScanReady", "all poses ticked") : LOCTEXT("ScanNot", "not scanned");
+          }).ColorAndOpacity(FSlateColor(ColText2)) ];
 }
 
 // ── Capture Setup — per performer, per helmet ───────────────────────────────────────

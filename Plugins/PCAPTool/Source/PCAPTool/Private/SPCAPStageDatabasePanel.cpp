@@ -448,6 +448,21 @@ TSharedRef<SWidget> SPCAPStageDatabasePanel::BuildDetailFor(UStageConfigAsset* E
                 []() { const UPCAPToolSettings* S = UPCAPToolSettings::Get(); return S ? S->GetMocapOptions() : TArray<FString>(); },
                 [this, Weak](const FString& V) { if (Weak.IsValid()) { Weak->MocapSystem = V; Weak->MarkPackageDirty(); if (TileView.IsValid()) TileView->RequestListRefresh(); } },
                 LOCTEXT("PickMocap", "(no mocap)"), LOCTEXT("NoMocap", "(none)"))) ]
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
+            [ MakeLabelRow(TEXT(""), SNew(STextBlock).AutoWrapText(true).ColorAndOpacity(FSlateColor(ColText2))
+                .Text_Lambda([Weak]()
+                {
+                    const UPCAPToolSettings* S = UPCAPToolSettings::Get();
+                    const FPCAPSystemOption* O = (S && Weak.IsValid()) ? S->FindMocap(Weak->MocapSystem) : nullptr;
+                    if (!O || O->LiveLink.SourceType.IsEmpty()) return FText::GetEmpty();
+                    const FPCAPLiveLinkRequirements& L = O->LiveLink;
+                    FString T = FString::Printf(TEXT("Live Link: %s"), *L.SourceType);
+                    if (L.DefaultPort > 0) T += FString::Printf(TEXT("\nServer: %s (default port %d)"), *Weak->DataStreamHost, L.DefaultPort);
+                    if (!L.RequiredPlugin.IsEmpty()) T += FString::Printf(TEXT("\nNeeds: %s"), *L.RequiredPlugin);
+                    if (!L.Compatibility.IsEmpty()) T += FString::Printf(TEXT("\n%s"), *L.Compatibility);
+                    T += L.bVerified ? TEXT("\nVerified on this machine.") : TEXT("\nNot yet verified on this machine.");
+                    return FText::FromString(T);
+                })) ]
             + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f)
             [ MakeLabelRow(TEXT("Facial"), PCAPStringPick::Make(
                 [Weak]() { return Weak.IsValid() ? Weak->FacialSystem : FString(); },

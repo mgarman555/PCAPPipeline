@@ -58,6 +58,10 @@ private:
     TArray<TPair<FString, FString>> GatherProps() const;
     TArray<TPair<FString, FString>> GatherVCams() const;
 
+    // ── Scanning — identity scans per actor, done before the shoot (project level) ──
+    TSharedRef<SWidget> BuildScanningSection();
+    TSharedRef<SWidget> BuildScanRow(const FString& ActorID);
+
     // ── Capture Setup — one row per called performer: mocap / facial (mono|stereo) / helmet / audio ──
     TSharedRef<SWidget> BuildCaptureSetupSection();
     TSharedRef<SWidget> BuildCaptureSetupRow(const FString& ActorID);

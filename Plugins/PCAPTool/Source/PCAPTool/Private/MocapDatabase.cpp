@@ -227,6 +227,22 @@ FPCAPPerformerCaptureSetup* UMocapDatabase::FindOrAddCaptureSetup(const FString&
     return &Day->CaptureSetups[Day->CaptureSetups.Add(Row)];
 }
 
+FPCAPActorScan* UMocapDatabase::GetScan(const FString& ActorID)
+{
+    FProduction* P = GetActiveProduction();
+    return P ? P->Scans.FindByPredicate([&](const FPCAPActorScan& S){ return S.ActorID == ActorID; }) : nullptr;
+}
+
+FPCAPActorScan* UMocapDatabase::FindOrAddScan(const FString& ActorID, const FPCAPActorScan& Defaults)
+{
+    if (FPCAPActorScan* Existing = GetScan(ActorID)) return Existing;
+    FProduction* P = GetActiveProduction();
+    if (!P) return nullptr;
+    FPCAPActorScan S = Defaults;
+    S.ActorID = ActorID;
+    return &P->Scans[P->Scans.Add(S)];
+}
+
 bool UMocapDatabase::IsPropCalled(const FString& PropID) const
 {
     const FShootDay* Day = const_cast<UMocapDatabase*>(this)->GetDay(ActiveProductionCode, ActiveDayID);
@@ -280,6 +296,18 @@ bool UMocapDatabase::GetActiveDayReadiness(TArray<FString>& OutIssues) const
 
     const FShootDay* Day = Self->GetDay(ActiveProductionCode, ActiveDayID);
     if (!Day || Day->CalledActorIDs.Num() == 0) OutIssues.Add(TEXT("No actors called"));
+
+    // Scanning happens before the shoot: a called facial actor needs a finished identity scan.
+    if (Day)
+    {
+        for (const FPCAPPerformerCaptureSetup& Row : Day->CaptureSetups)
+        {
+            if (Row.FacialSystem.IsEmpty() || !Day->CalledActorIDs.Contains(Row.ActorID)) continue;
+            const FPCAPActorScan* Scan = Self->GetScan(Row.ActorID);
+            if (!Scan || !UPCAPToolStatics::IsScanComplete(*Scan))
+                OutIssues.Add(FString::Printf(TEXT("%s: identity scan not finished"), *Row.ActorID));
+        }
+    }
 
     return OutIssues.Num() == 0;
 }

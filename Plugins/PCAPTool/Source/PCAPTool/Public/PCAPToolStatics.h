@@ -71,6 +71,15 @@ public:
     static FPCAPPerformerCaptureSetup MakeDefaultCaptureSetup(const FString& ActorID,
         const UStageConfigAsset* Stage, const UPCAPPerformerExtension* Performer);
 
+    // ── Scanning (identity, before the shoot) ─────────────────────────────────
+    // Exact expression names per set, in Epic's order ("Expressions for Likeness Calibration",
+    // https://dev.epicgames.com/documentation/metahuman/expressions-for-likeness-calibration).
+    static const TArray<FString>& GetIdentityExpressions(EPCAPIdentitySet Set);
+    // Short capture note for an expression (paraphrased from the same page); empty if none.
+    static FString GetIdentityExpressionNote(const FString& Expression);
+    // Every expression in the set ticked off.
+    static bool IsScanComplete(const FPCAPActorScan& Scan);
+
     // ── Roster ────────────────────────────────────────────────────────────────
 
     // In-memory copy of an actor's roster defaults into a shot subject — the data

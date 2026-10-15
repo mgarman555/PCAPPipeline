@@ -169,6 +169,62 @@ int32 UPCAPToolStatics::AddCalibrationShots(FShootDay& Day, const FPCAPCalibrati
     return Added;
 }
 
+const TArray<FString>& UPCAPToolStatics::GetIdentityExpressions(EPCAPIdentitySet Set)
+{
+    // Epic, "Expressions for Likeness Calibration" (read 2026-10-15). Names and order as listed there.
+    static const TArray<FString> MH1  = { TEXT("Neutral") };
+    static const TArray<FString> MH12 = {
+        TEXT("Neutral"), TEXT("Upper Lip Raiser"), TEXT("Jaw Open"), TEXT("Jaw Open Extreme"), TEXT("Chin Raiser"),
+        TEXT("Lip Corner Puller"), TEXT("Mouth Stretch"), TEXT("Pucker"), TEXT("Nose Wrinkler"), TEXT("Cheek Raiser"),
+        TEXT("Squint Inner"), TEXT("Brows Raiser"), TEXT("Brows Lower"), TEXT("Blow") };
+    static const TArray<FString> MH50 = {
+        TEXT("Neutral Open"), TEXT("Neutral"), TEXT("Upper Lip Raiser"), TEXT("Upper Lip Raiser Jaw Open"),
+        TEXT("Sharp Lip Corner Puller"), TEXT("Lip Corner Pull Left"), TEXT("Lip Corner Pull Right"),
+        TEXT("Lip Corner Puller Jaw Open"), TEXT("Dimpler"), TEXT("Dimpler Jaw Open"), TEXT("Mouth Corner Depressor"),
+        TEXT("Mouth Stretch Jaw Open"), TEXT("Purse"), TEXT("Pucker Jaw Open"), TEXT("Lips Forward"), TEXT("Funneler"),
+        TEXT("Funneler Jaw Open"), TEXT("Pucker Funneler OH"), TEXT("OH Jaw Open"), TEXT("Mouth Pressor"),
+        TEXT("Mouth Left"), TEXT("Mouth Right"), TEXT("Jaw Open"), TEXT("Jaw Open Extreme"), TEXT("Chin Raiser"),
+        TEXT("Lip Corner Puller"), TEXT("Mouth Stretch"), TEXT("Pucker"), TEXT("Nose Wrinkler"), TEXT("Cheek Raiser"),
+        TEXT("Squint Inner"), TEXT("Brows Raiser"), TEXT("Brows Lower"), TEXT("Blow"), TEXT("Lower Lip Depress"),
+        TEXT("Face Scrunch"), TEXT("Face Wide"), TEXT("Smile Open"), TEXT("Smile Stretch"), TEXT("Show Teeth"),
+        TEXT("Look Left"), TEXT("Look Right"), TEXT("Look Up"), TEXT("Look Down"), TEXT("Look Up Left"),
+        TEXT("Look Up Right"), TEXT("Look Down Left"), TEXT("Look Down Right"), TEXT("Blink"), TEXT("Eyes Closed"),
+        TEXT("Head Tilt Left"), TEXT("Head Tilt Right"), TEXT("Head Turn Up"), TEXT("Head Turn Down"),
+        TEXT("Head Turn Left"), TEXT("Head Turn Right") };
+    switch (Set)
+    {
+        case EPCAPIdentitySet::MH1:  return MH1;
+        case EPCAPIdentitySet::MH50: return MH50;
+        case EPCAPIdentitySet::MH12:
+        default:                     return MH12;
+    }
+}
+
+FString UPCAPToolStatics::GetIdentityExpressionNote(const FString& E)
+{
+    // Paraphrased from Epic's page. General rule for all: face the front camera, no head tilt or
+    // forward movement; without a jaw-open component, teeth touching but not clenched.
+    if (E == TEXT("Jaw Open"))                   return TEXT("About 20% less than Jaw Open Extreme; head still.");
+    if (E == TEXT("Jaw Open Extreme"))           return TEXT("Jaw fully open, maximum intensity; head still.");
+    if (E == TEXT("Sharp Lip Corner Puller"))    return TEXT("Vertical lip muscles, not the lip corners.");
+    if (E.StartsWith(TEXT("Lip Corner Pull ")))  return TEXT("Lips closed; the other side of the face stays neutral.");
+    if (E == TEXT("Mouth Pressor"))              return TEXT("No chin raise, lip corners still.");
+    if (E == TEXT("Mouth Left") || E == TEXT("Mouth Right")) return TEXT("Teeth touching.");
+    if (E == TEXT("Smile Stretch"))              return TEXT("Lip corners horizontal; upper teeth over lower (overbite).");
+    if (E == TEXT("Show Teeth"))                 return TEXT("Upper and lower teeth on the same plane.");
+    if (E.StartsWith(TEXT("Look ")))             return TEXT("Eyes only; head does not move.");
+    if (E == TEXT("Blink") || E == TEXT("Eyes Closed")) return TEXT("Eyes closed and relaxed.");
+    if (E.StartsWith(TEXT("Head ")))             return TEXT("Neutral expression while moving the head.");
+    return TEXT("Face the front camera, no head tilt; teeth touching, not clenched, unless the jaw is open.");
+}
+
+bool UPCAPToolStatics::IsScanComplete(const FPCAPActorScan& Scan)
+{
+    for (const FString& E : GetIdentityExpressions(Scan.Set))
+        if (!Scan.CapturedExpressions.Contains(E)) return false;
+    return true;
+}
+
 FPCAPPerformerCaptureSetup UPCAPToolStatics::MakeDefaultCaptureSetup(const FString& ActorID,
     const UStageConfigAsset* Stage, const UPCAPPerformerExtension* Performer)
 {

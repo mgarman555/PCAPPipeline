@@ -266,6 +266,46 @@ enum class ECaptureConfiguration : uint8
 // choices can be changed without a rebuild. Selections are stored as display strings.
 // ---------------------------------------------------------------------------
 
+// What a mocap system needs to reach Unreal through Live Link. Facts come from the vendor's
+// docs / plugin source (docs/devices/mocap-livelink.md); bVerified stays false until the
+// connection has been tested on this machine.
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FPCAPLiveLinkRequirements
+{
+    GENERATED_BODY()
+
+    // How data arrives: "Vicon DataStream (Live Link source)", "Offline solve (no Live Link)", ...
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Live Link")
+    FString SourceType;
+
+    // Unreal plugin that provides the Live Link source (empty = none needed).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Live Link")
+    FString RequiredPlugin;
+
+    // Default server and port (the stage's own address overrides these per stage).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Live Link")
+    FString DefaultHost;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Live Link")
+    int32 DefaultPort = 0;
+
+    // Other source settings by name ("SubjectFilter", "bIsRetimed=false", ...).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Live Link")
+    TArray<FString> SourceSettings;
+
+    // Version rules ("Vicon UE 5.8 plugin 1.13 needs Shogun Live 1.14+").
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Live Link")
+    FString Compatibility;
+
+    // Where the facts came from.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Live Link")
+    FString SourceUrl;
+
+    // True only once a connection was tested here. Unverified entries show as such in the UI.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Live Link")
+    bool bVerified = false;
+};
+
 USTRUCT(BlueprintType)
 struct PCAPTOOL_API FPCAPSystemOption
 {
@@ -283,6 +323,10 @@ struct PCAPTOOL_API FPCAPSystemOption
     // (e.g. iPhone audio only with "Rokoko iPhone"). Empty = always offered.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Systems")
     FString OnlyWithFacial;
+
+    // Mocap only: what this system needs to stream into Unreal.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture Systems")
+    FPCAPLiveLinkRequirements LiveLink;
 
     FPCAPSystemOption() = default;
     FPCAPSystemOption(const FString& InName, const TArray<FString>& InVersions = {}, const FString& InOnlyWith = FString())
@@ -1115,6 +1159,50 @@ struct PCAPTOOL_API FShootDay
     TArray<FPCAPPerformerCaptureSetup> CaptureSetups;
 };
 
+// MetaHuman identity calibration set (Epic, "Expressions for Likeness Calibration"):
+// MH1 = neutral only, MH12 = 14 expressions, MH50 = 56 expressions. Append only.
+UENUM(BlueprintType)
+enum class EPCAPIdentitySet : uint8
+{
+    MH1  UMETA(DisplayName = "MH1 (neutral)"),
+    MH12 UMETA(DisplayName = "MH12 (14 expressions)"),
+    MH50 UMETA(DisplayName = "MH50 (56 expressions)")
+};
+
+// One actor's identity scan for a project, done BEFORE the shoot (Scanning). The checklist
+// is the set's expression list from Epic's page (UPCAPToolStatics::GetIdentityExpressions).
+USTRUCT(BlueprintType)
+struct PCAPTOOL_API FPCAPActorScan
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Scanning")
+    FString ActorID;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Scanning")
+    EPCAPIdentitySet Set = EPCAPIdentitySet::MH12;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Scanning")
+    FString FacialSystem;            // what the scan is captured with (e.g. "OneHMC")
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Scanning")
+    bool bStereo = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Scanning")
+    TSoftObjectPtr<UHMCRigEntry> Helmet;
+
+    // Expression names ticked off (exact names from the set's list).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Scanning")
+    TArray<FString> CapturedExpressions;
+
+    // Set when the operator marks the scan done (all expressions captured).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Scanning")
+    FDateTime ScannedAt = FDateTime(0);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Scanning")
+    FString Notes;
+};
+
 USTRUCT(BlueprintType)
 struct PCAPTOOL_API FProduction
 {
@@ -1134,6 +1222,10 @@ struct PCAPTOOL_API FProduction
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Days")
     TArray<FShootDay> Days;
+
+    // Identity scans done before the shoot, one per actor (Call Sheet > Scanning).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Scanning")
+    TArray<FPCAPActorScan> Scans;
 
     // Characters a take's performance is reviewed on (Phase 5b). Null = performer's MetaHuman only.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Review")

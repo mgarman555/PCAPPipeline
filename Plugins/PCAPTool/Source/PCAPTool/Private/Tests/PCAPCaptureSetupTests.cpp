@@ -35,6 +35,16 @@ bool FPCAPCaptureSystemListsTest::RunTest(const FString&)
     TestEqual(TEXT("HMC audio count"), WithHMC.Num(), 2);
     TestFalse(TEXT("no iPhone audio with OneHMC"), WithHMC.Contains(TEXT("iPhone")));
     TestTrue(TEXT("iPhone audio with Rokoko iPhone"), UPCAPToolSettings::AudioOptionsFor(Audio, TEXT("rokoko iphone")).Contains(TEXT("iPhone")));
+
+    // A versioned dropdown entry maps back to its option (and its Live Link requirements).
+    const UPCAPToolSettings* S = GetDefault<UPCAPToolSettings>();
+    const FPCAPSystemOption* Shogun = UPCAPToolSettings::FindOption(Known, TEXT("Shogun Live 1.19"));
+    TestTrue(TEXT("versioned entry -> option"), Shogun && Shogun->Name == TEXT("Shogun Live"));
+    TestNull(TEXT("unknown entry"), UPCAPToolSettings::FindOption(Known, TEXT("Optitrack")));
+    if (const FPCAPSystemOption* Def = UPCAPToolSettings::FindOption(UPCAPToolSettings::StaticClass()->GetDefaultObject<UPCAPToolSettings>()->MocapSystems, TEXT("Shogun Live 1.13")))
+        if (Def->LiveLink.DefaultPort > 0)   // the CDO may carry DefaultGame.ini edits
+            TestEqual(TEXT("Vicon default port"), Def->LiveLink.DefaultPort, 801);
+    (void)S;
     return true;
 }
 
@@ -217,6 +227,49 @@ bool FPCAPActorDaysTest::RunTest(const FString&)
     FPCAPPerformerCaptureSetup* Again = DB->FindOrAddCaptureSetup(TEXT("friend"), Defaults);
     TestTrue(TEXT("same row, edit kept"), Again && !Again->bStereo && Again->ActorID == TEXT("friend"));
     TestEqual(TEXT("one row"), DB->GetActiveDay()->CaptureSetups.Num(), 1);
+    return true;
+}
+
+// Scanning: Epic's set sizes, completeness, and "called facial actor needs a finished scan".
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPScanningTest,
+    "PCAP.CaptureSetup.Scanning",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPScanningTest::RunTest(const FString&)
+{
+    // Epic, Expressions for Likeness Calibration: MH1 = 1, MH12 = 14, MH50 = 56.
+    TestEqual(TEXT("MH1 size"),  UPCAPToolStatics::GetIdentityExpressions(EPCAPIdentitySet::MH1).Num(), 1);
+    TestEqual(TEXT("MH12 size"), UPCAPToolStatics::GetIdentityExpressions(EPCAPIdentitySet::MH12).Num(), 14);
+    TestEqual(TEXT("MH50 size"), UPCAPToolStatics::GetIdentityExpressions(EPCAPIdentitySet::MH50).Num(), 56);
+    TestTrue(TEXT("MH12 within MH50"), [](){
+        for (const FString& E : UPCAPToolStatics::GetIdentityExpressions(EPCAPIdentitySet::MH12))
+            if (!UPCAPToolStatics::GetIdentityExpressions(EPCAPIdentitySet::MH50).Contains(E)) return false;
+        return true; }());
+
+    FPCAPActorScan Scan; Scan.ActorID = TEXT("friend"); Scan.Set = EPCAPIdentitySet::MH12;
+    TestFalse(TEXT("empty scan incomplete"), UPCAPToolStatics::IsScanComplete(Scan));
+    Scan.CapturedExpressions = UPCAPToolStatics::GetIdentityExpressions(EPCAPIdentitySet::MH12);
+    TestTrue(TEXT("all ticked = complete"), UPCAPToolStatics::IsScanComplete(Scan));
+    Scan.Set = EPCAPIdentitySet::MH50;
+    TestFalse(TEXT("switching to MH50 needs more poses"), UPCAPToolStatics::IsScanComplete(Scan));
+
+    // Readiness: a called facial actor without a finished scan blocks "Ready".
+    UMocapDatabase* DB = NewObject<UMocapDatabase>();
+    FProduction P; P.ProjectCode = TEXT("darkAcolyte");
+    FShootDay D; D.DayID = TEXT("001"); D.CalledActorIDs = { TEXT("friend") };
+    FPCAPPerformerCaptureSetup Row; Row.ActorID = TEXT("friend"); Row.FacialSystem = TEXT("OneHMC");
+    D.CaptureSetups = { Row };
+    P.Days = { D };
+    DB->Productions = { P };
+    DB->ActiveProductionCode = TEXT("darkAcolyte"); DB->ActiveDayID = TEXT("001");
+    auto HasScanIssue = [DB]()
+    {
+        TArray<FString> Issues; DB->GetActiveDayReadiness(Issues);
+        return Issues.ContainsByPredicate([](const FString& I){ return I.Contains(TEXT("identity scan")); });
+    };
+    TestTrue(TEXT("no scan -> not ready"), HasScanIssue());
+    FPCAPActorScan Done; Done.Set = EPCAPIdentitySet::MH1; Done.CapturedExpressions = { TEXT("Neutral") };
+    DB->FindOrAddScan(TEXT("friend"), Done);
+    TestFalse(TEXT("finished scan clears it"), HasScanIssue());
     return true;
 }
 
