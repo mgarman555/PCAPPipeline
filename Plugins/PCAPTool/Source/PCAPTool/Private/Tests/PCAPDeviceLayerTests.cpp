@@ -103,6 +103,42 @@ bool FPCAPDeviceRegistryCatalogTest::RunTest(const FString&)
     return true;
 }
 
+// ORION status -> vendor-neutral health: connection, sums, unknown battery %, offline reason.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPTechnopropsHealthTest,
+    "PCAP.Devices.TechnopropsHealth",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPCAPTechnopropsHealthTest::RunTest(const FString&)
+{
+    FTechnopropsFacialDevice Dev;
+    Dev.Connect(FPCAPDeviceAddress(TEXT("192.168.50.117")));
+
+    FHMCDeviceStatus S;
+    S.DeviceName = TEXT("ORION");
+    S.ConnectionState = EHMCConnectionState::Connected;
+    S.DroppedFrames0 = 2; S.DroppedFrames1 = 3;
+    S.AvailableStorageMB = 1024.f; S.FPS = 60.f;
+    S.IssueFlags0 = HMC_Issue_LowBattery; S.IssueFlags1 = HMC_Issue_DroppedFrames;
+    Dev.UpdateHealth(S);
+    FPCAPDeviceHealth H = Dev.GetHealth();
+    TestTrue(TEXT("connected"), H.bConnected);
+    TestEqual(TEXT("vendor"), H.VendorId, FName(TEXT("Technoprops")));
+    TestEqual(TEXT("name"), H.DeviceName, FString(TEXT("ORION")));
+    TestEqual(TEXT("dropped summed"), H.DroppedFrames, 5);
+    TestTrue(TEXT("battery % unknown"), H.BatteryPercent < 0.f);
+    TestEqual(TEXT("flags OR'd"), H.IssueFlags, (int32)(HMC_Issue_LowBattery | HMC_Issue_DroppedFrames));
+    TestTrue(TEXT("no error while connected"), H.LastError.IsEmpty());
+
+    S.ConnectionState = EHMCConnectionState::Offline;
+    Dev.UpdateHealth(S);
+    TestFalse(TEXT("offline not connected"), Dev.GetHealth().bConnected);
+    TestFalse(TEXT("offline has reason"), Dev.GetHealth().LastError.IsEmpty());
+
+    S.ConnectionState = EHMCConnectionState::Connected;
+    Dev.UpdateHealth(S);
+    TestTrue(TEXT("reason cleared on reconnect"), Dev.GetHealth().LastError.IsEmpty());
+    return true;
+}
+
 // Saved assets store enums by index: existing values must keep theirs and new ones append.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPCAPEnumAppendOnlyTest,
     "PCAP.DataModel.EnumAppendOnly",

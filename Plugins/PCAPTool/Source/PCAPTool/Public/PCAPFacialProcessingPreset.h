@@ -18,7 +18,8 @@ enum class EPCAPFaceSolver : uint8
 
 // Named processing setup a Capture Setup row picks for a performer's facial stream:
 // the MetaHuman Performance settings applied after ingest. Lives under
-// PCAPPaths::FacialPresetsDir(). Shipped presets: MHA_StereoHMC_Default, MHA_MonoHMC_Default.
+// PCAPPaths::FacialPresetsDir(). Presets to ship with Capture Setup (Phase 2, not created yet):
+// MHA_StereoHMC_Default, MHA_MonoHMC_Default.
 UCLASS(BlueprintType)
 class PCAPTOOL_API UPCAPFacialProcessingPreset : public UDataAsset
 {

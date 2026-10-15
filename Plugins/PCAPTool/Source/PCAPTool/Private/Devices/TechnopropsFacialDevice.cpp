@@ -212,4 +212,8 @@ void FTechnopropsFacialDevice::UpdateHealth(const FHMCDeviceStatus& Status)
     Health.TemperatureC  = Status.TemperatureCelsius;
     Health.IssueFlags    = Status.IssueFlags0 | Status.IssueFlags1;
     Health.LastUpdate    = Status.LastUpdateTime;
+    if (Status.ConnectionState == EHMCConnectionState::Offline)
+        Health.LastError = TEXT("No status response from the device (3 consecutive polls)");
+    else if (Health.LastError.StartsWith(TEXT("No status response")))
+        Health.LastError.Empty();
 }
