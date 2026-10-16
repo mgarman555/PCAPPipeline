@@ -1,6 +1,6 @@
 # Device fact sheet: Rode wireless audio (receiver on the P620)
 
-**Date of every observation below:** 2026-10-14 · **Host:** P620 (`mgarman-threadripper`), Windows 11 Pro 10.0.26300, UE 5.8.1 (CL 56057345)
+**Date of every observation below:** 2026-10-14 · **Host:** P620, Windows 11 Pro 10.0.26300, UE 5.8.1 (CL 56057345)
 **Author:** audio device agent (observation only; no plugin code written)
 **Spec:** `docs/handoffs/HOME_REBUILD_HANDOFF.md` §4.2(c), §8
 

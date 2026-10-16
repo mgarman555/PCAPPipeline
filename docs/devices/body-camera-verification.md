@@ -31,3 +31,16 @@ Evidence (recordings and logs): `<repo>\Saved\DeviceProbes\body-camera\` (gitign
 | 23 | Same, preview at 30 fps | **PASS** | `fps=30` | rec 867 / 14.450 s; 312 preview frames in ~10 s |
 | 24 | HTTP `-f mpjpeg -listen 1` preview is safe for one-owner use | **FAIL** | output 2 = `http://127.0.0.1:8090/preview.mjpg`, `curl -m 4` | recording 0 B until a client connected; client disconnect killed ffmpeg (exit -10054) |
 | 25 | Preview and recording tested with real picture content | **NOT TESTED** | | no HDMI source / no webcam; all results are on black frames |
+
+## 2026-10-16: Logitech C920S (`HD Pro Webcam C920`, USB VID_046D PID_08E5), real picture
+
+| # | Behavior | Result | Command / probe | Evidence |
+|---|---|---|---|---|
+| 26 | Webcam connected and enumerated (resolves #1) | **PASS** | `bodycam_probe.ps1 -Device "HD Pro Webcam C920"` | dshow `HD Pro Webcam C920`; PnP Camera MI_00, MEDIA (mic) MI_02 |
+| 27 | Webcam modes listed (resolves #2) | **PASS** | probe step 2 (`-list_options true`) | 35 modes; MJPEG max 1920x1080 @ 30; no 60 fps, no 4K |
+| 28 | Any mode delivers a real 60 fps | **FAIL** (not offered) | same | max offered rate is 30 |
+| 29 | 1080p30 delivers 30 real fps | **FAIL** (28.1) | stream copy 20 s | 563 / 19.993 s, 0 empty packets |
+| 30 | 720p30 delivers 30 real fps | **PASS** (30.0) | stream copy 20 s | 601 / 20.0 s, 0 empty packets |
+| 31 | One process records 720p30 CRF 18 + 10 fps UDP preview | **PASS** | probe recipe (fallback mode) | rec 657 / 22.0 s (29.86), speed 0.999x; 80 preview frames |
+| 32 | Graceful stop (`q`) finalizes fragmented MP4, real picture | **PASS** | .NET Process, `StandardInput.Write('q')` | `stop_q_frag.mp4` exit 0, 217 / 7.23 s |
+| 33 | Hard kill leaves a readable fragmented MP4, real picture (resolves #25 for kill) | **PASS** | `Process.Kill()` at 8 s | `stop_kill_frag.mp4` 150 / 5.0 s |

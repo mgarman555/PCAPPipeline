@@ -14,6 +14,7 @@ UPCAPToolSettings::UPCAPToolSettings()
 {
     // Raw capture files live here, outside Content/ (HOME_REBUILD_HANDOFF §5 step 5).
     CaptureRoot.Path = TEXT("D:/PCAPCapture");
+    FFmpegPath.FilePath = TEXT("ffmpeg.exe");   // found on PATH; set a full path if it is not
 
     // Defaults (Madi, 2026-10-15). DefaultGame.ini overrides these once edited in Project Settings.
     MocapSystems = {

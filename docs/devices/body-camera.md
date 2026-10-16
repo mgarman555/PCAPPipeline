@@ -1,10 +1,14 @@
 # Body camera: device fact sheet
 
-Observed on the P620 (`mgarman-threadripper`), Windows 11 Pro 10.0.26300, on **2026-10-14**, by the body-camera device agent.
+Observed on the P620, Windows 11 Pro 10.0.26300, on **2026-10-14**, by the body-camera device agent.
 Tool: `ffmpeg version 9.0.1-full_build-www.gyan.dev` (winget Gyan.FFmpeg, on PATH; see `CLAUDE.local.md`).
 All test recordings and logs: `<repo>\Saved\DeviceProbes\body-camera\` (gitignored, `.gitignore:3: Saved/`).
 
-## 0. Status: the body webcam is NOT connected (BLOCKED)
+## Status (2026-10-16): Logitech C920S connected and probed. PASS at 1280x720 @ 30 fps
+
+See §8 for the measurements. The rest of this sheet (§0 to §7) is the 2026-10-14 record of the HDMI dongle, kept for history.
+
+## 0. Status on 2026-10-14: the body webcam was NOT connected (BLOCKED)
 
 Madi's body camera is described as a "4K USB webcam, 60 fps unknown" (handoff §1). **No such device is attached to the P620, and none has ever been installed on it.**
 
@@ -157,9 +161,24 @@ Same command with output 2 = `-f mpjpeg -listen 1 http://127.0.0.1:8090/preview.
 
 ---
 
-## 8. Owner update (Madi, 2026-10-15): the body camera is a Logitech C920S Pro HD
+## 8. Logitech C920S Pro HD (owner update 2026-10-15; probed 2026-10-16)
 
-- Not yet connected or probed. Run `Tools/probes/bodycam_probe.ps1` when it is.
+**Observed 2026-10-16** with `Tools/probes/bodycam_probe.ps1 -Device "HD Pro Webcam C920" -Seconds 20` (summary `Saved/DeviceProbes/body-camera/summary-20261016-151021.md`).
+
+- **Identity:** dshow name `HD Pro Webcam C920` (the C920S enumerates under the C920 name), USB `VID_046D` `PID_08E5`. Interface `MI_02` is its built-in microphone (class MEDIA): do not pick it for audio.
+- **Modes:** MJPEG up to 1920x1080 at 5 to 30 fps; YUY2 1080p only at 5 fps; 2560x1472 YUY2 at 2 fps. **No 60 fps mode, no 4K.**
+- **Delivered fps** (stream copy, 20 s, bright room, mean luma ~171):
+
+  | Mode | Real fps | Note |
+  |---|---|---|
+  | 1920x1080 MJPEG @ 30 | **28.1** (563 frames / 19.99 s) | Steadily drops ~6% of frames. A 10 s run gave 28.3. |
+  | 1280x720 MJPEG @ 30 | **30.0** (601 / 20.0 s) | No drops. |
+
+- **One-owner recipe at 720p30** (H.264 CRF 18, `-g 30`, fragmented MP4, plus a 10 fps UDP MJPEG preview at 640 wide): recording **29.86 fps** (657 frames / 22.0 s), encoder speed 0.999x, preview **80 of ~80** frames received.
+- **Stopping with a real picture** (720p30, fragmented MP4): `q` on stdin gives exit 0 and 217 frames / 7.23 s. A hard kill after 8 s leaves a readable file of 150 frames / 5.0 s (the tail is lost, as in §4).
+- **Recommended mode: 1280x720 MJPEG @ 30.** 1080p30 drops frames, and a variable frame rate is a bigger risk to ingest and solve than the lower resolution. Capture Setup shows **amber**: "C920S: 30 fps max; Epic target 60 fps".
+
+Owner-provided background (2026-10-15):
 - **Logitech's published spec: 1080p at 30 fps and 720p at 30 fps.** No 60 fps mode. Sources: https://logitech.com/en-ae/products/webcams/c920s-pro-hd-webcam.html , https://service.alaska.edu/TDClient/36/Portal/KB/Article/795/Logitech-C920s-Pro-Full-HD-Webcam
 - **Consequence:** Epic's mono-video rule for markerless (handoff §2) is HD or 4K **at 60 fps**. The C920S cannot meet it. Capture Setup must show **amber** for this camera with the reason "C920S: 30 fps max; Epic target 60 fps". The probe will confirm the real delivered fps (it may also deliver less than 30 in low light, since RightLight auto-exposure lowers the frame rate).
 - This contradicts the earlier owner note ("4K USB webcam"). For a camera that meets the rule, it needs a real 1080p60 (or 4K60) UVC mode; verify any candidate with the probe before relying on it.

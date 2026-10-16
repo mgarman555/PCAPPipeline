@@ -34,6 +34,22 @@ public:
     UPROPERTY(Config, EditAnywhere, Category="Capture")
     FDirectoryPath CaptureRoot;
 
+    // Body camera (markerless). Defaults are the C920S's verified mode: docs/devices/body-camera.md §8.
+    UPROPERTY(Config, EditAnywhere, Category="Body Camera", meta=(FilePathFilter="exe"))
+    FFilePath FFmpegPath;
+
+    UPROPERTY(Config, EditAnywhere, Category="Body Camera")
+    FString BodyCameraDevice = TEXT("HD Pro Webcam C920");
+
+    UPROPERTY(Config, EditAnywhere, Category="Body Camera", meta=(ClampMin=160))
+    int32 BodyCameraWidth = 1280;
+
+    UPROPERTY(Config, EditAnywhere, Category="Body Camera", meta=(ClampMin=90))
+    int32 BodyCameraHeight = 720;
+
+    UPROPERTY(Config, EditAnywhere, Category="Body Camera", meta=(ClampMin=1, ClampMax=120))
+    int32 BodyCameraFps = 30;
+
     static UPCAPToolSettings* Get();
     UMocapDatabase* GetDatabase() const;
 

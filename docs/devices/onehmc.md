@@ -3,7 +3,7 @@
 **Status: BLOCKED: device not on network.** No OneHMC unit was reachable from the P620 on 2026-10-14. Nothing about the device's API, firmware, files or throughput has been observed yet. Every device fact in the handoff spec (§4.2(a)) is still **owner-reported, unverified**.
 
 - **Date of observations:** 2026-10-14
-- **Observer:** OneHMC device agent (Claude Code), P620 `mgarman-threadripper`
+- **Observer:** OneHMC device agent (Claude Code), P620
 - **Spec this checks:** `docs/handoffs/HOME_REBUILD_HANDOFF.md` §4.2(a), §4.5, §8
 - **Probe script:** `Tools/probes/onehmc_probe.ps1` (PowerShell 5.1; Python is not installed). Read-only: it never starts a recording, changes a setting or touches firmware.
 - **Raw logs:** `<repo>\Saved\DeviceProbes\onehmc\probe-20261014-*.log` (gitignored, not committed)

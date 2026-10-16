@@ -1,6 +1,8 @@
 #include "PCAPDeviceRegistry.h"
 #include "PCAPToolSubsystem.h"
 #include "Devices/TechnopropsFacialDevice.h"
+#include "Devices/MarkerlessBodyCamera.h"
+#include "PCAPToolSettings.h"
 #include "Engine/Engine.h"
 
 namespace
@@ -40,10 +42,22 @@ void UPCAPDeviceRegistry::EnsureBuiltIns()
     if (C.bBuiltInsRegistered) return;
     C.bBuiltInsRegistered = true;
 
-    // Only adapters whose behavior is verified ship here. OneHMC / markerless camera /
-    // USB audio register in Phase 2, each after its device agent's PASS log.
+    // Only adapters whose behavior is verified ship here, each after its device agent's
+    // PASS log (docs/devices/*-verification.md). OneHMC and USB audio are still pending.
     C.Facial.Add(FTechnopropsFacialDevice::StaticVendorId(),
         []() -> TSharedRef<IPCAPFacialDevice> { return MakeShared<FTechnopropsFacialDevice>(); });
+    // Body camera: verified 2026-10-16 on the C920S (body-camera-verification.md #26-#33).
+    C.Body.Add(FMarkerlessBodyCamera::StaticVendorId(), []() -> TSharedRef<IPCAPBodySource>
+    {
+        TSharedRef<FMarkerlessBodyCamera> Cam = MakeShared<FMarkerlessBodyCamera>();
+        if (const UPCAPToolSettings* S = GetDefault<UPCAPToolSettings>())
+        {
+            if (!S->FFmpegPath.FilePath.IsEmpty()) Cam->SetFFmpegPath(S->FFmpegPath.FilePath);
+            FPCAPBodyCameraMode M; M.Width = S->BodyCameraWidth; M.Height = S->BodyCameraHeight; M.Fps = S->BodyCameraFps;
+            Cam->SetMode(M);
+        }
+        return Cam;
+    });
 }
 
 void UPCAPDeviceRegistry::RegisterFacialVendor(FName VendorId, FFacialFactory Factory)

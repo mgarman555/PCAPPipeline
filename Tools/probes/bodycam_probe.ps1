@@ -130,7 +130,13 @@ foreach ($c in $cands) {
 # ── 4. Pick the mode ───────────────────────────────────────────────────────────
 $pick = $results | Where-Object { $_.RealFps -ge 59 -and $_.Luma -ne -1 } | Sort-Object { -$_.W * $_.H } | Select-Object -First 1
 if ($pick) { Log "RECOMMENDED: $($pick.W)x$($pick.H) @ 60 ($($pick.Fmt)), measured $($pick.RealFps) real fps" }
-else { Log 'NO mode delivers a real 60 fps. Capture Setup must show amber (Epic target is 60 fps).' }
+else {
+  Log 'NO mode delivers a real 60 fps. Capture Setup must show amber (Epic target is 60 fps).'
+  # Fallback: the largest mode that holds its own asked rate (no dropped frames), so the recipe still runs.
+  $pick = $results | Where-Object { $_.RealFps -ge ($_.Asked * 0.98) -and $_.Luma -ne -1 } | Sort-Object { -$_.W * $_.H } | Select-Object -First 1
+  if ($pick) { Log "FALLBACK: $($pick.W)x$($pick.H) @ $($pick.Asked) ($($pick.Fmt)), measured $($pick.RealFps) real fps (steady, below Epic's 60)" }
+}
+$pickFps = if ($pick) { $pick.Asked } else { 60 }
 
 # ── 5. One-owner recipe on the chosen mode ─────────────────────────────────────
 $recipe = $null
@@ -141,10 +147,10 @@ if ($pick -and -not $SkipRecipe) {
   $reader = Start-Process -FilePath $ff -PassThru -WindowStyle Hidden -RedirectStandardError (Join-Path $run 'recipe_reader.log') -ArgumentList @(
     '-hide_banner','-y','-f','mjpeg','-framerate','10','-i',"udp://127.0.0.1:${port}?fifo_size=1000000&overrun_nonfatal=1",'-t','8','-c','copy',"`"$pvFile`"")
   Start-Sleep -Milliseconds 500
-  Log "Recipe: recording $($pick.W)x$($pick.H)@60 libx264 CRF 18 + 10 fps UDP preview for $($Seconds + 2) s..."
-  $recLog = Run $ff ("-hide_banner -y -f dshow -rtbufsize 1024M $(Input-Args $pm) -video_size $($pick.W)x$($pick.H) -framerate 60 -t $($Seconds + 2) -i video=`"$Device`" " +
+  Log "Recipe: recording $($pick.W)x$($pick.H)@$pickFps libx264 CRF 18 + 10 fps UDP preview for $($Seconds + 2) s..."
+  $recLog = Run $ff ("-hide_banner -y -f dshow -rtbufsize 1024M $(Input-Args $pm) -video_size $($pick.W)x$($pick.H) -framerate $pickFps -t $($Seconds + 2) -i video=`"$Device`" " +
     "-filter_complex `"[0:v]split=2[rec][pv];[pv]fps=10,scale=640:-2[pvo]`" " +
-    "-map `"[rec]`" -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -g 60 -flush_packets 1 -movflags +frag_keyframe+empty_moov+default_base_moof `"$recFile`" " +
+    "-map `"[rec]`" -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -g $pickFps -flush_packets 1 -movflags +frag_keyframe+empty_moov+default_base_moof `"$recFile`" " +
     "-map `"[pvo]`" -c:v mjpeg -q:v 5 -f mjpeg `"udp://127.0.0.1:${port}?pkt_size=1316`"")
   $recLog | Set-Content (Join-Path $run 'recipe_record.log')
   if (-not $reader.WaitForExit(15000)) { $reader.Kill() }
@@ -160,7 +166,7 @@ if ($pick -and -not $SkipRecipe) {
   $recipe = [pscustomobject]@{ Frames = $frames; Duration = $dur; RecFps = $recFps; PreviewFrames = $pvFrames; Speed = $speed }
   Log "  recording: $frames frames / $dur s = $recFps fps; preview frames received: $pvFrames (~8 s at 10 fps = ~80 expected)"
   Log "  encoder: $speed"
-  if ($recFps -lt 59) { Log '  WARNING: encoder did not hold 60 fps at this size. Try -preset ultrafast or h264_nvenc (note: nvenc has no true CRF).' }
+  if ($recFps -lt ($pickFps - 1)) { Log "  WARNING: encoder did not hold $pickFps fps at this size. Try -preset ultrafast or h264_nvenc (note: nvenc has no true CRF)." }
 }
 
 # ── 6. Summary ─────────────────────────────────────────────────────────────────
@@ -168,7 +174,7 @@ $md = @("# Body camera probe $stamp", '', "Device: ``$Device``  ", "ffmpeg: ``$f
         '| Mode | Asked fps | Packets | Real | Empty | Span s | Real fps | Mean luma |', '|---|---|---|---|---|---|---|---|')
 $md += $results | ForEach-Object { "| $($_.W)x$($_.H) $($_.Fmt) | $($_.Asked) | $($_.Packets) | $($_.Real) | $($_.Empty) | $($_.Span) | **$($_.RealFps)** | $($_.Luma) |" }
 $md += ''
-$md += if ($pick) { "Recommended: **$($pick.W)x$($pick.H) @ 60 ($($pick.Fmt))**" } else { '**No mode delivers a real 60 fps.**' }
+$md += if ($pick -and $pickFps -ge 59) { "Recommended: **$($pick.W)x$($pick.H) @ 60 ($($pick.Fmt))**" } elseif ($pick) { "**No mode delivers a real 60 fps.** Fallback: **$($pick.W)x$($pick.H) @ $pickFps ($($pick.Fmt))**, steady." } else { '**No mode delivers a real 60 fps.**' }
 if ($recipe) { $md += "Recipe (CRF 18 + UDP preview): $($recipe.Frames) frames / $($recipe.Duration) s = **$($recipe.RecFps) fps**, preview frames $($recipe.PreviewFrames). $($recipe.Speed)" }
 $md += '', "Raw files and logs: ``$run``"
 $md | Set-Content (Join-Path $OutDir "summary-$stamp.md") -Encoding UTF8
