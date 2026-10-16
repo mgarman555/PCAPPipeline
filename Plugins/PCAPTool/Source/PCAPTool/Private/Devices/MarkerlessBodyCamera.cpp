@@ -160,8 +160,13 @@ void FMarkerlessBodyCamera::StartRecord(const FPCAPTakeIdentity& Take)
     }
 
     // The camera has one owner: stop the preview process before opening it again to record.
+    if (!IFileManager::Get().MakeDirectory(*FPaths::GetPath(File), true))
+    {
+        Health.LastError = FString::Printf(TEXT("Cannot create %s (drive locked or missing? Check Capture Root in Project Settings)."),
+            *FPaths::GetPath(File));
+        return;
+    }
     StopProcess(3.f);
-    IFileManager::Get().MakeDirectory(*FPaths::GetPath(File), true);
     Progress = FPCAPFfmpegProgress();
     FrameSamples.Reset();
     MeasuredFps = 0.f;

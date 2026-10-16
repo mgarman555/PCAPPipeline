@@ -32,6 +32,9 @@ private:
     // rebuild (the full rebuild every 0.5s was the visible blink).
     TSharedRef<SWidget> BuildDeviceCard(const FString& DeviceName, float CardW);
     TSharedRef<SWidget> BuildVitalBar(const FString& DeviceName);
+    // Body camera (markerless): live feed, status, Connect/Disconnect. Built once; binds to the subsystem.
+    TSharedRef<SWidget> BuildBodyCameraCard();
+    TSharedPtr<FSlateBrush> BodyFeedBrush;
     // FeedW = the feed's render width; the feed height is derived from it and the
     // camera's display aspect so the frame matches the video (no letterbox/blank).
     TSharedRef<SWidget> BuildFeed(const FString& DeviceName, int32 CameraIndex, const FString& Label, float FeedW);

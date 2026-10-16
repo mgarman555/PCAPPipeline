@@ -2,6 +2,7 @@
 #include "PCAPToolSubsystem.h"
 #include "PCAPToolStatics.h"
 #include "PCAPToolSettings.h"
+#include "PCAPDeviceInterfaces.h"
 #include "MocapDatabase.h"
 #include "ActorRosterEntry.h"
 #include "Widgets/SBoxPanel.h"
@@ -53,6 +54,11 @@ void SHMCPreviewPanel::Construct(const FArguments& InArgs)
         .FillHeight(1.f)
         [
             SNew(SScrollBox)
+            + SScrollBox::Slot()
+            .Padding(8.f, 0.f, 8.f, 4.f)
+            [
+                BuildBodyCameraCard()
+            ]
             + SScrollBox::Slot()
             [
                 SAssignNew(CardContainer, SVerticalBox)
@@ -623,4 +629,151 @@ FString SHMCPreviewPanel::FormatSecondsSince(const FDateTime& T)
     return Secs < 60
         ? FString::Printf(TEXT("Updated %ds ago"), Secs)
         : FString::Printf(TEXT("Updated %dm ago"), Secs / 60);
+}
+
+// ─── Body camera card ─────────────────────────────────────────────────────────
+
+TSharedRef<SWidget> SHMCPreviewPanel::BuildBodyCameraCard()
+{
+    const FString Key = UPCAPToolSubsystem::BodyCameraKey();
+    auto IsOn = []() { UPCAPToolSubsystem* Sub = GetSubsystem(); return Sub && Sub->GetBodyCamera().IsValid(); };
+    auto IsRec = []()
+    {
+        UPCAPToolSubsystem* Sub = GetSubsystem();
+        TSharedPtr<IPCAPBodySource> B = Sub ? Sub->GetBodyCamera() : nullptr;
+        return B.IsValid() && B->GetHealth().bRecording;
+    };
+
+    TSharedRef<SImage> Img = SNew(SImage)
+        .Image_Lambda([this, Key]() -> const FSlateBrush*
+        {
+            if (!BodyFeedBrush.IsValid()) BodyFeedBrush = MakeShared<FSlateBrush>();
+            UPCAPToolSubsystem* Sub = GetSubsystem();
+            UTexture2D* Tex = Sub ? Sub->GetLastFrame(Key, 0) : nullptr;
+            BodyFeedBrush->SetResourceObject(Tex);
+            if (Tex)
+            {
+                BodyFeedBrush->ImageSize = FVector2D(Tex->GetSizeX(), Tex->GetSizeY());
+                BodyFeedBrush->DrawAs = ESlateBrushDrawType::Image;
+            }
+            return BodyFeedBrush.Get();
+        });
+
+    return SNew(SBorder)
+        .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+        .BorderBackgroundColor(BgCard)
+        .Padding(10.f)
+        [
+            SNew(SVerticalBox)
+
+            // Title row: label, camera name, Connect / Disconnect
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+                [
+                    SNew(STextBlock).Text(FText::FromString(TEXT("BODY CAMERA"))).ColorAndOpacity(FSlateColor(ColMuted))
+                ]
+                + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center).Padding(10.f, 0.f)
+                [
+                    SNew(STextBlock).ColorAndOpacity(FSlateColor(ColWhite))
+                    .Text_Lambda([]()
+                    {
+                        const UPCAPToolSettings* S = GetDefault<UPCAPToolSettings>();
+                        return FText::FromString(FString::Printf(TEXT("%s  ·  %dx%d @ %d"),
+                            *S->BodyCameraDevice, S->BodyCameraWidth, S->BodyCameraHeight, S->BodyCameraFps));
+                    })
+                ]
+                + SHorizontalBox::Slot().AutoWidth()
+                [
+                    SNew(SButton)
+                    .IsEnabled_Lambda([IsRec]() { return !IsRec(); })   // no disconnect mid-take
+                    .Text_Lambda([IsOn]() { return FText::FromString(IsOn() ? TEXT("Disconnect") : TEXT("Connect")); })
+                    .OnClicked_Lambda([IsOn]()
+                    {
+                        if (UPCAPToolSubsystem* Sub = GetSubsystem())
+                        {
+                            if (IsOn()) Sub->DisconnectBodyCamera(); else Sub->ConnectBodyCamera();
+                        }
+                        return FReply::Handled();
+                    })
+                ]
+            ]
+
+            // Feed (16:9), green border when live, red while recording
+            + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Left)
+            [
+                SNew(SBorder)
+                .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                .Padding(2.f)
+                .BorderBackgroundColor_Lambda([this, IsRec]()
+                {
+                    UPCAPToolSubsystem* Sub = GetSubsystem();
+                    TSharedPtr<IPCAPBodySource> B = Sub ? Sub->GetBodyCamera() : nullptr;
+                    if (IsRec()) return FSlateColor(ColRed);
+                    return FSlateColor(B.IsValid() && B->GetHealth().bConnected ? ColGreen : ColGray);
+                })
+                [
+                    SNew(SBox).WidthOverride(427.f).HeightOverride(240.f)
+                    [
+                        SNew(SBorder)
+                        .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+                        .BorderBackgroundColor(BgFeed)
+                        .Padding(0.f)
+                        [
+                            SNew(SOverlay)
+                            + SOverlay::Slot() [ SNew(SScaleBox).Stretch(EStretch::ScaleToFit) [ Img ] ]
+                            + SOverlay::Slot().VAlign(VAlign_Center).HAlign(HAlign_Center)
+                            [
+                                SNew(STextBlock).ColorAndOpacity(FSlateColor(ColGray))
+                                .Visibility_Lambda([Key]()
+                                {
+                                    UPCAPToolSubsystem* Sub = GetSubsystem();
+                                    return Sub && Sub->GetLastFrame(Key, 0) ? EVisibility::Collapsed : EVisibility::HitTestInvisible;
+                                })
+                                .Text_Lambda([IsOn]() { return FText::FromString(IsOn() ? TEXT("Waiting for picture...") : TEXT("Press Connect")); })
+                            ]
+                            + SOverlay::Slot().VAlign(VAlign_Top).HAlign(HAlign_Left).Padding(6.f, 4.f)
+                            [
+                                SNew(STextBlock).Text(FText::FromString(TEXT("● REC"))).ColorAndOpacity(FSlateColor(ColRed))
+                                .Visibility_Lambda([IsRec]() { return IsRec() ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+
+            // Status line (live / recording fps + drops / last error)
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)
+            [
+                SNew(STextBlock).AutoWrapText(true)
+                .ColorAndOpacity_Lambda([this]()
+                {
+                    UPCAPToolSubsystem* Sub = GetSubsystem();
+                    TSharedPtr<IPCAPBodySource> B = Sub ? Sub->GetBodyCamera() : nullptr;
+                    return FSlateColor(B.IsValid() && !B->GetHealth().LastError.IsEmpty() ? ColRed : ColWhite);
+                })
+                .Text_Lambda([]()
+                {
+                    UPCAPToolSubsystem* Sub = GetSubsystem();
+                    return FText::FromString(Sub ? Sub->GetBodyCameraStatusText() : FString());
+                })
+            ]
+
+            // Amber note when the mode is below Epic's 60 fps target
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 2.f, 0.f, 0.f)
+            [
+                SNew(STextBlock).AutoWrapText(true).ColorAndOpacity(FSlateColor(ColYellow))
+                .Text_Lambda([]()
+                {
+                    UPCAPToolSubsystem* Sub = GetSubsystem();
+                    return FText::FromString(Sub ? Sub->GetBodyCameraWarning() : FString());
+                })
+                .Visibility_Lambda([]()
+                {
+                    UPCAPToolSubsystem* Sub = GetSubsystem();
+                    return Sub && !Sub->GetBodyCameraWarning().IsEmpty() ? EVisibility::Visible : EVisibility::Collapsed;
+                })
+            ]
+        ];
 }

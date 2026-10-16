@@ -7,6 +7,10 @@
 #include "StageConfigAsset.h"
 #include "PCAPVCamSubsystem.h"
 #include "PCAPVCamActor.h"
+#include "PCAPToolSubsystem.h"
+#include "PCAPTakeOffload.h"
+#include "PCAPDeviceInterfaces.h"
+#include "Devices/MarkerlessBodyCamera.h"
 #include "UObject/LazyObjectPtr.h"
 
 #include "Engine/Engine.h"
@@ -187,9 +191,35 @@ bool UPCAPTakeRecorderSubsystem::StartRecordForActiveShot(FString& OutError)
         *PCAPPaths::Productions(), *PendingProductionCode, *PendingDayID, *PendingSessionID, *PendingShotID);
     Params.Project.TakeSaveDir = PendingTakeID;   // the take's own folder
 
+    // Body camera (markerless) records its own file into the capture folder. Started before
+    // Take Recorder so a camera problem stops Record instead of leaving a take with no body.
+    bPendingBody = false;
+    bTakeHadBody = false;
+    PendingTakeStartedAt = FDateTime(0);
+    PendingCaptureFolder = PCAPOffload::DayDir(GetDefault<UPCAPToolSettings>()->CaptureRoot.Path,
+        PendingProductionCode, PendingDayID);
+    UPCAPToolSubsystem* Tool = GEngine ? GEngine->GetEngineSubsystem<UPCAPToolSubsystem>() : nullptr;
+    TSharedPtr<IPCAPBodySource> Body = Tool ? Tool->GetBodyCamera() : nullptr;
+    if (Body.IsValid() && Body->GetHealth().bConnected)
+    {
+        FPCAPTakeIdentity Id;
+        Id.Production = PendingProductionCode; Id.DayID = PendingDayID;
+        Id.ShotID = PendingShotID; Id.TakeID = PendingTakeID; Id.CaptureFolder = PendingCaptureFolder;
+        Body->StartRecord(Id);
+        if (!Body->GetHealth().bRecording)
+        {
+            OutError = TEXT("Body camera could not record: ") + Body->GetHealth().LastError;
+            return false;
+        }
+        bPendingBody = true;
+        bTakeHadBody = true;
+    }
+
     UTakeRecorder* Recorder = UTakeRecorderBlueprintLibrary::StartRecording(LevelSequence, Sources, MetaData, Params);
     if (!Recorder)
     {
+        StopBodyCamera();
+        bTakeHadBody = false;
         OutError = TEXT("Take Recorder failed to start — see Output Log.");
         return false;
     }
@@ -199,6 +229,7 @@ bool UPCAPTakeRecorderSubsystem::StartRecordForActiveShot(FString& OutError)
 
 void UPCAPTakeRecorderSubsystem::StopRecord()
 {
+    StopBodyCamera();
     if (IsRecording())
     {
         UTakeRecorderBlueprintLibrary::StopRecording();
@@ -222,11 +253,23 @@ void UPCAPTakeRecorderSubsystem::FinishReview()
 
 void UPCAPTakeRecorderSubsystem::HandleTakeStarted()
 {
+    PendingTakeStartedAt = FDateTime::UtcNow();
     SetState(EPCAPRecordState::Capturing);
 }
 
 void UPCAPTakeRecorderSubsystem::HandleTakeFinished(ULevelSequence* SequenceAsset)
 {
+    // The adapter keeps the first-frame time until its next StartRecord, so reading it here is safe.
+    FDateTime BodyFirstFrame(0);
+    if (bTakeHadBody)
+        if (UPCAPToolSubsystem* Tool = GEngine->GetEngineSubsystem<UPCAPToolSubsystem>())
+            if (TSharedPtr<IPCAPBodySource> Body = Tool->GetBodyCamera())
+                if (Body->VendorId() == FMarkerlessBodyCamera::StaticVendorId())
+                    BodyFirstFrame = static_cast<FMarkerlessBodyCamera*>(Body.Get())->GetRecordFirstFrameTime();
+    const bool bHadBody = bTakeHadBody;
+    bTakeHadBody = false;
+    StopBodyCamera();
+
     UMocapDatabase* DB = GetDB();
     if (!DB) { SetState(EPCAPRecordState::Ready); return; }
 
@@ -244,6 +287,10 @@ void UPCAPTakeRecorderSubsystem::HandleTakeFinished(ULevelSequence* SequenceAsse
     Take.MasterSequence = SequenceAsset;   // the assembled take
     Take.bHasVCam = PendingHasVCam;   // VCamAsset (the dedicated sub-asset) resolves in the
                                       // same later per-stream pass as Body/Face/Audio refs.
+    Take.CaptureFolder = PendingCaptureFolder;
+    // Start offset = first body frame relative to Take Recorder's start (alignment until a sync box).
+    if (bHadBody && BodyFirstFrame.GetTicks() > 0 && PendingTakeStartedAt.GetTicks() > 0)
+        Take.DeviceStartOffsets.Add(TEXT("BodyCam"), (BodyFirstFrame - PendingTakeStartedAt).GetTotalSeconds());
 
     // Subject manifest (record-time provenance, incl. DrivenTarget).
     for (const FShotSubject& Subj : Shot->Subjects)
@@ -348,4 +395,13 @@ bool UPCAPTakeRecorderSubsystem::AddActorSource(UObject* Sources, AActor* Target
     UTakeRecorderSource* NewSrc = Src->AddSource(ActorSourceClass);
     SetSourceLazyActor(NewSrc, TEXT("Target"), Target);
     return NewSrc != nullptr;
+}
+
+void UPCAPTakeRecorderSubsystem::StopBodyCamera()
+{
+    if (!bPendingBody) return;
+    bPendingBody = false;
+    if (UPCAPToolSubsystem* Tool = GEngine ? GEngine->GetEngineSubsystem<UPCAPToolSubsystem>() : nullptr)
+        if (TSharedPtr<IPCAPBodySource> Body = Tool->GetBodyCamera())
+            Body->StopRecord();
 }

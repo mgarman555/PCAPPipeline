@@ -5,10 +5,12 @@
 #include "Engine/TimerHandle.h"
 #include "PCAPToolTypes.h"
 #include "HMCCameraAgent.h"
+#include "Containers/Ticker.h"
 #include "PCAPToolSubsystem.generated.h"
 
 class IPCAPFacialDevice;
 class FTechnopropsFacialDevice;
+class IPCAPBodySource;
 
 // HMC status / frame / connection delegates (bound by the Slate panels).
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPCAPHMCStatusUpdated,
@@ -87,6 +89,18 @@ public:
     // The adapter behind a registered device (null if unknown). UPCAPDeviceRegistry reads
     // vendor-neutral health through this.
     TSharedPtr<IPCAPFacialDevice> GetFacialDevice(const FString& DeviceName) const;
+
+    // ── Body camera (markerless; Phase 2) ──
+    // Connects the camera named in Project Settings > PCAP Tool > Body Camera and pumps its
+    // preview into GetLastFrame(BodyCameraKey(), 0). Record starts it from the Take Recorder flow.
+    static const TCHAR* BodyCameraKey() { return TEXT("BodyCamera"); }
+    void ConnectBodyCamera();
+    void DisconnectBodyCamera();
+    TSharedPtr<IPCAPBodySource> GetBodyCamera() const { return BodyCamera; }
+    // One status line for the monitor: state, fps and drops while recording, the last error.
+    FString GetBodyCameraStatusText() const;
+    // Set when the configured mode is below Epic's 60 fps target for markerless body video.
+    FString GetBodyCameraWarning() const;
 
     // ─── Camera Feeds ─────────────────────────────────────────────────────────
 
@@ -263,6 +277,9 @@ private:
     // One transport per registered device (created in RegisterDevice, dropped in
     // UnregisterDevice). Every registered HMC is a Technoprops ORION today.
     TMap<FString, TSharedPtr<FTechnopropsFacialDevice>> Transports;
+    TSharedPtr<IPCAPBodySource> BodyCamera;
+    FTSTicker::FDelegateHandle  BodyPumpHandle;
+    bool PumpBodyFrame(float DeltaTime);
     FTechnopropsFacialDevice* FindTransport(const FString& DeviceName) const;
     void UpdateDeviceHealth(const FString& DeviceName);
 

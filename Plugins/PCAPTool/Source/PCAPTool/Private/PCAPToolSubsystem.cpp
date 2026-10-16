@@ -1,6 +1,9 @@
 #include "PCAPToolSubsystem.h"
 #include "PCAPToolStatics.h"
 #include "Devices/TechnopropsFacialDevice.h"
+#include "Devices/MarkerlessBodyCamera.h"
+#include "PCAPDeviceRegistry.h"
+#include "PCAPToolSettings.h"
 #include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 #include "Dom/JsonObject.h"
@@ -27,6 +30,7 @@ void UPCAPToolSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UPCAPToolSubsystem::Deinitialize()
 {
+    DisconnectBodyCamera();
     DisconnectAll();
     Super::Deinitialize();
 }
@@ -1089,3 +1093,70 @@ void UPCAPToolSubsystem::MarkAllPreppedForPreview()
 }
 
 // (UpdateAutoFlagHysteresis removed — per-flag debounce now lives in FHMCCameraAgent::Tick.)
+
+// ─── Body camera (markerless) ───────────────────────────────────────────────
+
+void UPCAPToolSubsystem::ConnectBodyCamera()
+{
+    DisconnectBodyCamera();
+    const UPCAPToolSettings* S = GetDefault<UPCAPToolSettings>();
+    BodyCamera = UPCAPDeviceRegistry::CreateBodySource(FMarkerlessBodyCamera::StaticVendorId());
+    if (!BodyCamera.IsValid()) return;
+    BodyCamera->Connect(FPCAPDeviceAddress(S->BodyCameraDevice));
+    // Preview arrives at ~10 fps; decode at the same rate into the reused feed texture.
+    BodyPumpHandle = FTSTicker::GetCoreTicker().AddTicker(
+        FTickerDelegate::CreateUObject(this, &UPCAPToolSubsystem::PumpBodyFrame), 0.1f);
+}
+
+void UPCAPToolSubsystem::DisconnectBodyCamera()
+{
+    if (BodyPumpHandle.IsValid())
+    {
+        FTSTicker::GetCoreTicker().RemoveTicker(BodyPumpHandle);
+        BodyPumpHandle.Reset();
+    }
+    if (BodyCamera.IsValid())
+    {
+        if (BodyCamera->VendorId() == FMarkerlessBodyCamera::StaticVendorId())
+            static_cast<FMarkerlessBodyCamera*>(BodyCamera.Get())->Disconnect();
+        BodyCamera.Reset();
+    }
+    FrameTextureCache.Remove(FString::Printf(TEXT("%s_0"), BodyCameraKey()));
+}
+
+bool UPCAPToolSubsystem::PumpBodyFrame(float)
+{
+    if (!BodyCamera.IsValid()) return true;
+    BodyCamera->RequestPreviewFrame(0, FOnPCAPPreviewFrame::CreateWeakLambda(this,
+        [this](bool bOk, int32, const TArray<uint8>& Jpeg)
+    {
+        if (!bOk) return;
+        IImageWrapperModule& IWM = FModuleManager::LoadModuleChecked<IImageWrapperModule>("ImageWrapper");
+        TSharedPtr<IImageWrapper> IW = IWM.CreateImageWrapper(EImageFormat::JPEG);
+        TArray<uint8> BGRA;
+        if (IW.IsValid() && IW->SetCompressed(Jpeg.GetData(), Jpeg.Num()) && IW->GetRaw(ERGBFormat::BGRA, 8, BGRA))
+            UpdateFrameTexture(FString::Printf(TEXT("%s_0"), BodyCameraKey()), BGRA, IW->GetWidth(), IW->GetHeight());
+    }));
+    return true;
+}
+
+FString UPCAPToolSubsystem::GetBodyCameraStatusText() const
+{
+    if (!BodyCamera.IsValid()) return TEXT("Not connected");
+    const FPCAPDeviceHealth H = BodyCamera->GetHealth();
+    FString Out;
+    if (H.bRecording)
+        Out = FString::Printf(TEXT("RECORDING  %.1f fps  %d dropped"), H.FPS, H.DroppedFrames);
+    else
+        Out = H.bConnected ? TEXT("Live") : TEXT("Starting...");
+    if (!H.LastError.IsEmpty()) Out += TEXT("  |  ") + H.LastError;
+    return Out;
+}
+
+FString UPCAPToolSubsystem::GetBodyCameraWarning() const
+{
+    const int32 Fps = GetDefault<UPCAPToolSettings>()->BodyCameraFps;
+    return Fps < 60
+        ? FString::Printf(TEXT("%d fps: below Epic's 60 fps target for markerless body video"), Fps)
+        : FString();
+}

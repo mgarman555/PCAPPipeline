@@ -86,6 +86,13 @@ private:
     FString PendingShotID;
 
     bool PendingHasVCam = false;   // a VCam source was armed for the in-flight take
+    // Body camera fan-out (markerless): recorded by its own FFmpeg into the take folder.
+    bool      bPendingBody = false;
+    bool      bTakeHadBody = false;        // survives StopRecord until the harvest
+    FString   PendingCaptureFolder;        // <CaptureRoot>/<Production>/Day_<Day>
+    FDateTime PendingTakeStartedAt = FDateTime(0);
+    // Stops the body camera if it is recording for the in-flight take. Safe to call twice.
+    void StopBodyCamera();
 
     UMocapDatabase* GetDB() const;
     void SetState(EPCAPRecordState NewState);
