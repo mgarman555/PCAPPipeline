@@ -96,15 +96,34 @@ bool UPCAPTakeRecorderSubsystem::AreActiveStreamsReady(FString& OutError) const
         if (!Subj.bIsActive) continue;
         bAnyActive = true;
 
-        if (Subj.bHasBodyStream && Subj.BodyStream.StreamStatus != EStreamStatus::Connected)
+        // Only Live Link streams gate on Live Link status. Device-backed streams (HMC, markerless
+        // camera) have no Live Link subject and gate on their device below / in Phase 3.
+        if (Subj.bHasBodyStream && !Subj.BodyStream.LiveLinkSubjectName.IsNone()
+            && Subj.BodyStream.StreamStatus != EStreamStatus::Connected)
         {
             OutError = FString::Printf(TEXT("%s body stream not connected."), *Subj.ActorID);
             return false;
         }
-        if (Subj.bHasFaceStream && Subj.FaceStream.StreamStatus != EStreamStatus::Connected)
+        if (Subj.bHasFaceStream && !Subj.FaceStream.LiveLinkSubjectName.IsNone()
+            && Subj.FaceStream.StreamStatus != EStreamStatus::Connected)
         {
             OutError = FString::Printf(TEXT("%s face stream not connected."), *Subj.ActorID);
             return false;
+        }
+
+        // Markerless body (Capture Setup row): the body camera must be live.
+        if (const FPCAPPerformerCaptureSetup* Row = DB->GetCaptureSetup(Subj.ActorID))
+        {
+            if (Row->MocapSystem.StartsWith(TEXT("Markerless")))
+            {
+                UPCAPToolSubsystem* Tool = GEngine ? GEngine->GetEngineSubsystem<UPCAPToolSubsystem>() : nullptr;
+                TSharedPtr<IPCAPBodySource> Body = Tool ? Tool->GetBodyCamera() : nullptr;
+                if (!Body.IsValid() || !Body->GetHealth().bConnected)
+                {
+                    OutError = FString::Printf(TEXT("%s uses Markerless body: connect the Body Camera in the HMC monitor."), *Subj.ActorID);
+                    return false;
+                }
+            }
         }
         for (const FAudioStreamEntry& A : Subj.AudioStreams)
         {
@@ -223,6 +242,7 @@ bool UPCAPTakeRecorderSubsystem::StartRecordForActiveShot(FString& OutError)
         OutError = TEXT("Take Recorder failed to start — see Output Log.");
         return false;
     }
+    Recorder->OnRecordingStarted().AddUObject(this, &UPCAPTakeRecorderSubsystem::HandleRecorderStarted);
     // RecordState flips to Capturing via HandleTakeStarted.
     return true;
 }
@@ -250,6 +270,11 @@ void UPCAPTakeRecorderSubsystem::FinishReview()
 }
 
 // ── Take Recorder callbacks ─────────────────────────────────────────────────
+
+void UPCAPTakeRecorderSubsystem::HandleRecorderStarted(UTakeRecorder*)
+{
+    HandleTakeStarted();
+}
 
 void UPCAPTakeRecorderSubsystem::HandleTakeStarted()
 {

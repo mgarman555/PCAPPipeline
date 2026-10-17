@@ -99,6 +99,9 @@ private:
 
     // Bound to UTakeRecorderSubsystem's dynamic delegates.
     UFUNCTION() void HandleTakeStarted();
+    // Per-recorder start (after the countdown). The subsystem's TakeRecorderStarted only fires for
+    // recordings the Take Recorder subsystem started itself, not for UTakeRecorderBlueprintLibrary ones.
+    void HandleRecorderStarted(class UTakeRecorder* Recorder);
     UFUNCTION() void HandleTakeFinished(ULevelSequence* SequenceAsset);
 
     // ── Reflection helpers (Take Recorder source classes are engine-private) ──

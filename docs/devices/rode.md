@@ -184,3 +184,13 @@ Receiver-missing detection: re-enumerate (`EnumerateAudioDevices(true)` or `FAud
 - Madi: "the transmitter directly into the P620". Per retailer copies of Rode's spec, the GO II's **computer audio interface is the receiver** (USB-C, 24-bit / 48 kHz); the **transmitter's** USB-C is for charging and for exporting its on-board recordings in RØDE Central. To check when connected: which unit enumerates as an audio input.
   Sources: https://www.bhphotovideo.com/c/product/1622642-REG/rode_wigoii_wireless_go_ii_compact.html , https://www.bhphotovideo.com/c/product/803494831-USE/rode_wigo_ii_single_wireless_go_ii_single.html
 - **On-board recording: yes** on GO II (24-bit / 48 kHz WAV, up to ~7 h uncompressed per transmitter, set up in RØDE Central). Exports carry markers where the TX/RX link dropped. Turn it on as the safety backup (handoff §4.2(c)); offload = export from RØDE Central into the take folder.
+
+## 8. Observed 2026-10-16: the connected Rode unit is not an audio input
+
+Plugged into the P620 by Madi ("audio is in now"). Read-only checks:
+
+- **USB:** composite device `USB\VID_19F7&PID_001E` (Rode). Interfaces: `MI_00` HID (USB Input Device plus vendor-defined HID collections, the RØDE Central control channel) and `MI_01` USB Mass Storage, which shows as disk **`RODE RAMBUFFER-UDISK USB Device`** (3726 MB).
+- **No audio interface.** `ffmpeg -list_devices true -f dshow` lists no Rode input; the audio inputs are the C920 mic, Realtek, Focusrite, "Digital Audio Interface (USB Digital Audio)" and Steam. `Get-PnpDevice` shows no Rode device of class MEDIA / AudioEndpoint.
+- **The disk is not readable by Windows:** drive letter `E:` is assigned but has no file system (size 0, `Test-Path E:\` = False). On-board recordings come off through RØDE Central, not as files.
+- **Conclusion:** this is the access the §7 note predicted for the **transmitter** (charging + RØDE Central export). It can be the on-board backup, but it cannot feed Take Recorder. For live audio in Unreal, the **receiver** must be plugged into the P620 over USB-C; it should enumerate as an audio input (to verify: run `Tools/probes/rode_probe.ps1` and speak during the 10 s recording).
+- Not changed: no RØDE Central, no device settings touched.

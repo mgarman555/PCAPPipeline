@@ -1156,7 +1156,16 @@ FString UPCAPToolSubsystem::GetBodyCameraStatusText() const
 FString UPCAPToolSubsystem::GetBodyCameraWarning() const
 {
     const int32 Fps = GetDefault<UPCAPToolSettings>()->BodyCameraFps;
-    return Fps < 60
+    FString Out = Fps < 60
         ? FString::Printf(TEXT("%d fps: below Epic's 60 fps target for markerless body video"), Fps)
         : FString();
+    // The C920 halves its frame rate in low light (body-camera.md §8); say so while recording.
+    if (BodyCamera.IsValid())
+    {
+        const FPCAPDeviceHealth H = BodyCamera->GetHealth();
+        if (H.bRecording && H.FPS > 0.f && H.FPS < Fps * 0.9f)
+            Out += FString::Printf(TEXT("%sLOW FRAME RATE: %.1f of %d fps. Add light on the performer."),
+                Out.IsEmpty() ? TEXT("") : TEXT("\n"), H.FPS, Fps);
+    }
+    return Out;
 }
