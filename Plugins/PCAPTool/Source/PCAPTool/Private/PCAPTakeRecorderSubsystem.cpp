@@ -114,6 +114,16 @@ bool UPCAPTakeRecorderSubsystem::AreActiveStreamsReady(FString& OutError) const
         // Markerless body (Capture Setup row): the body camera must be live.
         if (const FPCAPPerformerCaptureSetup* Row = DB->GetCaptureSetup(Subj.ActorID))
         {
+            if (Row->AudioSystem == TEXT("Lavs"))
+            {
+                UPCAPToolSubsystem* ToolA = GEngine ? GEngine->GetEngineSubsystem<UPCAPToolSubsystem>() : nullptr;
+                TSharedPtr<IPCAPAudioSource> Audio = ToolA ? ToolA->GetAudioInput() : nullptr;
+                if (!Audio.IsValid() || !Audio->GetHealth().bConnected)
+                {
+                    OutError = FString::Printf(TEXT("%s is on Lavs: connect the Audio input in the HMC monitor."), *Subj.ActorID);
+                    return false;
+                }
+            }
             if (Row->MocapSystem.StartsWith(TEXT("Markerless")))
             {
                 UPCAPToolSubsystem* Tool = GEngine ? GEngine->GetEngineSubsystem<UPCAPToolSubsystem>() : nullptr;
@@ -180,6 +190,18 @@ bool UPCAPTakeRecorderSubsystem::StartRecordForActiveShot(FString& OutError)
         if (Subj.bHasFaceStream && !Subj.FaceStream.LiveLinkSubjectName.IsNone())
         {
             AddLiveLinkSource(Sources, Subj.FaceStream.LiveLinkSubjectName);
+        }
+    }
+
+    // Audio: a connected input records through Take Recorder's microphone source (one mono
+    // 44.1 kHz SoundWave per take, rode.md §4.3).
+    if (UPCAPToolSubsystem* ToolA = GEngine ? GEngine->GetEngineSubsystem<UPCAPToolSubsystem>() : nullptr)
+    {
+        TSharedPtr<IPCAPAudioSource> Audio = ToolA->GetAudioInput();
+        if (Audio.IsValid() && Audio->GetHealth().bConnected && !Audio->ArmTakeRecorderSource(Sources))
+        {
+            OutError = TEXT("Audio input could not be armed: ") + Audio->GetHealth().LastError;
+            return false;
         }
     }
 

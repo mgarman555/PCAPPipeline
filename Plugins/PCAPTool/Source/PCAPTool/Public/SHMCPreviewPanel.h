@@ -35,6 +35,8 @@ private:
     // Body camera (markerless): live feed, status, Connect/Disconnect. Built once; binds to the subsystem.
     TSharedRef<SWidget> BuildBodyCameraCard();
     TSharedPtr<FSlateBrush> BodyFeedBrush;
+    // Audio input: name, Connect/Disconnect, live level meter (-60..0 dBFS), status.
+    TSharedRef<SWidget> BuildAudioCard();
     // FeedW = the feed's render width; the feed height is derived from it and the
     // camera's display aspect so the frame matches the video (no letterbox/blank).
     TSharedRef<SWidget> BuildFeed(const FString& DeviceName, int32 CameraIndex, const FString& Label, float FeedW);

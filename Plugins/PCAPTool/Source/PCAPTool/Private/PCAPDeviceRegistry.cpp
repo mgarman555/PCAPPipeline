@@ -2,6 +2,7 @@
 #include "PCAPToolSubsystem.h"
 #include "Devices/TechnopropsFacialDevice.h"
 #include "Devices/MarkerlessBodyCamera.h"
+#include "Devices/UsbAudioInput.h"
 #include "PCAPToolSettings.h"
 #include "Engine/Engine.h"
 
@@ -43,7 +44,7 @@ void UPCAPDeviceRegistry::EnsureBuiltIns()
     C.bBuiltInsRegistered = true;
 
     // Only adapters whose behavior is verified ship here, each after its device agent's
-    // PASS log (docs/devices/*-verification.md). OneHMC and USB audio are still pending.
+    // PASS log (docs/devices/*-verification.md). OneHMC is still pending.
     C.Facial.Add(FTechnopropsFacialDevice::StaticVendorId(),
         []() -> TSharedRef<IPCAPFacialDevice> { return MakeShared<FTechnopropsFacialDevice>(); });
     // Body camera: verified 2026-10-16 on the C920S (body-camera-verification.md #26-#33).
@@ -57,6 +58,14 @@ void UPCAPDeviceRegistry::EnsureBuiltIns()
             Cam->SetMode(M);
         }
         return Cam;
+    });
+    // Audio: any Windows input through Take Recorder's microphone source. Verified on the Focusrite
+    // (rode.md §9); the Rode receiver is pending a working cable.
+    C.Audio.Add(FUsbAudioInput::StaticVendorId(), []() -> TSharedRef<IPCAPAudioSource>
+    {
+        TSharedRef<FUsbAudioInput> In = MakeShared<FUsbAudioInput>();
+        In->SetChannel(GetDefault<UPCAPToolSettings>()->AudioInputChannel);
+        return In;
     });
 }
 

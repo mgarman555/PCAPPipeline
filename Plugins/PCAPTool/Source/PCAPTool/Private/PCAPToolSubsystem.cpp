@@ -2,6 +2,7 @@
 #include "PCAPToolStatics.h"
 #include "Devices/TechnopropsFacialDevice.h"
 #include "Devices/MarkerlessBodyCamera.h"
+#include "Devices/UsbAudioInput.h"
 #include "PCAPDeviceRegistry.h"
 #include "PCAPToolSettings.h"
 #include "IImageWrapper.h"
@@ -31,6 +32,7 @@ void UPCAPToolSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void UPCAPToolSubsystem::Deinitialize()
 {
     DisconnectBodyCamera();
+    DisconnectAudioInput();
     DisconnectAll();
     Super::Deinitialize();
 }
@@ -1166,6 +1168,40 @@ FString UPCAPToolSubsystem::GetBodyCameraWarning() const
         if (H.bRecording && H.FPS > 0.f && H.FPS < Fps * 0.9f)
             Out += FString::Printf(TEXT("%sLOW FRAME RATE: %.1f of %d fps. Add light on the performer."),
                 Out.IsEmpty() ? TEXT("") : TEXT("\n"), H.FPS, Fps);
+    }
+    return Out;
+}
+
+// ─── Audio input ────────────────────────────────────────────────────────────
+
+void UPCAPToolSubsystem::ConnectAudioInput()
+{
+    DisconnectAudioInput();
+    AudioInput = UPCAPDeviceRegistry::CreateAudioSource(FUsbAudioInput::StaticVendorId());
+    if (AudioInput.IsValid())
+        AudioInput->Connect(FPCAPDeviceAddress(GetDefault<UPCAPToolSettings>()->AudioInputDevice));
+}
+
+void UPCAPToolSubsystem::DisconnectAudioInput()
+{
+    if (AudioInput.IsValid() && AudioInput->VendorId() == FUsbAudioInput::StaticVendorId())
+        static_cast<FUsbAudioInput*>(AudioInput.Get())->Disconnect();
+    AudioInput.Reset();
+}
+
+FString UPCAPToolSubsystem::GetAudioStatusText() const
+{
+    if (!AudioInput.IsValid()) return TEXT("Not connected");
+    const FPCAPDeviceHealth H = AudioInput->GetHealth();
+    if (!H.LastError.IsEmpty()) return H.LastError;
+    if (!H.bConnected) return TEXT("Starting...");
+    FString Out = FString::Printf(TEXT("Live  %.0f dB"), AudioInput->GetLevelDb());
+    if (AudioInput->VendorId() == FUsbAudioInput::StaticVendorId())
+    {
+        const FUsbAudioInput* In = static_cast<const FUsbAudioInput*>(AudioInput.Get());
+        Out += FString::Printf(TEXT("  ·  ch %d of %d  ·  %d Hz"), In->GetChannel(), In->GetDeviceChannels(), In->GetSampleRate());
+        if (In->IsClipping()) Out += TEXT("  |  CLIPPING: lower the gain");
+        else if (In->SecondsSinceSignal() > 10.0) Out += TEXT("  |  No signal for 10 s");
     }
     return Out;
 }

@@ -6,6 +6,12 @@
 #include "PCAPTakeOffload.h"
 #include "PCAPDeviceInterfaces.h"
 #include "Devices/MarkerlessBodyCamera.h"
+#include "Devices/UsbAudioInput.h"
+#include "PCAPToolPaths.h"
+#include "AudioCaptureCore.h"
+#include "TakeRecorderMicrophoneAudioManager.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Sound/SoundWave.h"
 #include "Engine/Engine.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformProcess.h"
@@ -47,14 +53,28 @@ namespace PCAPRecordFlowTest
     {
         UPCAPToolSettings* S;
         TSoftObjectPtr<UMocapDatabase> OldDB;
-        FString OldRoot;
+        FString OldRoot, OldAudio;
+        FAudioInputDeviceProperty OldTakeRecorderInput = GetMutableDefault<UTakeRecorderMicrophoneAudioManager>()->GetAudioInputDevice();
         FSettingsScope(UMocapDatabase* DB, const FString& Root) : S(UPCAPToolSettings::Get())
         {
-            OldDB = S->DatabaseAsset; OldRoot = S->CaptureRoot.Path;
+            OldDB = S->DatabaseAsset; OldRoot = S->CaptureRoot.Path; OldAudio = S->AudioInputDevice;
             S->DatabaseAsset = DB; S->CaptureRoot.Path = Root;   // in memory only, never saved
         }
-        void Restore() { S->DatabaseAsset = OldDB; S->CaptureRoot.Path = OldRoot; }
+        void Restore()
+        {
+            S->DatabaseAsset = OldDB; S->CaptureRoot.Path = OldRoot; S->AudioInputDevice = OldAudio;
+            GetMutableDefault<UTakeRecorderMicrophoneAudioManager>()->SetAudioInputDevice(OldTakeRecorderInput);
+        }
     };
+
+    static FString FocusriteInput()
+    {
+        Audio::FAudioCapture Enum;
+        TArray<Audio::FCaptureDeviceInfo> Devices;
+        Enum.GetCaptureDevicesAvailable(Devices);
+        for (const Audio::FCaptureDeviceInfo& D : Devices) if (D.DeviceName.Contains(TEXT("Focusrite"))) return D.DeviceName;
+        return FString();
+    }
 
     static bool CameraPresent()
     {
@@ -116,18 +136,22 @@ bool FPCAPRecordFlowBodyCameraTest::RunTest(const FString&)
     DB->AddToRoot();
     TSharedRef<PCAPRecordFlowTest::FSettingsScope> Scope = MakeShared<PCAPRecordFlowTest::FSettingsScope>(DB, Root);
     Tool->ConnectBodyCamera();
+    // Audio rides along when a known-good input exists (the Focusrite on the P620).
+    const FString AudioName = PCAPRecordFlowTest::FocusriteInput();
+    if (!AudioName.IsEmpty()) { Scope->S->AudioInputDevice = AudioName; Tool->ConnectAudioInput(); }
 
     struct FState { double T0 = 0; int32 Step = 0; };
     TSharedRef<FState> St = MakeShared<FState>();
     St->T0 = FPlatformTime::Seconds();
 
-    ADD_LATENT_AUTOMATION_COMMAND(FFunctionLatentCommand([this, Tool, Rec, DB, Root, Scope, St]() -> bool
+    ADD_LATENT_AUTOMATION_COMMAND(FFunctionLatentCommand([this, Tool, Rec, DB, Root, Scope, St, AudioName]() -> bool
     {
         const double Now = FPlatformTime::Seconds();
         TSharedPtr<IPCAPBodySource> Body = Tool->GetBodyCamera();
         auto Finish = [&]()
         {
             Tool->DisconnectBodyCamera();
+            Tool->DisconnectAudioInput();
             Rec->FinishReview();
             Scope->Restore();
             DB->RemoveFromRoot();
@@ -138,7 +162,10 @@ bool FPCAPRecordFlowBodyCameraTest::RunTest(const FString&)
         switch (St->Step)
         {
         case 0:   // wait for the live preview
-            if (Body.IsValid() && Body->GetHealth().bConnected)
+        {
+            TSharedPtr<IPCAPAudioSource> AudioIn = Tool->GetAudioInput();
+            const bool bAudioReady = AudioName.IsEmpty() || (AudioIn.IsValid() && AudioIn->GetHealth().bConnected);
+            if (Body.IsValid() && Body->GetHealth().bConnected && bAudioReady)
             {
                 FString Err;
                 const bool bStarted = Rec->StartRecordForActiveShot(Err);
@@ -148,9 +175,10 @@ bool FPCAPRecordFlowBodyCameraTest::RunTest(const FString&)
             }
             else if (Now - St->T0 > 10.0) { AddError(TEXT("Body camera never went live.")); return Finish(); }
             return false;
+        }
 
-        case 1:   // record ~5 s
-            if (Now - St->T0 < 5.0) return false;
+        case 1:   // record ~8 s
+            if (Now - St->T0 < 8.0) return false;   // covers Take Recorder's countdown
             TestEqual(TEXT("Take Recorder capturing"), Rec->GetRecordState(), EPCAPRecordState::Capturing);
             Rec->StopRecord();
             St->Step = 2; St->T0 = Now;
@@ -173,6 +201,17 @@ bool FPCAPRecordFlowBodyCameraTest::RunTest(const FString&)
                     TestTrue(TEXT("body video in the take folder"), IFileManager::Get().FileExists(*File));
                     TestTrue(TEXT("body video has content"), IFileManager::Get().FileSize(*File) > 100 * 1024);
                     TestTrue(TEXT("Take Recorder sequence"), !Take.MasterSequence.IsNull());
+                    if (!AudioName.IsEmpty())
+                    {
+                        // Take Recorder saves the audio under <Shot>/<TakeID>_Subscenes/Audio/, beside the take folder.
+                        const FString ShotPath = FString::Printf(TEXT("%s/testing/Day_001/Session_S01/Shot_001"), *PCAPPaths::Productions());
+                        TArray<FAssetData> Assets;
+                        IAssetRegistry::Get()->GetAssetsByPath(FName(*ShotPath), Assets, true);
+                        const FString TakeID = Take.TakeID;
+                        const bool bSound = Assets.ContainsByPredicate([&TakeID](const FAssetData& A)
+                        { return A.AssetClassPath == USoundWave::StaticClass()->GetClassPathName() && A.AssetName.ToString().Contains(TakeID); });
+                        TestTrue(FString::Printf(TEXT("audio SoundWave recorded from %s"), *AudioName), bSound);
+                    }
                 }
                 TestTrue(TEXT("preview resumes after the take"), Body->GetHealth().LastError.IsEmpty());
                 return Finish();

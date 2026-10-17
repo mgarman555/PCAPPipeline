@@ -3,6 +3,8 @@
 #include "PCAPToolStatics.h"
 #include "PCAPToolSettings.h"
 #include "PCAPDeviceInterfaces.h"
+#include "PCAPTakeRecorderSubsystem.h"
+#include "Engine/Engine.h"
 #include "MocapDatabase.h"
 #include "ActorRosterEntry.h"
 #include "Widgets/SBoxPanel.h"
@@ -15,6 +17,7 @@
 #include "Widgets/Layout/SWrapBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Notifications/SProgressBar.h"
 #include "Styling/AppStyle.h"
 #include "Styling/SlateColor.h"
 #include "Styling/SlateBrush.h"
@@ -58,6 +61,11 @@ void SHMCPreviewPanel::Construct(const FArguments& InArgs)
             .Padding(8.f, 0.f, 8.f, 4.f)
             [
                 BuildBodyCameraCard()
+            ]
+            + SScrollBox::Slot()
+            .Padding(8.f, 0.f, 8.f, 4.f)
+            [
+                BuildAudioCard()
             ]
             + SScrollBox::Slot()
             [
@@ -773,6 +781,89 @@ TSharedRef<SWidget> SHMCPreviewPanel::BuildBodyCameraCard()
                 {
                     UPCAPToolSubsystem* Sub = GetSubsystem();
                     return Sub && !Sub->GetBodyCameraWarning().IsEmpty() ? EVisibility::Visible : EVisibility::Collapsed;
+                })
+            ]
+        ];
+}
+
+// ─── Audio card ───────────────────────────────────────────────────────────────
+
+TSharedRef<SWidget> SHMCPreviewPanel::BuildAudioCard()
+{
+    auto Audio = []() -> TSharedPtr<IPCAPAudioSource>
+    {
+        UPCAPToolSubsystem* Sub = GetSubsystem();
+        return Sub ? Sub->GetAudioInput() : nullptr;
+    };
+    auto LevelDb = [Audio]() { TSharedPtr<IPCAPAudioSource> A = Audio(); return A.IsValid() ? A->GetLevelDb() : -120.f; };
+
+    return SNew(SBorder)
+        .BorderImage(FAppStyle::GetBrush("WhiteBrush"))
+        .BorderBackgroundColor(BgCard)
+        .Padding(10.f)
+        [
+            SNew(SVerticalBox)
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+                [
+                    SNew(STextBlock).Text(FText::FromString(TEXT("AUDIO"))).ColorAndOpacity(FSlateColor(ColMuted))
+                ]
+                + SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center).Padding(10.f, 0.f)
+                [
+                    SNew(STextBlock).ColorAndOpacity(FSlateColor(ColWhite))
+                    .Text_Lambda([]()
+                    {
+                        const UPCAPToolSettings* S = GetDefault<UPCAPToolSettings>();
+                        return FText::FromString(S->AudioInputDevice.IsEmpty()
+                            ? FString(TEXT("No input set (Project Settings > PCAP Tool > Audio)"))
+                            : FString::Printf(TEXT("%s  ·  channel %d"), *S->AudioInputDevice, S->AudioInputChannel));
+                    })
+                ]
+                + SHorizontalBox::Slot().AutoWidth()
+                [
+                    SNew(SButton)
+                    .IsEnabled_Lambda([]() { UPCAPTakeRecorderSubsystem* R = GEngine ? GEngine->GetEngineSubsystem<UPCAPTakeRecorderSubsystem>() : nullptr; return !(R && R->IsRecording()); })
+                    .Text_Lambda([Audio]() { return FText::FromString(Audio().IsValid() ? TEXT("Disconnect") : TEXT("Connect")); })
+                    .OnClicked_Lambda([Audio]()
+                    {
+                        if (UPCAPToolSubsystem* Sub = GetSubsystem())
+                        {
+                            if (Audio().IsValid()) Sub->DisconnectAudioInput(); else Sub->ConnectAudioInput();
+                        }
+                        return FReply::Handled();
+                    })
+                ]
+            ]
+
+            // Level meter: -60..0 dBFS. Green, yellow above -12, red when clipping.
+            + SVerticalBox::Slot().AutoHeight()
+            [
+                SNew(SBox).HeightOverride(14.f)
+                [
+                    SNew(SProgressBar)
+                    .Percent_Lambda([LevelDb]() { return TOptional<float>(FMath::Clamp((LevelDb() + 60.f) / 60.f, 0.f, 1.f)); })
+                    .FillColorAndOpacity_Lambda([this, LevelDb]()
+                    {
+                        const float Db = LevelDb();
+                        return FSlateColor(Db >= -0.5f ? ColRed : Db > -12.f ? ColYellow : ColGreen);
+                    })
+                ]
+            ]
+
+            + SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)
+            [
+                SNew(STextBlock).AutoWrapText(true)
+                .ColorAndOpacity_Lambda([this, Audio]()
+                {
+                    TSharedPtr<IPCAPAudioSource> A = Audio();
+                    return FSlateColor(A.IsValid() && !A->GetHealth().LastError.IsEmpty() ? ColRed : ColWhite);
+                })
+                .Text_Lambda([]()
+                {
+                    UPCAPToolSubsystem* Sub = GetSubsystem();
+                    return FText::FromString(Sub ? Sub->GetAudioStatusText() : FString());
                 })
             ]
         ];

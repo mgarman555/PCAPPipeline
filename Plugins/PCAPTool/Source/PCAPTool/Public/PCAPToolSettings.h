@@ -50,6 +50,15 @@ public:
     UPROPERTY(Config, EditAnywhere, Category="Body Camera", meta=(ClampMin=1, ClampMax=120))
     int32 BodyCameraFps = 30;
 
+    // Audio input recorded by Take Recorder (Windows input name, as listed in Sound settings).
+    // Empty until a working input is chosen; the Rode receiver is not usable yet (docs/devices/rode.md §8).
+    UPROPERTY(Config, EditAnywhere, Category="Audio")
+    FString AudioInputDevice;
+
+    // 1-based channel on that input (Focusrite input 1 = 1).
+    UPROPERTY(Config, EditAnywhere, Category="Audio", meta=(ClampMin=1, ClampMax=8))
+    int32 AudioInputChannel = 1;
+
     static UPCAPToolSettings* Get();
     UMocapDatabase* GetDatabase() const;
 

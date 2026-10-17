@@ -35,6 +35,8 @@ public class PCAPTool : ModuleRules
             "IKRig",                // Forward-declared in PCAPToolTypes.h
             "TakeRecorder",         // UTakeRecorderBlueprintLibrary, FTakeRecorderParameters, UTakeRecorderSubsystem
             "TakesCore",            // UTakeRecorderSources, UTakeMetaData
+            "TakeRecorderSources",  // UTakeRecorderMicrophoneAudioSource / Manager — USB audio adapter
+            "AudioCaptureCore",     // Audio::FAudioCapture — live input level for the audio adapter
             "MovieScene",           // FFrameNumber / movie-scene types used by Take Recorder params
             "AssetRegistry",        // list roster DataAssets (Actor/Prop/Stage databases)
             "PropertyEditor",       // SObjectPropertyEntryBox — asset-picker slots in DB forms

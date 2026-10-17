@@ -11,6 +11,7 @@
 class IPCAPFacialDevice;
 class FTechnopropsFacialDevice;
 class IPCAPBodySource;
+class IPCAPAudioSource;
 
 // HMC status / frame / connection delegates (bound by the Slate panels).
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPCAPHMCStatusUpdated,
@@ -101,6 +102,13 @@ public:
     FString GetBodyCameraStatusText() const;
     // Set when the configured mode is below Epic's 60 fps target for markerless body video.
     FString GetBodyCameraWarning() const;
+
+    // ── Audio input (Take Recorder microphone) ──
+    // Connects Project Settings > PCAP Tool > Audio > Audio Input Device for metering; Record arms it.
+    void ConnectAudioInput();
+    void DisconnectAudioInput();
+    TSharedPtr<IPCAPAudioSource> GetAudioInput() const { return AudioInput; }
+    FString GetAudioStatusText() const;
 
     // ─── Camera Feeds ─────────────────────────────────────────────────────────
 
@@ -278,6 +286,7 @@ private:
     // UnregisterDevice). Every registered HMC is a Technoprops ORION today.
     TMap<FString, TSharedPtr<FTechnopropsFacialDevice>> Transports;
     TSharedPtr<IPCAPBodySource> BodyCamera;
+    TSharedPtr<IPCAPAudioSource> AudioInput;
     FTSTicker::FDelegateHandle  BodyPumpHandle;
     bool PumpBodyFrame(float DeltaTime);
     FTechnopropsFacialDevice* FindTransport(const FString& DeviceName) const;

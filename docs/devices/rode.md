@@ -199,3 +199,18 @@ Plugged into the P620 by Madi ("audio is in now"). Read-only checks:
 - At the same moment "Audio Technica Microphone (Realtek USB Audio Front)" reappeared in the input list (it had disappeared earlier). 5 s capture: 44.1 kHz, 2 ch, mean -55.5 dB, max -42.6 dB = **silent** (probe threshold -50 dB). Not yet known whether the receiver's 3.5 mm output is cabled to that front jack.
 - **Probe with Madi talking into the transmitter (21:08,** `rode_probe.ps1 -Device "Audio Technica Microphone (Realtek USB Audio Front)"`): 48 kHz 2 ch 24-bit, 9.98 s, mean **-71.6 dB**, max **-59.9 dB** = **SILENT**. The receiver's 3.5 mm output reportedly goes into this jack, so no audio is reaching it. Not yet known whether the receiver itself shows the link and a moving level.
 - **Wireless link works** (Madi: the receiver's meters move with speech). **Windows endpoint is not the cause:** read-only Core Audio check shows "Audio Technica Microphone (Realtek USB Audio Front)" at 100% (0.0 dB), not muted. So the signal is lost between the receiver's 3.5 mm output and the front jack. Likely a cable mismatch (the receiver outputs TRS; a front combo/headset jack expects TRRS) or the wrong jack. Alternative path: the receiver output into the Focusrite input (already a working 48 kHz USB interface on this PC).
+
+## 9. Audio adapter verified on another input (2026-10-16, Focusrite)
+
+The adapter (`FUsbAudioInput`, vendor `UsbAudioInput`) is generic: any Windows input, chosen by name in Project Settings > PCAP Tool > Audio. Verified with **`Analogue 1 + 2 (Focusrite USB Audio)`** because the Rode receiver has no working path yet (§8). Tests `PCAP.Hardware.AudioInput` and `PCAP.Hardware.RecordWithBodyCamera`:
+
+| Behavior | Result | Evidence |
+|---|---|---|
+| Metering stream opens on the named input (WASAPI shared, float32) | **PASS** | 2 ch, 48000 Hz; level -120 dB (nothing plugged into the Focusrite: digital silence) |
+| Arming adds a Take Recorder Microphone Audio source on that device and channel | **PASS** | manager `DeviceId` = the input's endpoint id, `bUseSystemDefaultAudioDevice=false`, source channel 1 |
+| Metering and Take Recorder's own capture coexist on one endpoint | **PASS** | both streams open; mic manager "Initialized ... 48000 hz, 2 channels" while metering ran |
+| Real Record: SoundWave saved with the take | **PASS** | `/Game/PCAPTool/Productions/testing/Day_001/Session_S01/Shot_001/001001_001_Subscenes/Audio/Audio_001001_001_Channel_1`; 48 kHz resampled to 44.1 kHz (as §4.3) |
+| Take Recorder countdown | **observed** | in an 8 s Record, the mic captured 3.94 s: Take Recorder counts down ~4 s before it really starts. The body camera starts at Record, so its first frame lands ~0.26 s **before** Take Recorder's start; the take logs that offset. |
+| Mic recorder buffer overflow | **observed** | "Detected 1 buffer overflows" per take (at stream start); not yet investigated |
+
+Not verified: the Rode itself (no input path), unplug detection on a real unplug, level with real signal.
